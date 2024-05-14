@@ -1,2 +1,1 @@
-# bfpwr
-Closed-Form Power and Sample Size Calculations for Bayes Factors
+# Closed-Form Power and Sample Size Calculations for Bayes Factors

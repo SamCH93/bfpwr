@@ -1,0 +1,203 @@
+nbf01. <- function(k, power, sd, null = 0, pm, psd, dpm = pm, dpsd = psd,
+                   nrange = c(1, 10^5), integer = TRUE, lower.tail = TRUE) {
+    ## input checks
+    stopifnot(
+        length(k) == 1,
+        is.numeric(k),
+        is.finite(k),
+        0 < k,
+
+        length(power) == 1,
+        is.numeric(power),
+        is.finite(power),
+        0 < power, power < 1,
+
+        length(sd) == 1,
+        is.numeric(sd),
+        is.finite(sd),
+        0 < sd,
+
+        length(null) == 1,
+        is.numeric(null),
+        is.finite(null),
+
+        length(pm) == 1,
+        is.numeric(pm),
+        is.finite(pm),
+
+        length(psd) == 1,
+        is.numeric(psd),
+        is.finite(psd),
+        0 <= psd,
+
+        length(dpm) == 1,
+        is.numeric(dpm),
+        is.finite(dpm),
+
+        length(dpsd) == 1,
+        is.numeric(dpsd),
+        is.finite(dpsd),
+        0 <= dpsd,
+
+        length(nrange) == 2,
+        all(is.numeric(nrange)),
+        all(is.finite(nrange)),
+        nrange[2] > nrange[1],
+
+        length(lower.tail) == 1,
+        is.logical(lower.tail),
+        !is.na(lower.tail),
+
+        length(integer) == 1,
+        is.logical(integer),
+        !is.na(integer)
+    )
+
+
+    ## TODO implement closed-form
+    ## TODO implement power limits
+    ## TODO implement BF limits
+
+    ## define function for numerical root-finding
+    rootFun <- function(n) {
+        pbf01(k = k, n = n, sd = sd, null = null, pm = pm, psd = psd, dpm = dpm,
+              dpsd = dpsd, lower.tail = lower.tail) - power
+    }
+
+    ## check boundaries of sample size search range
+    if (rootFun(n = nrange[1]) > 0) {
+        warning("lower bound of sample size search range ('nrange') leads to higher power than specified")
+        n <- NaN
+    } else if (rootFun(n = nrange[2]) < 0) {
+        warning("upper bound of sample size search range ('nrange') leads to lower power than specified")
+        n <- NaN
+    } else {
+        ## perform root-finding
+        res <- try(stats::uniroot(f = rootFun, interval = nrange)$root)
+        if (inherits(res, "try-error")) {
+            n <- NaN
+        } else {
+            n <- res
+        }
+    }
+    if (integer) return(ceiling(n))
+    else return(n)
+}
+
+
+#' @title Sample size determination for Bayes factor analysis
+#'
+#' @description This function computes the required sample size to obtain a
+#'     Bayes factor (\link{bf01}) less or greater than a threshold \code{k} with
+#'     a specified target power.
+#'
+#' @param k Bayes factor threshold
+#' @param power Target power
+#' @param sd Standard deviation of one unit
+#' @param null Parameter value under the point null hypothesis. Defaults to 0
+#' @param pm Mean of the normal prior assigned to the parameter under the
+#'     alternative in the analysis
+#' @param psd Standard deviation of the normal prior assigned to the parameter
+#'     under the alternative in the analysis. Set to 0 to obtain a point prior
+#'     at the prior mean
+#' @param dpm Mean of the normal design prior assigned to the parameter.
+#'     Defaults to the same value as specified for the analysis prior \code{pm}
+#' @param dpsd Standard deviation of the normal design prior assigned to the
+#'     parameter. Set to 0 to obtain a point prior at the prior mean. Defaults
+#'     to the same value as specified for the analysis prior \code{psd}
+#' @param nrange Sample size search range. Defaults to \code{c(1, 10^5)}
+#' @param lower.tail Logical indicating whether Pr(BF <= k) (\code{TRUE}) or
+#'     Pr(BF > k) (\code{FALSE}) is the probability of interest. Defaults to
+#'     \code{TRUE}
+#' @param integer Logical indicating whether only integer valued sample sizes
+#'     should be returned. If \code{TRUE} the required sample size is rounded
+#'     the next larger integer. Defaults to \code{TRUE}
+#'
+#' @return The required sample size to achieve the specified power
+#'
+#' @author Samuel Pawel
+#'
+#' @seealso \link{pbf01}
+#'
+#' @examples
+#' nbf01(k = 1/10, power = 0.8, sd = 2, null = 0, pm = 0, psd = 2)
+#' @export
+nbf01 <- Vectorize(FUN = nbf01.,
+                   vectorize.args = c("k", "power", "sd", "null", "pm", "psd",
+                                      "dpm", "dpsd"))
+
+
+
+## ## should give the same as closed-form solutions
+## ## - for point alternatives and design priors (should be exact)
+## sd <- 2
+## pm <- 1
+## psd <- 0
+## dpm <- 2
+## dpsd <- 0
+## null <- 0.5
+## beta <- 0.2
+## k <- 1/10
+## zb <- stats::qnorm(p = 1 - beta)
+## (zb + sqrt(zb^2 - log(k^2)*(null + pm - 2*dpm)/(null - pm)))^2/(null + pm - 2*dpm)^2*sd^2
+## nbf01(k = k, power = 1 - beta, sd = sd, null = null, pm = pm, psd = psd, dpm = dpm,
+##       dpsd = dpsd, integer = FALSE)
+## ## - for local alternatives and design priors (this is an approximation)
+## psd <- dpsd <- 1
+## pm <- dpm <- null
+## sd^2/psd^2*k^2*exp(-lamW::lambertWm1(x = -stats::qnorm(p = (1 + beta)/2)^2*k^2))
+## nbf01(k = k, power = 1 - beta, sd = sd, null = null, pm = pm, psd = psd, dpm = dpm,
+##       dpsd = dpsd, integer = FALSE)
+
+## ## - for point alternatives and normal design priors (should be exact)
+## sd <- 2
+## pm <- 1
+## psd <- 0
+## dpm <- 0.8
+## dpsd <- 0
+## null <- -0.5
+## beta <- 0.2
+## k <- 1/10
+## zb <- stats::qnorm(p = 1 - beta)
+## (n1 <- nbf01(k = k, power = 1 - beta, sd = sd, null = null, pm = pm, psd = psd,
+##              dpm = dpm, dpsd = dpsd, integer = FALSE))
+## pbf01(k = k, n = n1, sd = sd, null = null, pm = pm, psd = psd, dpm = dpm,
+##       dpsd = dpsd)
+
+## A <- zb^2*dpsd^2 - ((null + pm)/2 - dpm)^2
+## B <- zb^2*sd^2 - (null + pm - 2*dpm)*sd^2*log(k)/(null - pm)
+## C <- -(sd^2*log(k)/(null - pm))^2
+## (n2 <- (-B + c(-1, 1)*sqrt(B^2 - 4*A*C))/(2*A))
+## pbf01(k = k, n = n2[1], sd = sd, null = null, pm = pm, psd = psd, dpm = dpm,
+##       dpsd = dpsd)
+
+## ## - for local alternatives and design priors (this is an approximation)
+## psd <- dpsd <- 1
+## pm <- dpm <- null
+## (n2 <- sd^2/psd^2*k^2*exp(-lamW::lambertWm1(x = -stats::qnorm(p = (1 + beta)/2)^2*k^2)))
+## nbf01(k = k, power = 1 - beta, sd = sd, null = null, pm = pm, psd = psd, dpm = dpm,
+##       dpsd = dpsd, integer = FALSE)
+
+
+## ## produce some tables
+## ## - point alternatives with SMD = 1
+## kseq <- rev(c(1/1000, 1/300, 1/100, 1/30, 1/10, 1/3, 1/2))
+## powseq <- seq(0.5, 0.95, 0.05)
+## tab1 <- sapply(X = kseq, FUN = function(k) {
+##     beta <- 1 - powseq
+##     zb <- stats::qnorm(p = 1 - beta)
+##     (zb + sqrt(zb^2 - log(k^2)))^2
+## })
+## colnames(tab1) <- BayesRep::formatBF(kseq)
+## rownames(tab1) <- powseq*100
+## xtab1 <- xtable::xtable(ceiling(tab1), digits = 0)
+## xtable::print.xtable(xtab1, booktabs = TRUE)
+## ## - local normal unit-information alternative
+## tab2 <- sapply(X = kseq, FUN = function(k) {
+##     beta <- 1 - powseq
+##     k^2*exp(-lamW::lambertWm1(x = -k^2*qnorm(p = (1 + beta)/2)^2))
+## })
+## colnames(tab2) <- BayesRep::formatBF(kseq)
+## rownames(tab2) <- powseq*100
+## xtab2 <- xtable::xtable(ceiling(tab2), digits = 0)
+## xtable::print.xtable(xtab2, booktabs = TRUE)

@@ -1,0 +1,21 @@
+Package: bfpwr
+Version: 0.1
+Date: 2024-05-03
+Authors@R:
+    c(person(given = "Samuel",
+           family = "Pawel",
+           role = c("aut", "cre"),
+           email = "samuel.pawel@uzh.ch",
+           comment = c(ORCID = "0000-0003-2779-320X")))
+Author: Samuel Pawel [aut, cre] (<https://orcid.org/0000-0003-2779-320X>)
+Maintainer: Samuel Pawel <samuel.pawel@uzh.ch>
+Title: Power and Sample Size Calculations for Bayes Factor Analysis
+Description: Provides functionality for performing power and sample size calculations for Bayes factor analysis.
+License: GPL-3
+Encoding: UTF-8
+Imports:
+Suggests: roxygen2, tinytest
+NeedsCompilation: no
+RoxygenNote: 7.3.1
+URL: https://github.com/SamCH93/bfpwr
+BugReports: https://github.com/SamCH93/bfpwr/issues
