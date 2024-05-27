@@ -1,6 +1,7 @@
 # bfpwr
 
-**bfpwr** is an R package for power and sample size calculations for Bayes factors
+**bfpwr** is an R package for power and sample size calculations for planned
+Bayes factor analyses
 
 ## Installation
 

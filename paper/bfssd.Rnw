@@ -43,7 +43,7 @@
   Center for Reproducible Science (CRS) \\
   University of Zurich \\
   E-mail: \href{mailto:\mail}{\mail} \\[2ex]
-  {\color{blue} Preprint version March 13, 2024}
+  {\color{blue} Working paper version May 14, 2024}
 }
 \date{}
 
@@ -376,9 +376,9 @@ one by increasing the sample size.
 % (provided the parameter under the alternative $\mu$ differs from the parameter
 % under null $\theta_{0}$).
 However, with the Bayes factor based on a point alternative, depending on the
-assumed design prior, one may not be able with the power
-function~\eqref{eq:prLR} to approach a power of one by increasing the sample
-size $n$. That is, the limitting power value is given by
+assumed design prior, one may not be able to approach a power of one with the
+power function~\eqref{eq:prLR} by increasing the sample size $n$. That is, the
+limiting power value is given by
 \begin{align}
   \label{eq:powerlimLR}
   \lim_{n \to \infty} \Pr(\mathrm{BF}_{01} \leq k \mid n, \mu_{d} , \tau_{d}, \tau^{2} = 0)
@@ -541,16 +541,17 @@ Second, assume that the design prior is also equal to the alternative
 \label{eq:nLR3}
     n = \frac{\left\{z_{1 - \beta} + \sqrt{z_{1 - \beta}^2 - \log k^2}\right\}^2}{(\mu - \theta_0)^2 / \sigma^2_{\scriptscriptstyle \hat{\theta}}}.
 \end{align}
-The formula~\eqref{eq:nLR3} was also found by \citet{Strug2007} for `evidential'
-sample size calculations, but is unfortunately not well known. Unsurprisingly
-the two formulae coincide as Bayes factors and likelihood ratios -- the measure
-of evidence used in `evidential statistics' \citep[see e.g.,][]{Royall1997,
-  Blume2002, Strug2018, Perneger2021} -- coincide when the Bayes factor involves
-only point hypotheses. Our more general formula~\eqref{eq:nLR} thus also
-generalizes evidential sample size calculations to incorporate parameter
-uncertainty, similar to how Bayesian design priors can be used for incorporating
-parameter uncertainty in a planned frequentist analysis \citep[see e.g.,][for an
-overview of Bayesian/frequentist hybrid design approaches]{Grieve2022}.
+The same formula~\eqref{eq:nLR3} was also found by \citet{Strug2007} for
+`evidential' sample size calculations, but is unfortunately not well known.
+Unsurprisingly the two formulae coincide as Bayes factors and likelihood ratios
+-- the measure of evidence used in `evidential statistics' \citep[see
+e.g.,][]{Royall1997, Blume2002, Strug2018, Perneger2021} -- coincide when the
+Bayes factor involves only point hypotheses. Our more general
+formula~\eqref{eq:nLR} thus also generalizes evidential sample size calculations
+to incorporate parameter uncertainty, similar to how Bayesian design priors can
+be used for incorporating parameter uncertainty in a planned frequentist
+analysis \citep[see e.g.,][for an overview of Bayesian/frequentist hybrid design
+approaches]{Grieve2022}.
 
 To illustrate this formula, we now assume that $\hat{\theta}$ is a standardized
 mean difference with unit variance
@@ -695,13 +696,14 @@ range of powers $1 - \beta$ and Bayes factor thresholds $k$. Compared to the
 sample sizes from Table~\ref{tab:smdn} the sample sizes are quite a bit larger.
 This is because the design and analysis priors underlying each of these
 calculations encode vastly different assumptions: The normal alternative
-represents a distribution of effect sizes that are centered around the null
-value while the point alternative from~\ref{tab:smdn} represents a mean
-difference of one standard deviation away from the null. The former is much more
-pessimistic than the latter. To incorporate more optimistic beliefs into the
-calculations we may increase the standard deviation of the distribution $\tau$.
-For example, doubling the standard deviation $\tau$ leads to a four-fold
-decrease of the sample size~\eqref{eq:nBF}.
+represents an effect size distribution that is centered around the null value
+while the point alternative from~\ref{tab:smdn} represents a mean difference of
+one standard deviation away from the null. The former is much more pessimistic
+than the latter. To incorporate more optimistic beliefs into the calculations we
+may increase the standard deviation of the distribution $\tau$ as this encodes
+the assumption of potentially larger effect sizes. For example, doubling the
+standard deviation $\tau$ leads to a four-fold decrease of the sample
+size~\eqref{eq:nBF}.
 
 The formula~\eqref{eq:nBF} is, to our knowledge, the first closed-form sample
 size formula for Bayes factor analysis with normal alternatives. While
@@ -738,7 +740,7 @@ important symptoms of influenza. This outcome was treated as continuous by the
 investigators, and the effect size of interest was the mean difference in time
 to relief between the treatment and placebo groups $\theta$. The null hypothesis
 was defined as no difference in efficacy of the treatment
-($H_{0} \colon \theta = 0$), while the alternative defined as a clinically
+($H_{0} \colon \theta = 0$), whereas the alternative was defined as a clinically
 relevant difference of one day ($H_{1} \colon \theta = 1$). For sample size
 calculations, the investigators used a data standard deviation of
 $\sigma = 2.75$ estimated from a previous study.
@@ -878,7 +880,10 @@ $1 - \beta = \Sexpr{round(power*100,2)}\%$ for finding evidence for the null
 hypothesis. This is due to the symmetric nature of the point versus point
 hypothesis Bayes factor considered in this example, as swapping the null
 $\theta_{0}$ and alternative $\mu$ in formula~\eqref{eq:nLR3} does not change
-the resulting sample size.
+the resulting sample size. Finally, looking at the green and blue curves we can
+see that the probability of misleading evidence in favor of the null when the
+data are generated from the design priors seems to be reasonably well controlled
+(below 5\%) across the whole range of sample sizes considered.
 
 
 \subsection{Comparison to Monte Carlo simulation methods}
@@ -1076,24 +1081,24 @@ $k = 1/\Sexpr{1/k}$ under the point design prior. This sample size is slightly
 larger than the $n = 146$ that \citet{Schoenbrodt2017} obtained in their
 calculations, which instead assumed a Cauchy analysis prior. As in the previous
 example, incorporating parameter uncertainty via a normal design prior increases
-the required sample size to $n = \Sexpr{n2}$. Looking at the orange curve in the
-bottom plot, we see that these same sample sizes only have modest power of
-around $20\%$ and $50\%$, respectively, for obtaining evidence in favor of the
-true null hypothesis (at a threshold of $k = 6$). To obtain a power of $80\%$,
-say, around $n = 800$ samples per group would be required. This illustrates the
-well-known fact that evidence accumulates slower under point null hypotheses
-compared to normal alternatives when the Bayes factor involves testing a point
-null against a normal alternative \citep{Johnson2010}. Finally, looking at the
-orange curve in the top plot and the green/blue curves in the bottom plot, we
-see that the probability of misleading evidence in favor of the incorrect
-hypothesis appears to be adequately controlled, as these curves are virtually
-zero over the entire range of sample sizes.
+the required sample size, in this case to $n = \Sexpr{n2}$. Looking at the
+orange curve in the bottom plot, we see that these same sample sizes only have
+modest power of around $20\%$ and $50\%$, respectively, for obtaining evidence
+in favor of the true null hypothesis (at a threshold of $k = 6$). To obtain a
+power of $80\%$, say, around $n = 800$ samples per group would be required. This
+illustrates the well-known fact that evidence accumulates slower under point
+null hypotheses compared to normal alternatives when the Bayes factor involves
+testing a point null against a normal alternative \citep{Johnson2010}. Finally,
+looking at the orange curve in the top plot and the green/blue curves in the
+bottom plot, we see that the probability of misleading evidence in favor of the
+incorrect hypothesis appears to be adequately controlled, as these curves are
+virtually zero over the entire range of sample sizes.
 
 
 \section{Discussion}
 \label{sec:discussion}
-We presented methods for performing power and sample size calculations intended
-for settings where future data are analyzed with Bayes factor hypothesis tests.
+We presented methods for performing power and sample size calculations for
+settings where future data are analyzed with Bayes factor hypothesis tests.
 These methods rely on approximate normality of the data, which is a common
 assumption in the methodology of power and sample size calculations. We have
 synthesized and extended previous theoretical results on power functions for

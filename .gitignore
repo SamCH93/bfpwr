@@ -50,3 +50,10 @@ rsconnect/
 
 # Emacs LaTeX files
 .auctex-auto/
+*.aux
+*.bbl
+*.log
+*.out
+*.blg
+*.tex
+figure/
