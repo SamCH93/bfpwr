@@ -57,3 +57,6 @@ rsconnect/
 *.blg
 *.tex
 figure/
+
+# misc folder to put stuff
+misc/
