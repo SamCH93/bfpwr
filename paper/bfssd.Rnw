@@ -38,14 +38,14 @@
   \textbf{\textsf{Closed-Form Power and Sample Size Calculations for Bayes Factors}}
 }
 \author{
-  \textbf{Samuel Pawel} \orcidlink{0000-0003-2779-320X} \\
-  Epidemiology, Biostatistics and Prevention Institute (EBPI) \\
+  \textbf{Samuel Pawel} \orcidlink{0000-0003-2779-320X} \and
+  \textbf{Leonhard Held} \orcidlink{0000-0002-8686-5325}
+}
+\date{Epidemiology, Biostatistics and Prevention Institute (EBPI) \\
   Center for Reproducible Science (CRS) \\
   University of Zurich \\
   E-mail: \href{mailto:\mail}{\mail} \\[2ex]
-  {\color{blue} Working paper version May 14, 2024}
-}
-\date{}
+  {\color{blue} Working paper version May 14, 2024}}
 
 %% hyperref options
 %% ----------------------------------------------------------------------------
@@ -127,11 +127,13 @@ choosing a sample size that is too large may be unethical (e.g., for animal
 studies) or inefficient because the samples could be of better use in other
 studies. Whether or not a certain sample size can ensure sufficiently conclusive
 results depends on the planned analysis. Therefore, the sample size calculation
-should be aligned with the planned analysis, or in other words: `\emph{As ye
-  shall analyse is as ye shall design}' \citep[p.~179]{Julious2023}.
+should be aligned with the planned analysis \citep{Anderson2022}, or in other
+words: `\emph{As ye shall analyse is as ye shall design}'
+\citep[p.~179]{Julious2023}.
 
 A widely used formula for the sample size per group for data with continuous
-outcome based on a frequentist hypothesis test of a mean difference is given by
+outcome based on a frequentist hypothesis test of a mean difference for two
+equally sized groups is given by
 \begin{align}
   \label{eq:freqsamplesize}
   n = \frac{2 \sigma^{2} (z_{1 - \alpha/2} + z_{1 - \beta})^2}{(\mu - \theta_0)^2},
@@ -140,12 +142,13 @@ where $z_{q}$ denotes the $q\times 100\%$ quantile of the standard normal
 distribution, $\alpha$ is the level of the test, $1 - \beta$ is the desired
 power, $\mu$ is the assumed mean difference under the alternative, $\theta_0$ is
 the mean difference under the null hypothesis, and $\sigma^2$ is the variance of
-one sample \citep[p.~34]{Matthews2006}. There exist various refinements
-of~\eqref{eq:freqsamplesize} that adapt it to special study designs (e.g.,
-cross-over studies) or data types (e.g., binary data), see \citet{Julious2023}.
-For many analysis methods, however, no closed-form formula exist and iterative
-or simulation methods have to be used. Nevertheless, while typically only being
-an approximation, the formula~\eqref{eq:freqsamplesize} allows for quick
+one observation \citep[p.~34]{Matthews2006}. There exist various refinements
+of~\eqref{eq:freqsamplesize} that adapt it to unequal randomization, special
+study designs (e.g., cross-over studies), or other data types (e.g., binary
+data), see, for example, \citet{Kieser2020} or \citet{Julious2023}. For many
+analysis methods, however, no closed-form formula exist and iterative or
+simulation methods have to be used. Nevertheless, while typically only being an
+approximation, the formula~\eqref{eq:freqsamplesize} allows for quick
 calculations and is often accurate enough for practical purposes. It also helps
 fostering intuition and is therefore useful, for example, in teaching of
 statistics or the study of asymptotics.
@@ -166,7 +169,7 @@ overview of Bayes factors see e.g.,][]{Kass1995, Held2018}.
 Also if Bayes factors are used in the analysis, the design of the study should
 match the analysis. Fortunately, there is methodology for design based on Bayes
 factors \citep{Weiss1997, DeSantis2004, Schoenbrodt2017, Schnbrodt2017b,
-  Stefan2022, Pawel2023e}. However, to our knowledge, there are no simple
+  Pawel2023e, Stefan2022}. However, to our knowledge, there are no simple
 formulae such as~\eqref{eq:freqsamplesize} for sample size determination based
 on Bayes factor analyses. In practice, sample size determination is often
 performed by Monte Carlo simulation \citep{Gelfand2002, Schoenbrodt2017,
@@ -184,10 +187,10 @@ Bayes factors with point analysis priors (i.e., likelihood ratios) and point or
 normal design priors, and for Bayes factors with local normal analysis and
 design priors (i.e., normal priors centered around the null value) closed-form
 sample sizes are available. We also summarize sample size determination for
-Bayes factors analysis based on numerical root-finding that, while not being
-available in closed-form, is much faster and deterministic compared to
-simulation-based approaches. To facilitate reuse of our results, all methods are
-made available through the R package \texttt{bfpwr}.
+Bayes factors analysis based on numerical root-finding \citep{Weiss1997} that,
+while not being available in closed-form, is much faster and deterministic
+compared to simulation-based approaches. To facilitate reuse of our results, all
+methods are made available through the R package \texttt{bfpwr}.
 
 This paper is organized as follows: We begin by defining the type of Bayes
 factor underlying our sample size calculations (Section~\ref{sec:BF}), followed
@@ -263,7 +266,9 @@ inadequate in certain situations, such as small sample sizes or rare events
     Continuous & Mean & Number of samples & $\sigma^{2}$ \\
     Continuous & Mean difference & Number of samples per group & $2\sigma^{2}$ \\
     Continuous & Standardized mean difference & Number of samples per group & 2 \\
+    Continuous & $z$-transformed correlation & Number of samples minus 3 & 1 \\
     Binary & Log odds ratio & Total number of events & 4 \\
+    Binary & Arcsine difference & Number of samples per group & 1/2 \\
     Survival & Log hazard ratio & Total number of events & 4 \\
     Count & Log rate ratio & Total count & 4 \\
 
@@ -299,14 +304,15 @@ the alternative $H_{1}$, while a Bayes factor greater than one
 larger the deviation of the Bayes factor from one, the stronger the evidence.
 
 
-The Bayes factor~\eqref{eq:BF01} may be thought of as a `Bayesian $z$-test',
-that is, a test of a normal mean based on an asymptotically normal statistic
-assuming that the variance of the statistic is known. Of course, the latter
-assumption is in most applications not true, yet it makes the test widely
-applicable and is, for practical purposes, often close enough to Bayes factors
-based on the exact distribution of the data which may or may not be available.
-Furthermore, as we will show, it also allows us to conduct closed-form power and
-sample size calculations.
+The Bayes factor~\eqref{eq:BF01} has in some form or another appeared before in
+the literature \citep[e.g.,][]{Weiss1997, DeSantis2004, Spiegelhalter2004}. It
+may be thought of as a `Bayesian \mbox{$z$-test}', that is, a test of a normal
+mean based on an asymptotically normal statistic assuming that the variance of
+the statistic is known. Of course, the latter assumption is in most applications
+not true, yet it makes the test widely applicable and is, for practical
+purposes, often close enough to Bayes factors based on the exact distribution of
+the data which may or may not be available. Furthermore, as we will show, it
+also allows us to conduct closed-form power and sample size calculations.
 
 
 \section{Distribution and power function of the Bayes factor}
@@ -617,8 +623,11 @@ it is therefore sometimes also called `product logarithm'.
 
 Suppose now that the design prior and the alternative are both centered around
 the null value ($\mu_{d} = \mu = \theta_0$). Centering the prior around the null
-value is commonly done in `default' Bayes factor tests \citep{Berger1987b}. We
-then have that $M=0$ and hence the power~\eqref{eq:prBF} reduces to
+value is commonly done in `default' Bayes factor tests \citep{Berger1987b}. It
+encodes the assumption that some effect sizes are larger while others are
+smaller than the null, the spread of the distribution determining the
+variability, yet, on average, effects are equal to the null value. We then have
+that $M=0$ and hence the power~\eqref{eq:prBF} reduces to
 \begin{align}
   \label{eq:prBFcenter}
     \Pr\{\text{BF}_{01} \leq k \mid n, \tau^{2}_{d}, \mu_{d} = \mu = \theta_{0}\}
@@ -1132,9 +1141,13 @@ multivariate parameters and/or to other prior distributions such as truncated
 normal distributions to incorporate directionality. Finally, we did not consider
 `open-ended' sequential designs, where data are collected continuously until
 compelling evidence for one of the competing hypotheses is found
-\citep{Wald1947}. For this purpose, it would be interesting to consider the
-Bayes factor indexed by the sample size as a stochastic process, and study its
-properties.
+\citep{Wald1947}. The sequential approach is particularly attractive for Bayes
+factor inference as design and analysis prior distributions can be naturally
+updated based on the accumulating data. Researchers can then make informed
+decisions about whether or not it is worthwhile to continue collecting data or
+to stop \citep{Stefan2022}. For these purposes, it would be interesting to
+consider the Bayes factor indexed by the sample size as a stochastic process,
+and study its properties.
 
 
 \section*{Acknowledgments}
