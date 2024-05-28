@@ -98,20 +98,23 @@ library(BayesRep)
 % Abstract
 % ======================================================================
 \begin{abstract}
-  An important aspect of study design is the determination of an appropriate
-  sample size. The choice of sample size should be consistent with the planned
-  analysis. If the planned analysis involves Bayes factor hypothesis testing,
-  the sample size is typically desired to ensure a sufficiently high probability
-  of obtaining compelling evidence for a hypothesis, given that the hypothesis
-  is true. In practice, sample size determination based on Bayes factor analyses
-  are typically performed using computationally intensive Monte Carlo simulation
-  methods. Here we summarize how, under approximate normality assumptions,
-  sample sizes can be determined numerically without simulation, and provide the
-  R package \texttt{bfpwr} for doing so. We also identify conditions under which
-  sample sizes can be determined in closed-form, leading to novel formulas that
-  are easy-to-use, help fostering intuition, and enable asymptotic analysis.
-  Case studies from medicine and psychology illustrate how researchers can use
-  our methods for planning informative but cost-efficient studies.
+  \noindent An important aspect of study design is the determination of an
+  appropriate sample size. The choice of sample size should be consistent with
+  the planned analysis. If the planned analysis involves Bayes factor hypothesis
+  testing, the sample size is typically desired to ensure a sufficiently high
+  probability of obtaining compelling evidence for a hypothesis, given that the
+  hypothesis is true. In practice, sample size determination based on Bayes
+  factor analyses are typically performed using computationally intensive Monte
+  Carlo simulation methods. Here we summarize how, under approximate normality
+  assumptions, sample sizes can be determined numerically without simulation,
+  and provide the R package \texttt{bfpwr} for doing so. We also identify
+  conditions under which sample sizes can be determined in closed-form, leading
+  to novel formulas that are easy-to-use, help fostering intuition, and enable
+  asymptotic analysis. Case studies from medicine and psychology illustrate how
+  researchers can use
+  our methods for planning informative but cost-efficient studies. \\
+  \textit{Keywords:} Bayesian hypothesis testing, evidence, likelihood ratio,
+  numerical methods, study design
 \end{abstract}
 
 
