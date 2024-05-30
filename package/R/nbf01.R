@@ -1,5 +1,6 @@
 nbf01. <- function(k, power, sd, null = 0, pm, psd, dpm = pm, dpsd = psd,
-                   nrange = c(1, 10^5), integer = TRUE, lower.tail = TRUE) {
+                   nrange = c(1, 10^5), lower.tail = TRUE, integer = TRUE,
+                   analytical = TRUE, ...) {
     ## input checks
     stopifnot(
         length(k) == 1,
@@ -50,34 +51,75 @@ nbf01. <- function(k, power, sd, null = 0, pm, psd, dpm = pm, dpsd = psd,
 
         length(integer) == 1,
         is.logical(integer),
-        !is.na(integer)
+        !is.na(integer),
+
+        length(analytical) == 1,
+        is.logical(analytical),
+        !is.na(analytical)
     )
 
+    ## use analytical solution if specified and available
+    if (analytical == TRUE) {
+        available <- TRUE # is analytical solution available?
+        if (psd == 0)  {
+            ## check whether power < limiting power
+            zlim <- (null + pm - 2*dpm)*0.5/dpsd
+            if (!is.nan(zlim) && pm > null) {
+                powlim <- 1 - stats::pnorm(q = zlim)
+            } else if (!is.nan(zlim) && pm < null) {
+                powlim <- stats::pnorm(q = zlim)
+            } else {
+                powlim <- 0.5
+            }
+            if (power > powlim) {
+                warnmessage <- paste0("specified power (", round(power, 2),
+                                      ") higher than limiting power (", round(powlim, 2),
+                                      ") for specified parameters")
+                warning(warnmessage)
+                n <- NaN
+            } else {
+                zb <- stats::qnorm(p = power)
+                a <- ((null + pm)*0.5 - dpm)^2 - zb^2*dpsd^2
+                b <- sd^2*((null + pm - 2*dpm)*log(k)/(null - pm) - zb^2)
+                c <- (sd^2*log(k)/(null - pm))^2
+                if (power >= 0.5) n <- (-b + sqrt(b^2 - 4*a*c))/(2*a)
+                else n <- (-b - sqrt(b^2 - 4*a*c))/(2*a)
+            }
 
-    ## TODO implement closed-form
-    ## TODO implement power limits
-    ## TODO implement BF limits
+        } else {
+            available <- FALSE # analytical solution not available (currently...!)
+        }
+        ## else if (null == pm && pm == dpm && psd == dpsd) {
+        ##     ## this is only a (quite accurate) approximation, so let's rather
+        ##     ## use the more exact numerical procedure (also safes the lamW dependency!)
+        ##     n <- sd^2/psd^2*k^2*exp(-lamW::lambertWm1(-k^2*stats::qnorm(p = 0.5*power)^2))
+        ## }
 
-    ## define function for numerical root-finding
-    rootFun <- function(n) {
-        pbf01(k = k, n = n, sd = sd, null = null, pm = pm, psd = psd, dpm = dpm,
-              dpsd = dpsd, lower.tail = lower.tail) - power
     }
 
-    ## check boundaries of sample size search range
-    if (rootFun(n = nrange[1]) > 0) {
-        warning("lower bound of sample size search range ('nrange') leads to higher power than specified")
-        n <- NaN
-    } else if (rootFun(n = nrange[2]) < 0) {
-        warning("upper bound of sample size search range ('nrange') leads to lower power than specified")
-        n <- NaN
-    } else {
-        ## perform root-finding
-        res <- try(stats::uniroot(f = rootFun, interval = nrange)$root)
-        if (inherits(res, "try-error")) {
+    ## otherwise use numerical solution
+    if (analytical == FALSE || available == FALSE) {
+        ## define function for numerical root-finding
+        rootFun <- function(n) {
+            pbf01(k = k, n = n, sd = sd, null = null, pm = pm, psd = psd, dpm = dpm,
+                  dpsd = dpsd, lower.tail = lower.tail) - power
+        }
+
+        ## check boundaries of sample size search range
+        if (rootFun(n = nrange[1]) > 0) {
+            warning("lower bound of sample size search range ('nrange') leads to higher power than specified")
+            n <- NaN
+        } else if (rootFun(n = nrange[2]) < 0) {
+            warning("upper bound of sample size search range ('nrange') leads to lower power than specified")
             n <- NaN
         } else {
-            n <- res
+            ## perform root-finding
+            res <- try(stats::uniroot(f = rootFun, interval = nrange, ... = ...)$root)
+            if (inherits(res, "try-error")) {
+                n <- NaN
+            } else {
+                n <- res
+            }
         }
     }
     if (integer) return(ceiling(n))
@@ -110,21 +152,26 @@ nbf01. <- function(k, power, sd, null = 0, pm, psd, dpm = pm, dpsd = psd,
 #'     Pr(BF > k) (\code{FALSE}) is the probability of interest. Defaults to
 #'     \code{TRUE}
 #' @param integer Logical indicating whether only integer valued sample sizes
-#'     should be returned. If \code{TRUE} the required sample size is rounded
+#'     should be returned. If \code{TRUE} the required sample size is rounded to
 #'     the next larger integer. Defaults to \code{TRUE}
+#' @param analytical Logical indicating whether analytical (if available) or
+#'     numerical method should be used. Defaults to \code{TRUE}
+#' @param ... Other arguments passed to \code{stats::uniroot}
 #'
 #' @return The required sample size to achieve the specified power
 #'
 #' @author Samuel Pawel
 #'
-#' @seealso \link{pbf01}
+#' @seealso \link{pbf01}, \link{powerbf01}
 #'
 #' @examples
-#' nbf01(k = 1/10, power = 0.8, sd = 2, null = 0, pm = 0, psd = 2)
+#' ## point alternative (analytical and numerical solution available)
+#' nbf01(k = 1/10, power = 0.9, sd = 1, null = 0, pm = 0.5, psd = 0,
+#'       analytical = c(TRUE, FALSE), integer = FALSE)
 #' @export
 nbf01 <- Vectorize(FUN = nbf01.,
                    vectorize.args = c("k", "power", "sd", "null", "pm", "psd",
-                                      "dpm", "dpsd"))
+                                      "dpm", "dpsd", "integer", "analytical"))
 
 
 
@@ -175,9 +222,10 @@ nbf01 <- Vectorize(FUN = nbf01.,
 ## psd <- dpsd <- 1
 ## pm <- dpm <- null
 ## (n2 <- sd^2/psd^2*k^2*exp(-lamW::lambertWm1(x = -stats::qnorm(p = (1 + beta)/2)^2*k^2)))
-## nbf01(k = k, power = 1 - beta, sd = sd, null = null, pm = pm, psd = psd, dpm = dpm,
-##       dpsd = dpsd, integer = FALSE)
-
+## n2b <- nbf01(k = k, power = 1 - beta, sd = sd, null = null, pm = pm, psd = psd, dpm = dpm,
+##       dpsd = dpsd, integer = FALSE, analytical = FALSE)
+## pbf01(k = k, n = n2, sd = sd, null = null, pm = pm, psd = psd, dpm = dpm,
+##       dpsd = dpsd)
 
 ## ## produce some tables
 ## ## - point alternatives with SMD = 1

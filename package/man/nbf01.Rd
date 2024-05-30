@@ -14,8 +14,10 @@ nbf01(
   dpm = pm,
   dpsd = psd,
   nrange = c(1, 10^5),
+  lower.tail = TRUE,
   integer = TRUE,
-  lower.tail = TRUE
+  analytical = TRUE,
+  ...
 )
 }
 \arguments{
@@ -43,13 +45,18 @@ to the same value as specified for the analysis prior \code{psd}}
 
 \item{nrange}{Sample size search range. Defaults to \code{c(1, 10^5)}}
 
-\item{integer}{Logical indicating whether only integer valued sample sizes
-should be returned. If \code{TRUE} the required sample size is rounded
-the next larger integer. Defaults to \code{TRUE}}
-
 \item{lower.tail}{Logical indicating whether Pr(BF <= k) (\code{TRUE}) or
 Pr(BF > k) (\code{FALSE}) is the probability of interest. Defaults to
 \code{TRUE}}
+
+\item{integer}{Logical indicating whether only integer valued sample sizes
+should be returned. If \code{TRUE} the required sample size is rounded to
+the next larger integer. Defaults to \code{TRUE}}
+
+\item{analytical}{Logical indicating whether analytical (if available) or
+numerical method should be used. Defaults to \code{TRUE}}
+
+\item{...}{Other arguments passed to \code{stats::uniroot}}
 }
 \value{
 The required sample size to achieve the specified power
@@ -60,10 +67,12 @@ This function computes the required sample size to obtain a
     a specified target power.
 }
 \examples{
-nbf01(k = 1/10, power = 0.8, sd = 2, null = 0, pm = 0, psd = 2)
+## point alternative (analytical and numerical solution available)
+nbf01(k = 1/10, power = 0.9, sd = 1, null = 0, pm = 0.5, psd = 0,
+      analytical = c(TRUE, FALSE), integer = FALSE)
 }
 \seealso{
-\link{pbf01}
+\link{pbf01}, \link{powerbf01}
 }
 \author{
 Samuel Pawel

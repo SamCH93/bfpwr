@@ -54,7 +54,7 @@ powerbf01 <- function(n = NULL, power = NULL, k = 1/10, sd = 1, null = 0, pm, ps
                       dpm = pm, dpsd = psd, nrange = c(1, 10^5),
                       type = c("two.sample", "one.sample", "paired")) {
     ## input checks
-    if (is.null(n) & is.null(power)) {
+    if (is.null(n) && is.null(power)) {
         stop("exactly one of 'n' and 'power' must be NULL")
     }
     if (is.null(n)) {
@@ -123,7 +123,7 @@ powerbf01 <- function(n = NULL, power = NULL, k = 1/10, sd = 1, null = 0, pm, ps
     if (is.null(n)) {
         n <- nbf01(k = k, power = power, sd = sqrt(uv), null = null, pm = pm,
                    psd = psd, dpm = dpm, dpsd = dpsd, nrange = nrange,
-                   integer = FALSE)
+                   integer = FALSE, analytical = TRUE)
     } else {
         ## determine power
         power <- pbf01(k = k, n = n, sd = sqrt(uv), null = null, pm = pm,
@@ -159,6 +159,7 @@ powerbf01 <- function(n = NULL, power = NULL, k = 1/10, sd = 1, null = 0, pm, ps
 #' powerbf01(power = 0.95, pm = 0, psd = 1, dpm = 0.5, dpsd = 0)
 #' powerbf01(power = 0.95, pm = 0, psd = 1, dpm = 0.5, dpsd = 0, type = "one.sample")
 #' powerbf01(power = 0.95, pm = 0, psd = 1, dpm = 0.5, dpsd = 0, type = "paired")
+#' powerbf01(power = 0.95, pm = 1, psd = 0, dpm = 0.8, dpsd = 0, type = "paired")
 #'
 #' @export
 print.power.bftest <- function(x, digits = getOption("digits"), ...) {

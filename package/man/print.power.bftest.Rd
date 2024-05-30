@@ -28,6 +28,7 @@ Function adapted from \code{stats:::print.power.htest} written by Peter
 powerbf01(power = 0.95, pm = 0, psd = 1, dpm = 0.5, dpsd = 0)
 powerbf01(power = 0.95, pm = 0, psd = 1, dpm = 0.5, dpsd = 0, type = "one.sample")
 powerbf01(power = 0.95, pm = 0, psd = 1, dpm = 0.5, dpsd = 0, type = "paired")
+powerbf01(power = 0.95, pm = 1, psd = 0, dpm = 0.8, dpsd = 0, type = "paired")
 
 }
 \seealso{

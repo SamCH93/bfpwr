@@ -63,8 +63,8 @@ pbf01. <- function(k, n, sd, null = 0, pm, psd, dpm = pm, dpsd = psd,
         if (X < 0) {
             pow <- 1
         } else {
-            A <- (dpm - null - sd^2/n/psd^2*(null - pm))/sqrt(v)
-            pow <- stats::pnorm(q = -sqrt(X) - A) + stats::pnorm(q = -sqrt(X) + A)
+            M <- (dpm - null - sd^2/n/psd^2*(null - pm))/sqrt(v)
+            pow <- stats::pnorm(q = -sqrt(X) - M) + stats::pnorm(q = -sqrt(X) + M)
         }
     }
 
@@ -100,7 +100,7 @@ pbf01. <- function(k, n, sd, null = 0, pm, psd, dpm = pm, dpsd = psd,
 #'
 #' @author Samuel Pawel
 #'
-#' @seealso \link{nbf01}
+#' @seealso \link{nbf01}, \link{powerbf01}
 #'
 #' @examples
 #' ## point alternative (psd = 0)
