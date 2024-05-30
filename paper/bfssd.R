@@ -332,7 +332,9 @@ abline(v = c(n, n2), col = transpblack)
 
 
 ## ----"package-illustration", echo = TRUE, fig.height = 6----------------------
+## install from CRAN or GitHub (the latter requires "remotes" package)
 ## install.packages("bfpwr") # not yet on CRAN
+## remotes::install_github(repo = "SamCH93/bfpwr", subdir = "package")
 
 ## load package
 library(bfpwr)
@@ -341,15 +343,15 @@ library(bfpwr)
 k <- 1/6 # BF threshold
 null <- 0 # null value
 sd <- 1 # standard deviation of one sample
-pm <- null # prior centered around null value
+pm <- null # analysis prior centered around null value
 psd <- sqrt(2) # unit information sd for a standardized mean difference
 type <- "two.sample" # two-sample test
 
 ## design prior
 dpm <- 0.5 # design prior mean equal to large SMD effect size
-dpsd <- 0.1 # design prior sd
+dpsd <- 0.1 # design prior sd to incorporate parameter uncertainty
 
-## sample size determination to achieve 85% power
+## determine sample size to achieve 85% power
 power <- 0.85
 ssd <- powerbf01(k = k, power = power, sd = sd, null = null, pm = pm, psd = psd,
                  dpm = dpm, dpsd = dpsd, type = type)
