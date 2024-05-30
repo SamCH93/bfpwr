@@ -305,23 +305,28 @@ the alternative $H_{1}$, while a Bayes factor greater than one
 larger the deviation of the Bayes factor from one, the stronger the evidence.
 
 
-The Bayes factor~\eqref{eq:BF01} has already appeared before in the literature
-in one form or another \citep[e.g., in][]{Weiss1997, DeSantis2004,
-  Spiegelhalter2004, Bartos2023b}. It may be thought of as a `Bayesian
-\mbox{$z$-test}', that is, a test of a normal mean based on an asymptotically
-normal statistic assuming that the variance of the statistic is known. Of
-course, the latter assumption is not true in most applications, but it makes the
-test widely applicable and is, for practical purposes, often close enough to
-Bayes factors based on the exact distribution of the data, which may or may not
-be available. Finally, the Bayes factor~\eqref{eq:BF01} can also be used with
-parameter estimates where a standard error is available but not of the form
+The Bayes factor~\eqref{eq:BF01} has already appeared in the literature in one
+form or another \citep[e.g., in][]{Weiss1997, DeSantis2004, Spiegelhalter2004,
+  Bartos2023b}, with perhaps the first proposal of a Bayes factor based on an
+approximately normally distributed parameter estimate and its standard error
+dating back to \citet{Jeffreys1936}, see also \citet{Wagenmakers2022} for some
+historical notes on Jeffreys' approach. The Bayes factor~\eqref{eq:BF01} may be
+thought of as a `Bayesian \mbox{$z$-test}', that is, a test of a normal mean
+based on an asymptotically normal statistic assuming that the variance of the
+statistic is known. Of course, the latter assumption is not true in most
+applications, but it makes the test widely applicable and is, for practical
+purposes, often close enough to Bayes factors based on the exact distribution of
+the data, which may or may not be available. Finally, the Bayes
+factor~\eqref{eq:BF01} can also be used with parameter estimates where a
+standard error is available but not of the form
 $\sigma_{\scriptscriptstyle \hat{\theta}}/\surd n$, e.g, a parameter estimate
 from a generalized linear model where the estimate is adjusted for covariates
 and the standard error is obtained numerically (e.g., with Fisher scoring). In
 this case, $\sigma_{\scriptscriptstyle \hat{\theta}}/\surd n$ in~\eqref{eq:BF01}
 can be replaced by the observed standard error. However, as we will show now,
 assuming such a particular dependence on the sample size $n$ allows us to
-perform closed-form power and sample size calculations.
+perform closed-form power and sample size calculations under certain additional
+assumptions.
 
 
 \section{Distribution and power function of the Bayes factor}
@@ -330,7 +335,7 @@ Suppose now that we are interested in finding compelling evidence in favor of
 the alternative $H_{1}$ over the null hypothesis $H_{0}$ with a Bayes
 factor~\eqref{eq:BF01} smaller than some threshold $k < 1$. For example, the
 evidence thresholds could be $k = 1/3$ or $k = 1/10$, the levels from
-\citet{Jeffreys1961} for `substantial' and `strong' evidence, respectively. To
+\citet{Jeffreys1939} for `substantial' and `strong' evidence, respectively. To
 determine a sample size that ensures compelling evidence with a desired
 probability we need to know the distribution of the Bayes factor~\eqref{eq:BF01}
 for a given sample size.
@@ -645,13 +650,13 @@ $\mathrm{W}(\cdot)$ that satisfies $\mathrm{W}(x)\exp\{\mathrm{W}(x)\}=x$, and
 it is therefore sometimes also called `product logarithm'. It has many
 fundamental applications, such as the solution of the Schrödinger equation in
 quantum-mechanics, and has also previously appeared in the context of Bayes
-factors \citep{Pawel2022b, Wagenmakers2022, Pawel2023}.
+factor hypothesis testing \citep{Pawel2022b, Wagenmakers2022, Pawel2023}.
 
 Suppose now that the design prior and the alternative are both centered around
 the null value ($\mu_{d} = \mu = \theta_0$). Centering the prior around the null
 value is commonly done in `default' Bayes factor tests \citep{Berger1987b}. It
-encodes the assumption that some parameters are larger while others are
-smaller than the null, the spread of the distribution determining the
+encodes the assumption that some parameters are larger while others are smaller
+than the null, the standard deviation of the distribution determining the
 variability, yet the average parameter equals the null value. We then have that
 $M=0$ and hence the power~\eqref{eq:prBF} reduces to
 \begin{align}
