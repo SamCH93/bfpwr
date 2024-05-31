@@ -38,7 +38,7 @@ Defaults to \code{0}}
 
 \item{plocation}{Analysis \eqn{t} prior location. Defaults to \code{0}}
 
-\item{pscale}{Analysis \eqn{t} prior degrees of freedom. Defaults to \code{1}}
+\item{pscale}{Analysis \eqn{t} prior scale. Defaults to \code{1/sqrt(2)}}
 
 \item{pdf}{Analysis \eqn{t} prior degrees of freedom. Defaults to \code{1}}
 
@@ -55,8 +55,9 @@ the design prior mean. Defaults to the analysis prior scale}
 \item{alternative}{Direction of the test. Can be either \code{"two.sided"}
 (default), \code{"less"}, or \code{"greater"}}
 
-\item{lower.tail}{Logical indicating whether Pr(BF <= k) (\code{TRUE}) or
-Pr(BF > k) (\code{FALSE}) should be computed. Defaults to \code{TRUE}}
+\item{lower.tail}{Logical indicating whether Pr(BF \eqn{\leq} \code{k})
+(\code{TRUE}) or Pr(BF \eqn{>} \code{k}) (\code{FALSE}) should be
+computed. Defaults to \code{TRUE}}
 
 \item{strict}{Logical indicating whether in case of one-sided alternatives
 the power should be computed also in the opposite direction. Defaults to
@@ -67,11 +68,12 @@ The probability that the Bayes factor is less or greater (depending
     on the specified \code{lower.tail}) than the specified threshold \code{k}
 }
 \description{
-This function computes the probability of obtaining a JZS Bayes
-    (\link{bf01}) smaller (or larger) than a threshold \code{k} with a
-    specified sample size.
+This function computes the probability of obtaining a
+    \eqn{t}-test Bayes factor (\link{tbf01}) smaller (or larger) than a
+    threshold \code{k} with a specified sample size.
 }
 \examples{
+## example from Schönbrodt and Wagenmakers (2018, p.135)
 ptbf01(k = 1/6, n = 146, dpm = 0.5, dpsd = 0, alternative = "greater")
 ptbf01(k = 6, n = 146, dpm = 0, dpsd = 0, alternative = "greater",
        lower.tail = FALSE)

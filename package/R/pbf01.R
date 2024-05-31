@@ -76,7 +76,7 @@ pbf01. <- function(k, n, sd, null = 0, pm, psd, dpm = pm, dpsd = psd,
 #' @title Cumulative distribution function of the Bayes factor under normality
 #'
 #' @description This function computes the probability of obtaining a Bayes
-#'     (\link{bf01}) smaller (or larger) than a threshold \code{k} with a
+#'     factor (\link{bf01}) smaller (or larger) than a threshold \code{k} with a
 #'     specified sample size.
 #'
 #' @param k Bayes factor threshold
@@ -92,8 +92,9 @@ pbf01. <- function(k, n, sd, null = 0, pm, psd, dpm = pm, dpsd = psd,
 #'     Defaults to the same value as the analysis prior \code{pm}
 #' @param dpsd Standard deviation of the normal design prior assigned to the
 #'     parameter. Defaults to the same value as the analysis prior \code{psd}
-#' @param lower.tail Logical indicating whether Pr(BF <= k) (\code{TRUE}) or
-#'     Pr(BF > k) (\code{FALSE}) should be computed. Defaults to \code{TRUE}
+#' @param lower.tail Logical indicating whether Pr(BF \eqn{\leq} \code{k})
+#'     (\code{TRUE}) or Pr(BF \eqn{>} \code{k}) (\code{FALSE}) should be
+#'     computed. Defaults to \code{TRUE}
 #'
 #' @return The probability that the Bayes factor is less or greater (depending
 #'     on the specified \code{lower.tail}) than the specified threshold \code{k}

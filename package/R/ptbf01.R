@@ -111,9 +111,9 @@ ptbf01. <- function(k = 1/10, n, n1 = n, n2 = n, null = 0,
 
 #' @title Cumulative distribution function of the t-test Bayes factor
 #'
-#' @description This function computes the probability of obtaining a JZS Bayes
-#'     (\link{bf01}) smaller (or larger) than a threshold \code{k} with a
-#'     specified sample size.
+#' @description This function computes the probability of obtaining a
+#'     \eqn{t}-test Bayes factor (\link{tbf01}) smaller (or larger) than a
+#'     threshold \code{k} with a specified sample size.
 #'
 #' @param k Bayes factor threshold. Defaults to \code{1/10}, Jeffreys' threshold
 #'     for 'strong evidence' against the null hypothesis
@@ -126,7 +126,6 @@ ptbf01. <- function(k = 1/10, n, n1 = n, n2 = n, null = 0,
 #'     Defaults to \code{0}
 #' @param plocation Analysis \eqn{t} prior location. Defaults to \code{0}
 #' @param pscale Analysis \eqn{t} prior scale. Defaults to \code{1/sqrt(2)}
-#' @param pscale Analysis \eqn{t} prior degrees of freedom. Defaults to \code{1}
 #' @param pdf Analysis \eqn{t} prior degrees of freedom. Defaults to \code{1}
 #' @param type Type of \eqn{t}-test associated with \eqn{t}-statistic. Can be
 #'     \code{"two.sample"} (default), \code{"one.sample"}, or \code{"paired"}
@@ -139,8 +138,9 @@ ptbf01. <- function(k = 1/10, n, n1 = n, n2 = n, null = 0,
 #'     the design prior mean. Defaults to the analysis prior scale
 #' @param type The type of test. One of \code{"two.sample"},
 #'     \code{"one.sample"}, \code{"paired"}. Defaults to \code{"two.sample"}
-#' @param lower.tail Logical indicating whether Pr(BF <= k) (\code{TRUE}) or
-#'     Pr(BF > k) (\code{FALSE}) should be computed. Defaults to \code{TRUE}
+#' @param lower.tail Logical indicating whether Pr(BF \eqn{\leq} \code{k})
+#'     (\code{TRUE}) or Pr(BF \eqn{>} \code{k}) (\code{FALSE}) should be
+#'     computed. Defaults to \code{TRUE}
 #' @param strict Logical indicating whether in case of one-sided alternatives
 #'     the power should be computed also in the opposite direction. Defaults to
 #'     \code{FALSE}
@@ -153,6 +153,7 @@ ptbf01. <- function(k = 1/10, n, n1 = n, n2 = n, null = 0,
 #' @seealso \link{tbf01}
 #'
 #' @examples
+#' ## example from Schönbrodt and Wagenmakers (2018, p.135)
 #' ptbf01(k = 1/6, n = 146, dpm = 0.5, dpsd = 0, alternative = "greater")
 #' ptbf01(k = 6, n = 146, dpm = 0, dpsd = 0, alternative = "greater",
 #'        lower.tail = FALSE)

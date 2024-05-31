@@ -2,7 +2,7 @@
 % Please edit documentation in R/tbf01.R
 \name{tbf01}
 \alias{tbf01}
-\title{Bayes factor t-test}
+\title{t-test Bayes factor}
 \usage{
 tbf01(
   t,
@@ -29,11 +29,11 @@ with unequal group sizes)}
 \item{n2}{Sample size in group 2 (only required for two-sample \eqn{t}-test
 with unequal group sizes)}
 
-\item{plocation}{Prior location. Defaults to \code{0}}
+\item{plocation}{\eqn{t} prior location. Defaults to \code{0}}
 
-\item{pscale}{Prior degrees of freedom. Defaults to \code{1}}
+\item{pscale}{\eqn{t} prior scale. Defaults to \code{1/sqrt(2)}}
 
-\item{pdf}{Analysis \eqn{t} prior degrees of freedom. Defaults to \code{1}}
+\item{pdf}{\eqn{t} prior degrees of freedom. Defaults to \code{1}}
 
 \item{type}{Type of \eqn{t}-test associated with \eqn{t}-statistic. Can be
 \code{"two.sample"} (default), \code{"one.sample"}, or \code{"paired"}}
@@ -56,14 +56,14 @@ This function computes the Bayes factor that forms the basis of
 the informed Bayesian \eqn{t}-test from Gronau et al. (2020). The Bayes
 factor quantifies the evidence that the data provide for the null
 hypothesis that the standardized mean difference (SMD) is zero against
-the alternative that the SMD is non-zero. A t-distrition is assumed for
-the SMD under the alternative. The Jeffreys-Zellner-Siow (JZS) Bayes
-factor (Rouder et al., 2009) is obtained as a special case by setting the
-location of the prior to zero and the prior degrees of freedom to one,
-which is the default.
+the alternative that the SMD is non-zero. A \eqn{t}-distribution is
+assumed for the SMD under the alternative. The Jeffreys-Zellner-Siow
+(JZS) Bayes factor (Rouder et al., 2009) is obtained as a special case by
+setting the location of the prior to zero and the prior degrees of
+freedom to one, which is the default.
 
 The data are summarized by \eqn{t}-statistics and sample sizes. The
-following types of \eqn{t}-tests are accepted:
+following types of \eqn{t}-statistics are accepted:
 \itemize{
 \item Two-sample \eqn{t}-test where the SMD represents the standardized
 mean difference between two group means (assuming equal variances in
@@ -71,7 +71,7 @@ both groups)
 \item One-sample \eqn{t}-test where the SMD represents the standardized
 mean difference to the null value
 \item Paired \eqn{t}-test where the SMD represents the standardized mean
-difference change score
+change score
 }
 }
 \details{
@@ -97,9 +97,13 @@ tbf01(t = -0.90, n1 = 53, n2 = 57, plocation = 0, pscale = 1/sqrt(2), pdf = 1,
 }
 \references{
 Rouder, J. N., Speckman, P. L., Sun, D., Morey, R. D., Iverson,
-G. (2014). Bayesian t tests for accepting and rejecting the null
+G. (2014). Bayesian \eqn{t} tests for accepting and rejecting the null
 hypothesis. Psychonomic Bulletin & Review, 16(2):225-237.
 \doi{10.3758/PBR.16.2.225}
+
+Gronau, Q. F., Ly., A., Wagenmakers, E.J. (2020). Informed Bayesian
+\eqn{t}-Tests. The American Statistician, 74(2):137-143.
+\doi{10.1080/00031305.2018.1562983}
 }
 \author{
 Samuel Pawel

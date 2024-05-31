@@ -28,8 +28,9 @@ Defaults to the same value as the analysis prior \code{pm}}
 \item{dpsd}{Standard deviation of the normal design prior assigned to the
 parameter. Defaults to the same value as the analysis prior \code{psd}}
 
-\item{lower.tail}{Logical indicating whether Pr(BF <= k) (\code{TRUE}) or
-Pr(BF > k) (\code{FALSE}) should be computed. Defaults to \code{TRUE}}
+\item{lower.tail}{Logical indicating whether Pr(BF \eqn{\leq} \code{k})
+(\code{TRUE}) or Pr(BF \eqn{>} \code{k}) (\code{FALSE}) should be
+computed. Defaults to \code{TRUE}}
 }
 \value{
 The probability that the Bayes factor is less or greater (depending
@@ -37,7 +38,7 @@ The probability that the Bayes factor is less or greater (depending
 }
 \description{
 This function computes the probability of obtaining a Bayes
-    (\link{bf01}) smaller (or larger) than a threshold \code{k} with a
+    factor (\link{bf01}) smaller (or larger) than a threshold \code{k} with a
     specified sample size.
 }
 \examples{
