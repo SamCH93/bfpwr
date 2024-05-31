@@ -255,9 +255,9 @@ sample sizes or rare events \citep{Spiegelhalter2004}.
     and corresponding interpretation of sample size $n$ and unit variance
     $\sigma^2_{\scriptscriptstyle \hat{\theta}}$ (adapted from Chapter 2.4 in
     \citealp{Spiegelhalter2004} and Chapter 1 in \citealp{Grieve2022}). The
-    variance of one continuous outcome sample is denoted by $\sigma^{2}$ and
-    parameter estimates based on two groups assume equal number of samples per
-    group.}
+    variance of one continuous outcome observation is denoted by $\sigma^{2}$
+    and parameter estimates based on two groups assume equal number of samples
+    per group.}
   \label{tab:outcomes}
   \rowcolors{1}{}{lightgray}
   \begin{tabular}{l l l c}
@@ -1232,7 +1232,7 @@ library(bfpwr)
 ## BF parameters
 k <- 1/6 # BF threshold
 null <- 0 # null value
-sd <- 1 # standard deviation of one sample
+sd <- 1 # standard deviation of one observation
 pm <- null # analysis prior centered around null value
 psd <- sqrt(2) # unit information sd for a standardized mean difference
 type <- "two.sample" # two-sample test
