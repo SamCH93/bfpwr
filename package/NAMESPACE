@@ -3,6 +3,7 @@
 S3method(plot,power.bftest)
 S3method(print,power.bftest)
 export(bf01)
+export(jzsbf01)
 export(nbf01)
 export(pbf01)
 export(powerbf01)
