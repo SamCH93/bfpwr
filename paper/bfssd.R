@@ -18,6 +18,64 @@ library(lamW)
 library(BayesRep)
 
 
+## ----"plot-power", fig.height = 4.5-------------------------------------------
+## BF parameters
+k <- 1/10
+null <- 0
+sd <- sqrt(2) # unit SD for SMD effect size
+pm <- dpm <- 0.3 # large SMD
+psd1 <- dpsd1 <- 0 # point prior
+psd2 <- dpsd2 <- 0.25 # normal prior
+
+nseq <- exp(seq(log(10), log(10^5), length.out = 500))
+
+par(mfrow = c(1, 2), mar = c(5.1, 4.2, 2, 1))
+yticks <- seq(0, 100, 20)
+xticks <- c(1, 10, 10^2, 10^3, 10^4, 10^5)
+lwd <- 1.5
+xlabs <- as.expression(c(bquote(1), bquote(10),
+                         sapply(seq(2, 5), FUN = function(x) bquote(10^.(x)))))
+
+cols <- adjustcolor(col = c(2, 4), alpha = 0.8)
+## point prior under the alternative
+plot(nseq, pbf01(k = k, n = nseq, sd = sd, null = null, pm = pm, psd = psd1,
+                 dpm = dpm, dpsd = dpsd1)*100,
+     xlab = bquote("Sample size per group" ~ italic(n)),
+     ylab = bquote({"Pr(BF"["01"] <= 1/.(1/k)} ~ "|" ~ tau == 0 *")"),
+     type = "l", xaxt = "n", yaxt = "n", ylim = c(0, 100), col = cols[1],
+     lwd = lwd, log = "x", main = "Point analysis prior",
+     panel.first = graphics::grid(lty = 3, col = adjustcolor(col = 1, alpha = 0.1)))
+axis(side = 1, at = xticks, labels = xlabs)
+axis(side = 2, at = yticks, labels = paste0(yticks, "%"), las = 1)
+lines(nseq,
+      pbf01(k = k, n = nseq, sd = sd, null = null, pm = pm, psd = psd1,
+            dpm = dpm, dpsd = dpsd2)*100, lwd = lwd,
+      col = cols[2])
+zlim <- (null - pm)/(2*dpsd2)
+plim <- 1 - pnorm(q = zlim)
+abline(h = c(100, plim*100), lty = 2, col = adjustcolor(col = 1, alpha = 0.6))
+legend("bottomright", bg = "white", title = "Design prior",
+       legend = c(bquote({mu[italic("d")] == .(pm)} * "," ~ tau[italic("d")] == .(psd1)),
+                  bquote({mu[italic("d")] == .(pm)} * "," ~ tau[italic("d")] == .(psd2))),
+       lwd = lwd, lty = 1, col = cols, cex = 0.75)
+
+## normal prior under the alternative
+plot(nseq, pbf01(k = k, n = nseq, sd = sd, null = null, pm = pm, psd = psd2,
+                 dpm = dpm, dpsd = dpsd1)*100,
+     xlab = bquote("Sample size per group" ~ italic(n)),
+     ylab = bquote({"Pr(BF"["01"] <= 1/.(1/k)} ~ "|" ~ tau == .(psd2) *")"),
+     type = "l", xaxt = "n", yaxt = "n", ylim = c(0, 100), col = cols[1],
+     lwd = lwd, log = "x", main = "Normal analysis prior",
+     panel.first = graphics::grid(lty = 3, col = adjustcolor(col = 1, alpha = 0.1)))
+axis(side = 1, at = xticks, labels = xlabs)
+axis(side = 2, at = yticks, labels = paste0(yticks, "%"), las = 1)
+lines(nseq,
+      pbf01(k = k, n = nseq, sd = sd, null = null, pm = pm, psd = psd2,
+            dpm = dpm, dpsd = dpsd2)*100, lwd = lwd,
+      col = cols[2])
+abline(h = 100, lty = 2, col = adjustcolor(col = 1, alpha = 0.6))
+
+
 ## ----"asymptotics", eval = FALSE----------------------------------------------
 ## ## check asymptotics
 ## library(bfpwr)
@@ -82,6 +140,66 @@ addtorow$command <- c(paste0("& \\multicolumn{", length(kseq), "}{c}{$k$} \\\\\n
 print(xtab, booktabs = TRUE, floating = FALSE,
       sanitize.rownames.function = function(x) x, add.to.row = addtorow,
       include.colnames = FALSE)
+
+
+## ----"plot-n", fig.height = 4.5-----------------------------------------------
+## BF parameters
+k <- 1/10
+null <- 0
+sd <- sqrt(2) # unit SD for SMD effect size
+pm <- dpm <- 0.3 # large SMD
+psd1 <- dpsd1 <- 0 # point prior
+psd2 <- dpsd2 <- 0.25 # normal prior
+
+powseq <- seq(0.25, 0.9999, length.out = 500)
+
+par(mfrow = c(1, 2), mar = c(5.1, 4.2, 2, 1))
+lwd <- 1.5
+xticks <- seq(0, 100, 25)
+yticks <- c(1, 10, 10^2, 10^3, 10^4, 10^5)
+ylabs <- as.expression(c(bquote(1), bquote(10),
+                         sapply(seq(2, 5), FUN = function(x) bquote(10^.(x)))))
+
+cols <- adjustcolor(col = c(2, 4), alpha = 0.8)
+## point prior under the alternative
+plot(powseq*100,
+     nbf01(k = k, power = powseq, sd = sd, null = null, pm = pm, psd = psd1,
+           dpm = dpm, dpsd = dpsd1, analytical = TRUE),
+     xlab = "Target power", ylab = bquote("Sample size per group" ~ italic(n)),
+     type = "l", xaxt = "n", yaxt = "n", ylim = c(1, 10^4), col = cols[1],
+     lwd = lwd, log = "y", main = "Point analysis prior",
+     panel.first = graphics::grid(lty = 3, col = adjustcolor(col = 1, alpha = 0.1)))
+axis(side = 1, at = xticks, labels = paste0(xticks, "%"))
+axis(side = 2, at = yticks, labels = ylabs, las = 1)
+lines(powseq*100,
+      nbf01(k = k, power = powseq, sd = sd, null = null, pm = pm, psd = psd1,
+           dpm = dpm, dpsd = dpsd2),
+      col = cols[2])
+zlim <- (null - pm)/(2*dpsd2)
+plim <- 1 - pnorm(q = zlim)
+abline(v = c(100, plim*100), lty = 2, col = adjustcolor(col = 1, alpha = 0.6))
+legend("bottomleft", bg = "white", title = "Design prior",
+       legend = c(bquote({mu[italic("d")] == .(pm)} * ", " * tau[italic("d")] == .(psd1)),
+                  bquote({mu[italic("d")] == .(pm)} * ", " * tau[italic("d")] == .(psd2))),
+       lwd = 1.5, lty = 1, col = cols, cex = 0.75)
+
+## normal prior under the alternative
+psdlocal <- 1
+nnormal <- k^2*exp(-lambertWm1(x = -k^2*qnorm(p = powseq/2)^2))*2/psdlocal^2
+plot(powseq*100,
+     nnormal,
+     ## nbf01(k = k, power = powseq, sd = sd, null = null, pm = null, psd = psdlocal,
+     ##       dpm = null, dpsd = psdlocal),
+     xlab = "Target power", ylab = bquote("Sample size per group" ~ italic(n)),
+     type = "l", xaxt = "n", yaxt = "n", ylim = c(1, 10^5), col = 1,
+     lwd = lwd, log = "y", main = "Normal analysis prior",
+     panel.first = graphics::grid(lty = 3, col = adjustcolor(col = 1, alpha = 0.1)))
+axis(side = 1, at = xticks, labels = paste0(xticks, "%"))
+axis(side = 2, at = yticks, labels = ylabs, las = 1)
+abline(v = 100, lty = 2, col = adjustcolor(col = 1, alpha = 0.6))
+legend("bottomleft", bg = "white", title = "Design prior",
+       legend = bquote({mu[italic("d")] == .(null)} * ", " * tau[italic("d")] == .(psd2)),
+       lwd = 1.5, lty = 1, col = 1, cex = 0.75)
 
 
 ## ----"nTable2", results = "asis"----------------------------------------------
@@ -342,7 +460,7 @@ library(bfpwr)
 ## BF parameters
 k <- 1/6 # BF threshold
 null <- 0 # null value
-sd <- 1 # standard deviation of one sample
+sd <- 1 # standard deviation of one observation
 pm <- null # analysis prior centered around null value
 psd <- sqrt(2) # unit information sd for a standardized mean difference
 type <- "two.sample" # two-sample test

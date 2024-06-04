@@ -187,11 +187,36 @@ prior distribution for the parameter used in the design). Specifically, for
 Bayes factors with point analysis priors (i.e., likelihood ratios) and point or
 normal design priors, and for Bayes factors with local normal analysis and
 design priors (i.e., normal priors centered around the null value) closed-form
-sample sizes are available. We also summarize sample size determination for
-Bayes factors analysis based on numerical root-finding \citep{Weiss1997} that,
-while not being available in closed-form, is much faster and deterministic
-compared to simulation-based approaches. To facilitate reuse of our results, all
-methods are made available through the R package \texttt{bfpwr}.
+sample sizes are available, see Table~\ref{tab:summary} for an overview of our
+results. We also summarize sample size determination for Bayes factors analysis
+based on numerical root-finding \citep{Weiss1997} that, while not being
+available in closed-form, is much faster and deterministic compared to
+simulation-based approaches. To facilitate reuse of our results, all methods are
+made available through the R package \texttt{bfpwr}.
+
+\begingroup
+\renewcommand{\arraystretch}{1.3} % Default value: 1
+\begin{table}
+  \centering
+  \caption{Availability of closed-form sample size formulae for Bayes factor
+    hypothesis test of $H_{0} \colon \theta = \theta_{0}$ against
+    $H_{1} \colon \theta \neq \theta_{0}$ with either a point prior or a normal
+    prior assigned to $\theta$ under $H_{1}$ and data in the form of a normally
+    distributed parameter estimate
+    $\hat{\theta} \mid \theta \sim \mathrm{N}(\theta, \sigma_{\scriptscriptstyle \hat{\theta}}^{2}/n)$.}
+  \label{tab:summary}
+  \begin{tabular}{l c c }
+    \toprule
+    & \multicolumn{2}{c}{Analysis prior} \\
+    \cmidrule{2-3}
+    Design prior & Point prior & Normal prior \\
+    \midrule
+    Point prior &\cellcolor{green!10} Equation~\eqref{eq:nLR2} & \cellcolor{red!10} Unavailable \\
+    Normal prior & \cellcolor{green!10} Equation~\eqref{eq:nLR} & \cellcolor{yellow!10} Equation~\eqref{eq:nBF}, for local normal priors \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+\endgroup
 
 This paper is organized as follows: We begin by defining the type of Bayes
 factor underlying our sample size calculations (Section~\ref{sec:BF}), followed
@@ -205,7 +230,6 @@ discussion of our results and final remarks on limitations and extensions
 (Section~\ref{sec:discussion}). Our R package \texttt{bfpwr} that implements the
 developed methodology, is illustrated in Appendix~\ref{app:pkg}.
 
-% -- Can we derive a closed-form formula that allows us to conduct sample size determination for Bayes factor analyses? (in case we are `stranded on a desert island' and need to do a quick-and-dirty sample size calculation to continue our research)
 
 \section{Assumed Bayes factor analysis}
 \label{sec:BF}
@@ -246,7 +270,7 @@ sample sizes or rare events \citep{Spiegelhalter2004}.
 % latter we have $\sigma^{2} = \mathrm{Var}(Y_{a}) + \mathrm{Var}(Y_{b})$.
 
 \begingroup
-\renewcommand{\arraystretch}{1.25} % Default value: 1
+\renewcommand{\arraystretch}{1.3} % Default value: 1
 \begin{table}[!htb]
   \centering
   \caption{Different types of parameter estimates $\hat{\theta}$ with
@@ -426,6 +450,77 @@ design priors, the parameter uncertainty can be arbitrarily reduced by
 increasing the sample size. This parallels similar results on bounds for
 Bayesian/frequentist hybrid power of significance tests
 \citep{Spiegelhalter2004, Micheloud2020, Grieve2022}.
+
+\begin{figure}[!htb]
+<< "plot-power", fig.height = 4.5 >>=
+## BF parameters
+k <- 1/10
+null <- 0
+sd <- sqrt(2) # unit SD for SMD effect size
+pm <- dpm <- 0.3 # large SMD
+psd1 <- dpsd1 <- 0 # point prior
+psd2 <- dpsd2 <- 0.25 # normal prior
+
+nseq <- exp(seq(log(10), log(10^5), length.out = 500))
+
+par(mfrow = c(1, 2), mar = c(5.1, 4.2, 2, 1))
+yticks <- seq(0, 100, 20)
+xticks <- c(1, 10, 10^2, 10^3, 10^4, 10^5)
+lwd <- 1.5
+xlabs <- as.expression(c(bquote(1), bquote(10),
+                         sapply(seq(2, 5), FUN = function(x) bquote(10^.(x)))))
+
+cols <- adjustcolor(col = c(2, 4), alpha = 0.8)
+## point prior under the alternative
+plot(nseq, pbf01(k = k, n = nseq, sd = sd, null = null, pm = pm, psd = psd1,
+                 dpm = dpm, dpsd = dpsd1)*100,
+     xlab = bquote("Sample size per group" ~ italic(n)),
+     ylab = bquote({"Pr(BF"["01"] <= 1/.(1/k)} ~ "|" ~ tau == 0 *")"),
+     type = "l", xaxt = "n", yaxt = "n", ylim = c(0, 100), col = cols[1],
+     lwd = lwd, log = "x", main = "Point analysis prior",
+     panel.first = graphics::grid(lty = 3, col = adjustcolor(col = 1, alpha = 0.1)))
+axis(side = 1, at = xticks, labels = xlabs)
+axis(side = 2, at = yticks, labels = paste0(yticks, "%"), las = 1)
+lines(nseq,
+      pbf01(k = k, n = nseq, sd = sd, null = null, pm = pm, psd = psd1,
+            dpm = dpm, dpsd = dpsd2)*100, lwd = lwd,
+      col = cols[2])
+zlim <- (null - pm)/(2*dpsd2)
+plim <- 1 - pnorm(q = zlim)
+abline(h = c(100, plim*100), lty = 2, col = adjustcolor(col = 1, alpha = 0.6))
+legend("bottomright", bg = "white", title = "Design prior",
+       legend = c(bquote({mu[italic("d")] == .(pm)} * "," ~ tau[italic("d")] == .(psd1)),
+                  bquote({mu[italic("d")] == .(pm)} * "," ~ tau[italic("d")] == .(psd2))),
+       lwd = lwd, lty = 1, col = cols, cex = 0.75)
+
+## normal prior under the alternative
+plot(nseq, pbf01(k = k, n = nseq, sd = sd, null = null, pm = pm, psd = psd2,
+                 dpm = dpm, dpsd = dpsd1)*100,
+     xlab = bquote("Sample size per group" ~ italic(n)),
+     ylab = bquote({"Pr(BF"["01"] <= 1/.(1/k)} ~ "|" ~ tau == .(psd2) *")"),
+     type = "l", xaxt = "n", yaxt = "n", ylim = c(0, 100), col = cols[1],
+     lwd = lwd, log = "x", main = "Normal analysis prior",
+     panel.first = graphics::grid(lty = 3, col = adjustcolor(col = 1, alpha = 0.1)))
+axis(side = 1, at = xticks, labels = xlabs)
+axis(side = 2, at = yticks, labels = paste0(yticks, "%"), las = 1)
+lines(nseq,
+      pbf01(k = k, n = nseq, sd = sd, null = null, pm = pm, psd = psd2,
+            dpm = dpm, dpsd = dpsd2)*100, lwd = lwd,
+      col = cols[2])
+abline(h = 100, lty = 2, col = adjustcolor(col = 1, alpha = 0.6))
+@
+\caption{Examples of Bayes factor power curves. Both Bayes factors contrast
+  $H_{0} \colon \theta = \Sexpr{null}$ against
+  $H_{1} \colon \theta \neq \Sexpr{null}$ for a standardized mean difference
+  parameter $\theta$ with unit variance
+  $\sigma^{2}_{\scriptscriptstyle \hat{\theta}} = 2$ with either a point
+  analysis prior ($\tau^{2} = \Sexpr{psd1}$, left plot) or a normal analysis
+  prior ($\tau = \Sexpr{psd2}$, right plot) both with $\mu = \Sexpr{pm}$. The
+  power is computed under either a point (red curve) or normal design prior
+  (blue curve), both at the same location as the analysis prior. The dashed
+  lines depict the corresponding limiting power values.}
+\label{fig:powerexamples}
+\end{figure}
 
 For the Bayes factor with normal prior under the alternative ($\tau^2 > 0$), the
 cumulative distribution or power function is given by
@@ -635,6 +730,78 @@ print(xtab, booktabs = TRUE, floating = FALSE,
       include.colnames = FALSE)
 @
 \end{table}
+
+
+
+\begin{figure}[!htb]
+<< "plot-n", fig.height = 4.5 >>=
+## BF parameters
+k <- 1/10
+null <- 0
+sd <- sqrt(2) # unit SD for SMD effect size
+pm <- dpm <- 0.3 # large SMD
+psd1 <- dpsd1 <- 0 # point prior
+psd2 <- dpsd2 <- 0.25 # normal prior
+
+powseq <- seq(0.25, 0.9999, length.out = 500)
+
+par(mfrow = c(1, 2), mar = c(5.1, 4.2, 2, 1))
+lwd <- 1.5
+xticks <- seq(0, 100, 25)
+yticks <- c(1, 10, 10^2, 10^3, 10^4, 10^5)
+ylabs <- as.expression(c(bquote(1), bquote(10),
+                         sapply(seq(2, 5), FUN = function(x) bquote(10^.(x)))))
+
+cols <- adjustcolor(col = c(2, 4), alpha = 0.8)
+## point prior under the alternative
+plot(powseq*100,
+     nbf01(k = k, power = powseq, sd = sd, null = null, pm = pm, psd = psd1,
+           dpm = dpm, dpsd = dpsd1, analytical = TRUE),
+     xlab = "Target power", ylab = bquote("Sample size per group" ~ italic(n)),
+     type = "l", xaxt = "n", yaxt = "n", ylim = c(1, 10^4), col = cols[1],
+     lwd = lwd, log = "y", main = "Point analysis prior",
+     panel.first = graphics::grid(lty = 3, col = adjustcolor(col = 1, alpha = 0.1)))
+axis(side = 1, at = xticks, labels = paste0(xticks, "%"))
+axis(side = 2, at = yticks, labels = ylabs, las = 1)
+lines(powseq*100,
+      nbf01(k = k, power = powseq, sd = sd, null = null, pm = pm, psd = psd1,
+           dpm = dpm, dpsd = dpsd2),
+      col = cols[2])
+zlim <- (null - pm)/(2*dpsd2)
+plim <- 1 - pnorm(q = zlim)
+abline(v = c(100, plim*100), lty = 2, col = adjustcolor(col = 1, alpha = 0.6))
+legend("bottomleft", bg = "white", title = "Design prior",
+       legend = c(bquote({mu[italic("d")] == .(pm)} * ", " * tau[italic("d")] == .(psd1)),
+                  bquote({mu[italic("d")] == .(pm)} * ", " * tau[italic("d")] == .(psd2))),
+       lwd = 1.5, lty = 1, col = cols, cex = 0.75)
+
+## normal prior under the alternative
+psdlocal <- 1
+nnormal <- k^2*exp(-lambertWm1(x = -k^2*qnorm(p = powseq/2)^2))*2/psdlocal^2
+plot(powseq*100,
+     nnormal,
+     ## nbf01(k = k, power = powseq, sd = sd, null = null, pm = null, psd = psdlocal,
+     ##       dpm = null, dpsd = psdlocal),
+     xlab = "Target power", ylab = bquote("Sample size per group" ~ italic(n)),
+     type = "l", xaxt = "n", yaxt = "n", ylim = c(1, 10^5), col = 1,
+     lwd = lwd, log = "y", main = "Normal analysis prior",
+     panel.first = graphics::grid(lty = 3, col = adjustcolor(col = 1, alpha = 0.1)))
+axis(side = 1, at = xticks, labels = paste0(xticks, "%"))
+axis(side = 2, at = yticks, labels = ylabs, las = 1)
+abline(v = 100, lty = 2, col = adjustcolor(col = 1, alpha = 0.6))
+legend("bottomleft", bg = "white", title = "Design prior",
+       legend = bquote({mu[italic("d")] == .(null)} * ", " * tau[italic("d")] == .(psd2)),
+       lwd = 1.5, lty = 1, col = 1, cex = 0.75)
+@
+\caption{Examples of Bayes factor sample size calculations. Both Bayes factors
+  contrast $H_{0} \colon \theta = \Sexpr{null}$ against
+  $H_{1} \colon \theta \neq \Sexpr{null}$ for a standardized mean difference
+  parameter $\theta$ with unit variance
+  $\sigma^{2}_{\scriptscriptstyle \hat{\theta}} = 2$ with either a point
+  analysis prior ($\tau = \Sexpr{psd1}$, left plot) or a local normal analysis
+  prior ($\mu = \Sexpr{null}, \tau = \Sexpr{psd2}$, right plot).}
+\label{fig:nexamples}
+\end{figure}
 
 
 \subsection{Bayes factor with normal alternative}
@@ -1137,6 +1304,12 @@ looking at the orange curve in the top plot and the green/blue curves in the
 bottom plot, we see that the probability of misleading evidence in favor of the
 incorrect hypothesis appears to be adequately controlled, as these curves are
 virtually zero over the entire range of sample sizes.
+
+\section{Extensions}
+
+\subsection{Informed Bayesian \textit{t}-test}
+
+% \subsection{Non-local moment priors}
 
 
 \section{Discussion}
