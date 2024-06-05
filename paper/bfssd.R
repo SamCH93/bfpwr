@@ -25,7 +25,7 @@ null <- 0
 sd <- sqrt(2) # unit SD for SMD effect size
 pm <- dpm <- 0.3 # large SMD
 psd1 <- dpsd1 <- 0 # point prior
-psd2 <- dpsd2 <- 0.25 # normal prior
+psd2 <- dpsd2 <- 0.2 # normal prior
 
 nseq <- exp(seq(log(10), log(10^5), length.out = 500))
 
@@ -57,7 +57,7 @@ abline(h = c(100, plim*100), lty = 2, col = adjustcolor(col = 1, alpha = 0.6))
 legend("bottomright", bg = "white", title = "Design prior",
        legend = c(bquote({mu[italic("d")] == .(pm)} * "," ~ tau[italic("d")] == .(psd1)),
                   bquote({mu[italic("d")] == .(pm)} * "," ~ tau[italic("d")] == .(psd2))),
-       lwd = lwd, lty = 1, col = cols, cex = 0.75)
+       lwd = lwd, lty = 1, col = cols, cex = 0.7)
 
 ## normal prior under the alternative
 plot(nseq, pbf01(k = k, n = nseq, sd = sd, null = null, pm = pm, psd = psd2,
@@ -87,7 +87,7 @@ abline(h = 100, lty = 2, col = adjustcolor(col = 1, alpha = 0.6))
 ## dpsd1 <- 0
 ## dpsd2 <- 1.5
 ## 
-## ## BF with point alternative
+## ## BF with point analysis prior
 ## pm <- 1
 ## psd <- 0
 ## pow1 <- pbf01(k = k, n = nseq, null = null, sd = sd, pm = pm, psd = psd, dpm = dpm,
@@ -97,7 +97,7 @@ abline(h = 100, lty = 2, col = adjustcolor(col = 1, alpha = 0.6))
 ## zlim2 <- (null + pm - 2*dpm)*0.5/dpsd2
 ## matplot(nseq, cbind(pow1, pow2), type = "l", lty = c(1, 2), col = c(1, 2), lwd = 1.5,
 ##         xlab = "n", ylab = "Power", las = 1, log = "x", ylim = c(0, 1),
-##         main = "Bayes factor with point alternative")
+##         main = "Bayes factor with point analysis prior")
 ## abline(h = 1 - pnorm(zlim2), lty = 3)
 ## legend("bottomright", c("Point design prior", "Normal design prior"), lty = c(1, 2),
 ##        lwd = 1.5, col = c(1, 2))
@@ -112,7 +112,7 @@ abline(h = 100, lty = 2, col = adjustcolor(col = 1, alpha = 0.6))
 ##               dpsd = dpsd2)
 ## matplot(nseq, cbind(pow1, pow2), type = "l", lty = c(1, 2), col = c(1, 2), lwd = 1.5,
 ##         xlab = "n", ylab = "Power", las = 1, log = "x", ylim = c(0, 1),
-##         main = "Bayes factor with normal alternative")
+##         main = "Bayes factor with normal analysis prior")
 ## abline(h = 1, lty = 3)
 ## legend("bottomright", c("Point design prior", "Normal design prior"), lty = c(1, 2),
 ##        lwd = 1.5, col = c(1, 2))
@@ -147,11 +147,11 @@ print(xtab, booktabs = TRUE, floating = FALSE,
 k <- 1/10
 null <- 0
 sd <- sqrt(2) # unit SD for SMD effect size
-pm <- dpm <- 0.3 # large SMD
+pm <- dpm <- 1 # large SMD
 psd1 <- dpsd1 <- 0 # point prior
-psd2 <- dpsd2 <- 0.25 # normal prior
+psd2 <- dpsd2 <- 0.5 # normal prior
 
-powseq <- seq(0.25, 0.9999, length.out = 500)
+powseq <- seq(0.25, 0.999999, length.out = 1000)
 
 par(mfrow = c(1, 2), mar = c(5.1, 4.2, 2, 1))
 lwd <- 1.5
@@ -164,42 +164,47 @@ cols <- adjustcolor(col = c(2, 4), alpha = 0.8)
 ## point prior under the alternative
 plot(powseq*100,
      nbf01(k = k, power = powseq, sd = sd, null = null, pm = pm, psd = psd1,
-           dpm = dpm, dpsd = dpsd1, analytical = TRUE),
+           dpm = dpm, dpsd = dpsd1, analytical = TRUE, integer = TRUE),
      xlab = "Target power", ylab = bquote("Sample size per group" ~ italic(n)),
-     type = "l", xaxt = "n", yaxt = "n", ylim = c(1, 10^4), col = cols[1],
+     type = "s", xaxt = "n", yaxt = "n", ylim = c(1, 10^4), col = cols[1],
      lwd = lwd, log = "y", main = "Point analysis prior",
      panel.first = graphics::grid(lty = 3, col = adjustcolor(col = 1, alpha = 0.1)))
 axis(side = 1, at = xticks, labels = paste0(xticks, "%"))
 axis(side = 2, at = yticks, labels = ylabs, las = 1)
 lines(powseq*100,
       nbf01(k = k, power = powseq, sd = sd, null = null, pm = pm, psd = psd1,
-           dpm = dpm, dpsd = dpsd2),
-      col = cols[2])
+           dpm = dpm, dpsd = dpsd2, analytical = TRUE, integer = TRUE),
+      col = cols[2], type = "s")
 zlim <- (null - pm)/(2*dpsd2)
 plim <- 1 - pnorm(q = zlim)
 abline(v = c(100, plim*100), lty = 2, col = adjustcolor(col = 1, alpha = 0.6))
-legend("bottomleft", bg = "white", title = "Design prior",
+legend("bottom", bg = "white", title = "Design prior",
        legend = c(bquote({mu[italic("d")] == .(pm)} * ", " * tau[italic("d")] == .(psd1)),
                   bquote({mu[italic("d")] == .(pm)} * ", " * tau[italic("d")] == .(psd2))),
-       lwd = 1.5, lty = 1, col = cols, cex = 0.75)
+       lwd = 1.5, lty = 1, col = cols, cex = 0.7)
 
 ## normal prior under the alternative
-psdlocal <- 1
-nnormal <- k^2*exp(-lambertWm1(x = -k^2*qnorm(p = powseq/2)^2))*2/psdlocal^2
+cols2 <- palette.colors(n = 2, palette = "Dark2", alpha = 0.9)
+psdlocal1 <- 1
+psdlocal2 <- sqrt(2)
+nnormal1 <- ceiling(k^2*exp(-lambertWm1(x = -k^2*qnorm(p = powseq/2)^2))*2/psdlocal1^2)
+nnormal2 <- ceiling(k^2*exp(-lambertWm1(x = -k^2*qnorm(p = powseq/2)^2))*2/psdlocal2^2)
 plot(powseq*100,
-     nnormal,
-     ## nbf01(k = k, power = powseq, sd = sd, null = null, pm = null, psd = psdlocal,
-     ##       dpm = null, dpsd = psdlocal),
+     nnormal1,
+     ## nbf01(k = k, power = powseq, sd = sd, null = null, pm = null, psd = psdlocal1,
+     ##       dpm = null, dpsd = psdlocal1),
      xlab = "Target power", ylab = bquote("Sample size per group" ~ italic(n)),
-     type = "l", xaxt = "n", yaxt = "n", ylim = c(1, 10^5), col = 1,
-     lwd = lwd, log = "y", main = "Normal analysis prior",
+     type = "s", xaxt = "n", yaxt = "n", ylim = c(1, 10^4), col = cols2[1],
+     lwd = lwd, log = "y", main = "Local normal analysis prior",
      panel.first = graphics::grid(lty = 3, col = adjustcolor(col = 1, alpha = 0.1)))
+lines(powseq*100, nnormal2, type = "s", col = cols2[2], lwd = lwd)
 axis(side = 1, at = xticks, labels = paste0(xticks, "%"))
 axis(side = 2, at = yticks, labels = ylabs, las = 1)
 abline(v = 100, lty = 2, col = adjustcolor(col = 1, alpha = 0.6))
-legend("bottomleft", bg = "white", title = "Design prior",
-       legend = bquote({mu[italic("d")] == .(null)} * ", " * tau[italic("d")] == .(psd2)),
-       lwd = 1.5, lty = 1, col = 1, cex = 0.75)
+legend("bottom", bg = "white", title = "Analysis/design prior",
+       legend = c(bquote({mu[italic("d")] == .(null)} * ", " * tau[italic("d")]^2 == .(psdlocal1^2)),
+                  bquote({mu[italic("d")] == .(null)} * ", " * tau[italic("d")]^2 == .(psdlocal2^2))),
+       lwd = 1.5, lty = 1, col = cols2, cex = 0.7)
 
 
 ## ----"nTable2", results = "asis"----------------------------------------------
@@ -240,7 +245,7 @@ print(xtab, booktabs = TRUE, floating = FALSE,
 null <- 0
 sd <- sqrt(2)*2.75 # unit sd for an MD effect size so that n is the group size
 pm <- 1 # the effect on MD scale
-psd <- 0 # point alternative
+psd <- 0 # point analysis prior
 k <- 1/10
 
 ## design parameters
