@@ -58,27 +58,25 @@ tbf01. <- function(t, n, n1 = n, n2 = n, plocation = 0, pscale = 1/sqrt(2),
     f0 <- stats::dt(x = t, df = df, ncp = 0)
 
     ## marginal likelihood under the alternative hypothesis
-    dpriorH1 <- function(d) {
-        stats::dt(x = (d - plocation)/pscale, df = pdf, ncp = 0)/pscale
-    }
     if (alternative == "two.sided") {
         normConst <- 1
         lower <- -Inf
         upper <- Inf
     } else if (alternative == "greater") {
-        normConst <- stats::integrate(f = dpriorH1, lower = 0, upper = Inf,
-                                      ... = ...)$value
+        normConst <- 1 - stats::pt(q = (0 - plocation)/pscale, df = pdf)
         lower <- 0
         upper <- Inf
     } else {
-        normConst <- stats::integrate(f = dpriorH1, lower = -Inf, upper = 1,
-                                      ... = ...)$value
+        normConst <- stats::pt(q = (0 - plocation)/pscale, df = pdf)
         lower <- -Inf
         upper <- 0
     }
+    dpriorH1 <- function(d) {
+        stats::dt(x = (d - plocation)/pscale, df = pdf, ncp = 0)/(pscale*normConst)
+    }
     intFun <- function(d) {
         suppressWarnings({
-            stats::dt(x = t, df = df, ncp = sqrt(neff)*d)*dpriorH1(d)/normConst
+            stats::dt(x = t, df = df, ncp = sqrt(neff)*d)*dpriorH1(d)
         })
     }
     f1 <- try(stats::integrate(f = intFun, lower = lower, upper = upper,

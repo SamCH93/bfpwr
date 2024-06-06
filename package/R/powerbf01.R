@@ -15,7 +15,8 @@
 #'     Defaults to \code{NULL}
 #' @param sd Standard deviation of one observation (for \code{type =
 #'     "two.sample"} or \code{type = "one.sample"}) or of one difference within
-#'     a pair of observations (\code{type = "paired"}). Is assumed to be known
+#'     a pair of observations (\code{type = "paired"}). Is assumed to be known.
+#'     Defaults to \code{1}
 #' @param null Mean difference under the point null hypothesis. Defaults to
 #'     \code{0}
 #' @param pm Mean of the normal prior assigned to the mean difference under the
@@ -23,15 +24,16 @@
 #' @param psd Standard deviation of the normal prior assigned to the mean
 #'     difference under the alternative in the analysis. Set to \code{0} to
 #'     obtain a point prior at the prior mean
+#' @param type The type of test. One of \code{"two.sample"},
+#'     \code{"one.sample"}, \code{"paired"}. Defaults to \code{"two.sample"}
 #' @param dpm Mean of the normal design prior assigned to the mean difference.
 #'     Defaults to the same value as the analysis prior \code{pm}
 #' @param dpsd Standard deviation of the normal design prior assigned to the
 #'     mean difference. Defaults to the same value as the analysis prior
 #'     \code{psd}
-#' @param nrange Sample size search range (only taken into account when \code{n}
-#'     is \code{NULL}). Defaults to \code{c(1, 10^5)}
-#' @param type The type of test. One of \code{"two.sample"},
-#'     \code{"one.sample"}, \code{"paired"}. Defaults to \code{"two.sample"}
+#' @param nrange Sample size search range over which numerical search is
+#'     performed (only taken into account when \code{n} is \code{NULL}).
+#'     Defaults to \code{c(1, 10^5)}
 #'
 #' @return Object of class \code{"power.bftest"}, a list of the arguments
 #'     (including the computed one) augmented with \code{method} and \code{note}
@@ -50,9 +52,9 @@
 #'
 #' @export
 
-powerbf01 <- function(n = NULL, power = NULL, k = 1/10, sd = 1, null = 0, pm, psd,
-                      dpm = pm, dpsd = psd, nrange = c(1, 10^5),
-                      type = c("two.sample", "one.sample", "paired")) {
+powerbf01 <- function(n = NULL, power = NULL, k = 1/10, sd = 1, null = 0, pm,
+                      psd, type = c("two.sample", "one.sample", "paired"),
+                      dpm = pm, dpsd = psd, nrange = c(1, 10^5)) {
     ## input checks
     if (is.null(n) && is.null(power)) {
         stop("exactly one of 'n' and 'power' must be NULL")
@@ -133,7 +135,7 @@ powerbf01 <- function(n = NULL, power = NULL, k = 1/10, sd = 1, null = 0, pm, ps
     ## return object
     structure(list(n = n, power = power, sd = sd, null = null, pm = pm,
                    psd = psd, dpm = dpm, dpsd = dpsd, k = k, nrange = nrange,
-                   type = type),
+                   type = type, test = "z"),
               class = "power.bftest")
 
 }
@@ -164,7 +166,7 @@ powerbf01 <- function(n = NULL, power = NULL, k = 1/10, sd = 1, null = 0, pm, ps
 #' @export
 print.power.bftest <- function(x, digits = getOption("digits"), ...) {
 
-    method <- c("Bayes factor power calculation")
+    method <- paste0(x$test, "-test ", c("Bayes factor power calculation"))
     note <- "BF oriented in favor of H0 (BF < 1 indicates evidence for H1 over H0)"
     if (x$type == "paired") {
         note <- paste(note,
@@ -191,10 +193,20 @@ print.power.bftest <- function(x, digits = getOption("digits"), ...) {
     if (x$k < 1) {
         x$k <- paste0("1/", format(x = 1/x$k, digits = digits))
     }
-    printx <- x[c("n", "power", "sd", "null", "pm", "psd", "dpm", "dpsd", "k")]
-    names(printx) <- c("n", "power", "sd", "null",
-                       "analysis prior mean", "analysis prior sd", "design prior mean",
-                       "design prior sd", "BF threshold k")
+    if (x$test == "z") {
+        printx <- x[c("n", "power", "sd", "null", "pm", "psd", "dpm", "dpsd", "k")]
+        names(printx) <- c("n", "power", "sd", "null", "analysis prior mean",
+                           "analysis prior sd", "design prior mean",
+                           "design prior sd", "BF threshold k")
+    } else {
+        ## t-test
+        printx <- x[c("n", "power", "sd", "null", "alternative", "plocation",
+                      "pscale", "pdf", "dpm", "dpsd", "k")]
+        names(printx) <- c("n", "power", "sd", "null", "alternative",
+                           "analysis prior location", "analysis prior scale",
+                           "analysis prior df", "design prior mean",
+                           "design prior sd", "BF threshold k")
+    }
 
     cat(paste(paste("     ", format(names(printx), width = 10L, justify = "right")),
               format(printx, digits = digits), sep = " = "), sep = "\n")
@@ -208,7 +220,7 @@ print.power.bftest <- function(x, digits = getOption("digits"), ...) {
 #'
 #' @param x Object of class \code{"power.bftest"}
 #' @param nlim Range of samples sizes over which the power should be computed.
-#'     Defaults to \code{c(1, 500)}
+#'     Defaults to \code{c(2, 500)}
 #' @param plot Logical indicating whether data should be plotted. If
 #'     \code{FALSE} only the data used for plotting are returned.
 #' @param nullplot Logcal indicating whether a second plot with the power in
@@ -231,7 +243,7 @@ print.power.bftest <- function(x, digits = getOption("digits"), ...) {
 #' plot(power1, nlim = c(1, 1000))
 #'
 #' @export
-plot.power.bftest <- function(x, nlim = c(1, 500), plot = TRUE, nullplot = TRUE,
+plot.power.bftest <- function(x, nlim = c(2, 500), plot = TRUE, nullplot = TRUE,
                               ...) {
     ## input checks
     stopifnot(
@@ -251,35 +263,57 @@ plot.power.bftest <- function(x, nlim = c(1, 500), plot = TRUE, nullplot = TRUE,
     )
 
 
-    ## determine unit standard deviation
-    if (x$type == "two.sample") {
-        usd <- sqrt(2)*x$sd
+    if (x$test == "z") {
+        ## determine unit standard deviation
+        if (x$type == "two.sample") {
+            usd <- sqrt(2)*x$sd
+        } else {
+            usd <- x$sd
+        }
+        powFun <- function(k, n, lower.tail = TRUE) {
+            pbf01(k = k, n = n, sd = usd, null = x$null, pm = x$pm,
+                  psd = x$psd, dpm = x$dpm, dpsd = x$dpsd, lower.tail =
+                                                               lower.tail)
+        }
+        powNullFun <- function(k, n, lower.tail = TRUE) {
+            pbf01(k = k, n = n, sd = usd, null = x$null, pm = x$pm, psd = x$psd,
+                  dpm = x$null, dpsd = 0, lower.tail = lower.tail)
+        }
+        nH0 <- nbf01(k = 1/x$k, power = x$power, sd = usd, null = x$null,
+                     pm = x$pm, psd = x$psd, dpm = x$null, dpsd = x$null,
+                     lower.tail = FALSE)
     } else {
-        usd <- x$sd
+        powFun <- function(k, n, lower.tail = TRUE) {
+            ptbf01(k = k, n = n, null = x$null, plocation = x$plocation,
+                   pscale = x$pscale, pdf = x$pdf, alternative = x$alternative,
+                   type = x$type, dpm = x$dpm, dpsd = x$dpsd,
+                   lower.tail = lower.tail)
+        }
+        powNullFun <- function(k, n, lower.tail = TRUE) {
+            ptbf01(k = k, n = n, null = x$null, plocation = x$plocation,
+                   pscale = x$pscale, pdf = x$pdf, alternative = x$alternative,
+                   type = x$type, dpm = x$null, dpsd = 0,
+                   lower.tail = lower.tail)
+        }
+        nH0 <- ntbf01(k = 1/x$k, power = x$power, null = x$null,
+                      plocation = x$plocation, pscale = x$pscale, pdf = x$pdf,
+                      alternative = x$alternative, type = x$type, dpm = x$null,
+                      dpsd = 0, lower.tail = FALSE)
     }
+
+
     ## compute power curves
-    nseq <- seq(from = nlim[1], to = nlim[2], by = 1)
-    pow <- pbf01(k = x$k, n = nseq, sd = usd, null = x$null, pm = x$pm,
-                 psd = x$psd, dpm = x$dpm, dpsd = x$dpsd)
-    powNull <- pbf01(k = x$k, n = nseq, sd = usd, null = x$null, pm = x$pm,
-                     psd = x$psd, dpm = x$null, dpsd = x$null)
+    nseq <- seq(from =  nlim[1], to = nlim[2], length.out = 300)
+    pow <- powFun(k = x$k, n = nseq)
+    powNull <- powNullFun(k = x$k, n = nseq)
     powDF <- rbind(data.frame(n = nseq, power = pow, prior = "Design prior"),
                    data.frame(n = nseq, power = powNull, prior = "Null"))
     if (nullplot) {
         ## compute power in favor of H0
-        powH0 <- pbf01(k = 1/x$k, n = nseq, sd = usd, null = x$null, pm = x$pm,
-                       psd = x$psd, dpm = x$dpm, dpsd = x$dpsd,
-                       lower.tail = FALSE)
-        powNullH0 <- pbf01(k = 1/x$k, n = nseq, sd = usd, null = x$null,
-                           pm = x$pm, psd = x$psd, dpm = x$null, dpsd = x$null,
-                           lower.tail = FALSE)
+        powH0 <- powFun(k = 1/x$k, n = nseq, lower.tail = FALSE)
+        powNullH0 <- powNullFun(k = 1/x$k, n = nseq, lower.tail = FALSE)
         powDFH0 <- rbind(data.frame(n = nseq, power = pow, prior = "Design prior"),
                          data.frame(n = nseq, power = powNull, prior = "Null"))
-        ## compute n to achieve target power in favor of the null
-        nH0 <- nbf01(k = 1/x$k, power = x$power, sd = usd, null = x$null,
-                     pm = x$pm, psd = x$psd, dpm = x$null, dpsd = x$null,
-                     lower.tail = FALSE)
-
     }
 
     ## plot power curves if specified
@@ -309,7 +343,7 @@ plot.power.bftest <- function(x, nlim = c(1, 500), plot = TRUE, nullplot = TRUE,
             }
         }
         plot(nseq, pow*100, xlab = xlab,
-             ylab = bquote("Pr(BF"["01"] < .(kformat) * " )"), type = "s",
+             ylab = bquote("Pr(BF"["01"] < .(kformat) * " )"), type = "l",
              ylim = c(0, 100), lwd = 1.5, yaxt = "n", col = 4,
              panel.first = graphics::grid(lty = 3, col = "#0000001A"))
         graphics::lines(nseq, powNull*100, type = "l", col = 2, lwd = 1.5)
@@ -328,7 +362,7 @@ plot.power.bftest <- function(x, nlim = c(1, 500), plot = TRUE, nullplot = TRUE,
                          lwd = 1.5, col = c(4, 2), bg = "white", cex = 0.8)
         if (nullplot) {
             plot(nseq, powH0*100, xlab = xlab,
-                 ylab = bquote("Pr(BF"["01"] > .(kformatH0) * " )"), type = "s",
+                 ylab = bquote("Pr(BF"["01"] > .(kformatH0) * " )"), type = "l",
                  ylim = c(0, 100), lwd = 1.5, yaxt = "n", col = 4,
                  panel.first = graphics::grid(lty = 3, col = "#0000001A"))
             graphics::lines(nseq, powNullH0*100, type = "l", col = 2, lwd = 1.5)

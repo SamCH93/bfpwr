@@ -43,11 +43,12 @@ Defaults to the same value as specified for the analysis prior \code{pm}}
 parameter. Set to 0 to obtain a point prior at the prior mean. Defaults
 to the same value as specified for the analysis prior \code{psd}}
 
-\item{nrange}{Sample size search range. Defaults to \code{c(1, 10^5)}}
+\item{nrange}{Sample size search range over which numerical search is
+performed. Defaults to \code{c(1, 10^5)}}
 
-\item{lower.tail}{Logical indicating whether Pr(BF <= k) (\code{TRUE}) or
-Pr(BF > k) (\code{FALSE}) is the probability of interest. Defaults to
-\code{TRUE}}
+\item{lower.tail}{Logical indicating whether Pr(BF \eqn{\leq} \code{k})
+(\code{TRUE}) or Pr(BF \eqn{>} \code{k}) (\code{FALSE}) should be
+computed. Defaults to \code{TRUE}}
 
 \item{integer}{Logical indicating whether only integer valued sample sizes
 should be returned. If \code{TRUE} the required sample size is rounded to

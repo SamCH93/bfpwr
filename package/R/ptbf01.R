@@ -1,10 +1,8 @@
-ptbf01. <- function(k = 1/10, n, n1 = n, n2 = n, null = 0,
-                    plocation = 0, pscale = 1/sqrt(2), pdf = 1, dpm = plocation,
-                    dpsd = pscale,
+ptbf01. <- function(k = 1/10, n, n1 = n, n2 = n, null = 0, plocation = 0,
+                    pscale = 1/sqrt(2), pdf = 1, dpm = plocation, dpsd = pscale,
                     type = c("two.sample", "one.sample", "paired"),
                     alternative = c("two.sided", "less", "greater"),
-                    lower.tail = TRUE,
-                    strict = FALSE) {
+                    lower.tail = TRUE, ...) {
     ## input checks
     stopifnot(
         length(k) == 1,
@@ -15,12 +13,12 @@ ptbf01. <- function(k = 1/10, n, n1 = n, n2 = n, null = 0,
         length(n1) == 1,
         is.numeric(n1),
         is.finite(n1),
-        0 < n1,
+        1 < n1,
 
         length(n2) == 1,
         is.numeric(n2),
         is.finite(n2),
-        0 < n2,
+        1 < n2,
 
         length(null) == 1,
         is.numeric(null),
@@ -51,11 +49,7 @@ ptbf01. <- function(k = 1/10, n, n1 = n, n2 = n, null = 0,
 
         length(lower.tail) == 1,
         is.logical(lower.tail),
-        !is.na(lower.tail),
-
-        length(strict) == 1,
-        is.logical(strict),
-        !is.na(strict)
+        !is.na(lower.tail)
     )
     type <- match.arg(type)
     alternative <- match.arg(alternative)
@@ -68,15 +62,13 @@ ptbf01. <- function(k = 1/10, n, n1 = n, n2 = n, null = 0,
 
     ## determine df and effective sample size
     if (type == "two.sample") {
-        df <- n1 + n2 - 2
         neff <- 1/(1/n1 + 1/n2)
     } else {
-        df <- n1 - 1
         neff <- n1
     }
 
+
     ## determine effect estimate region where BF < k for specified sample size
-    ## HACK this can probably be improved...
     se <- 1/sqrt(neff) # standard error of SMD assuming variance is known
     estsd <- sqrt(se^2 + dpsd^2) # standard deviation of SMD under design prior
     rootFun <- function(est) {
@@ -84,25 +76,73 @@ ptbf01. <- function(k = 1/10, n, n1 = n, n2 = n, null = 0,
               pscale = pscale, pdf = pdf, type = type,
               alternative = alternative) - k
     }
-    upper <- try(stats::uniroot(f = rootFun, interval = c(0, 100))$root,
-                 silent = TRUE)
-    lower <- try(stats::uniroot(f = rootFun, interval = c(-100, 0))$root,
-                 silent = TRUE)
-    if (inherits(upper, "try-error")) {
-        powup <- 0
+
+    if (alternative == "two.sided") {
+        if (k > 1) {
+            ## check whether BF > k > 1 is achievable for given sample size
+            ## maximum BF is obtained when est = null
+            if (rootFun(null) < 0) {
+                if (lower.tail == FALSE) {
+                    return(0)
+                } else {
+                    return(1)
+                }
+            }
+        }
+
+        ## guess search range based on search range from z-test BF
+        X <- (log(1 + neff*pscale^2) + (null - plocation)^2/pscale^2 - log(k^2))*
+            (1 + 1/neff/pscale^2)/neff
+        M <- (-null - (null - plocation)/neff/pscale^2)
+        lowerz <- -sqrt(X) - M # lower limit z-test BF
+        upperz <- sqrt(X) - M # upper limit z-test BF
+        lowert <- (lowerz - 0.1)*6 # add a bit and blow up by factor 6
+        uppert <- (upperz + 0.1)*6 # add a bit and blow up by factor 6
+
+        ## search for critical values
+        upper <- try(stats::uniroot(f = rootFun, interval = c(0, abs(uppert)),
+                                    ... = ...)$root,
+                     silent = TRUE)
+        lower <- try(stats::uniroot(f = rootFun, interval = c(-abs(lowert), 0),
+                                    ... = ...)$root,
+                     silent = TRUE)
+
+        ## compute power
+        if (inherits(upper, "try-error")) {
+            powup <- 0
+        } else {
+            powup <- stats::pnorm(q = upper, mean = dpm, sd = estsd, lower.tail = FALSE)
+        }
+        if (inherits(lower, "try-error")) {
+            powlow <- 0
+        } else {
+            powlow <- stats::pnorm(q = lower, mean = dpm, sd = estsd, lower.tail = TRUE)
+        }
+        if (powup == 0 && powlow == 0) {
+            pow <- NaN
+        } else {
+            pow <- powup + powlow
+        }
     } else {
-        powup <- stats::pnorm(q = upper, mean = dpm, sd = estsd, lower.tail = FALSE)
+        ## one-sided alternatives
+        searchRange <- dpm + c(-1, 1)*estsd*6 # search 6 sigma around design prior
+        crit <- try(stats::uniroot(f = rootFun, interval = searchRange,
+                                   ... = ...)$root,
+                    silent = TRUE)
+        if (inherits(crit, "try-error")) {
+            if (rootFun(dpm) < 0) pow <- 1
+            else pow <- 0
+        } else {
+            if (alternative == "greater") {
+                pow <- stats::pnorm(q = crit, mean = dpm, sd = estsd,
+                                    lower.tail = FALSE)
+            } else {
+                pow <- stats::pnorm(q = crit, mean = dpm, sd = estsd,
+                                    lower.tail = FALSE)
+            }
+        }
+
     }
-    if (inherits(lower, "try-error")) {
-        powlow <- 0
-    } else {
-        powlow <- stats::pnorm(q = lower, mean = dpm, sd = estsd, lower.tail = TRUE)
-    }
-    if (strict == TRUE) {
-        if (alternative == "greater") powlow <- 0
-        if (alternative == "less") powup <- 0
-    }
-    pow <- powup + powlow
 
     if (lower.tail == TRUE) return(pow)
     else return(1 - pow)
@@ -141,9 +181,7 @@ ptbf01. <- function(k = 1/10, n, n1 = n, n2 = n, null = 0,
 #' @param lower.tail Logical indicating whether Pr(BF \eqn{\leq} \code{k})
 #'     (\code{TRUE}) or Pr(BF \eqn{>} \code{k}) (\code{FALSE}) should be
 #'     computed. Defaults to \code{TRUE}
-#' @param strict Logical indicating whether in case of one-sided alternatives
-#'     the power should be computed also in the opposite direction. Defaults to
-#'     \code{FALSE}
+#' @param ... Other arguments passed to \code{stats::uniroot}
 #'
 #' @return The probability that the Bayes factor is less or greater (depending
 #'     on the specified \code{lower.tail}) than the specified threshold \code{k}
@@ -153,26 +191,31 @@ ptbf01. <- function(k = 1/10, n, n1 = n, n2 = n, null = 0,
 #' @seealso \link{tbf01}
 #'
 #' @examples
-#' ## example from Schönbrodt and Wagenmakers (2018, p.135)
-#' ptbf01(k = 1/6, n = 146, dpm = 0.5, dpsd = 0, alternative = "greater")
-#' ptbf01(k = 6, n = 146, dpm = 0, dpsd = 0, alternative = "greater",
+#' ## example from Schönbrodt and Wagenmakers (2018, p. 135)
+#' ptbf01(k = 1/6, n = 146, dpm = 0.5, dps = 0, alternative = "greater")
+#' ptbf01(k = 6, n = 14, dpm = 0, dpsd = 0, alternative = "greater",
 #'        lower.tail = FALSE)
+#'
+#' ## two-sided
+#' ptbf01(k = 1/6, n = 14, dpm = 0.5, dps = 0)
+#' ptbf01(k = 6, n = 140, dpm = 0.5, dpsd = 0.1, lower.tail = TRUE)
 #'
 #' @export
 ptbf01 <- Vectorize(FUN = ptbf01.,
                     vectorize.args = c("k", "n", "n1", "n2", "null",
                                        "plocation", "pscale", "pdf", "type",
                                        "alternative", "dpm", "dpsd", "type",
-                                       "lower.tail", "strict"))
+                                       "lower.tail"))
 
 ## ## verify with simulation
-## set.seed(1000)
+## set.seed(10000)
 ## nsim <- 10000
 ## dpm <- 0.5
 ## dpsd <- 0.1
-## n1 <- 100
+## n1 <- 30
 ## n2 <- 120
 ## r <- 1/sqrt(2)
+## plocation <- 0.3
 ## bfs <- replicate(n = nsim, expr = {
 ##     if (dpsd == 0) m <- dpm
 ##     else m <- rnorm(n = 1, mean = dpm, sd = dpsd)
@@ -182,8 +225,9 @@ ptbf01 <- Vectorize(FUN = ptbf01.,
 ##     ## se <- sqrt(1/n1 + 1/n2)
 ##     ## est <- rnorm(n = 1, mean = dpm, sd = sqrt(se^2 + dpsd^2))
 ##     ## t <- est/se
-##     tbf01(t = t, n1 = n1, n2 = n2, pscale = r, type = "two.sample", alternative = "greater")
+##     tbf01(t = t, n1 = n1, n2 = n2, pscale = r, plocation = plocation,
+##           type ="two.sample", alternative = "two.sided")
 ## })
 ## mean(bfs < 1/10)
-## ptbf01(k = 1/10, n1 = n1, n2 = n2, pscale = r, dpm = dpm, dpsd = dpsd,
-##        type = "two.sample", alternative = "greater")
+## ptbf01(k = 1/10, n1 = n1, n2 = n2, pscale = r, plocation = plocation, dpm = dpm,
+##        dpsd = dpsd, type = "two.sample", alternative = "two.sided")

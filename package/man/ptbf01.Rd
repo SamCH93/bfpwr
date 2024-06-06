@@ -18,7 +18,7 @@ ptbf01(
   type = c("two.sample", "one.sample", "paired"),
   alternative = c("two.sided", "less", "greater"),
   lower.tail = TRUE,
-  strict = FALSE
+  ...
 )
 }
 \arguments{
@@ -59,9 +59,7 @@ the design prior mean. Defaults to the analysis prior scale}
 (\code{TRUE}) or Pr(BF \eqn{>} \code{k}) (\code{FALSE}) should be
 computed. Defaults to \code{TRUE}}
 
-\item{strict}{Logical indicating whether in case of one-sided alternatives
-the power should be computed also in the opposite direction. Defaults to
-\code{FALSE}}
+\item{...}{Other arguments passed to \code{stats::uniroot}}
 }
 \value{
 The probability that the Bayes factor is less or greater (depending
@@ -73,10 +71,14 @@ This function computes the probability of obtaining a
     threshold \code{k} with a specified sample size.
 }
 \examples{
-## example from Schönbrodt and Wagenmakers (2018, p.135)
-ptbf01(k = 1/6, n = 146, dpm = 0.5, dpsd = 0, alternative = "greater")
-ptbf01(k = 6, n = 146, dpm = 0, dpsd = 0, alternative = "greater",
+## example from Schönbrodt and Wagenmakers (2018, p. 135)
+ptbf01(k = 1/6, n = 146, dpm = 0.5, dps = 0, alternative = "greater")
+ptbf01(k = 6, n = 14, dpm = 0, dpsd = 0, alternative = "greater",
        lower.tail = FALSE)
+
+## two-sided
+ptbf01(k = 1/6, n = 14, dpm = 0.5, dps = 0)
+ptbf01(k = 6, n = 140, dpm = 0.5, dpsd = 0.1, lower.tail = TRUE)
 
 }
 \seealso{

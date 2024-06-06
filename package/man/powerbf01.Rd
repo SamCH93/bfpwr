@@ -12,10 +12,10 @@ powerbf01(
   null = 0,
   pm,
   psd,
+  type = c("two.sample", "one.sample", "paired"),
   dpm = pm,
   dpsd = psd,
-  nrange = c(1, 10^5),
-  type = c("two.sample", "one.sample", "paired")
+  nrange = c(1, 10^5)
 )
 }
 \arguments{
@@ -30,7 +30,8 @@ for 'strong evidence' against the null hypothesis}
 
 \item{sd}{Standard deviation of one observation (for \code{type =
 "two.sample"} or \code{type = "one.sample"}) or of one difference within
-a pair of observations (\code{type = "paired"}). Is assumed to be known}
+a pair of observations (\code{type = "paired"}). Is assumed to be known.
+Defaults to \code{1}}
 
 \item{null}{Mean difference under the point null hypothesis. Defaults to
 \code{0}}
@@ -42,6 +43,9 @@ alternative in the analysis}
 difference under the alternative in the analysis. Set to \code{0} to
 obtain a point prior at the prior mean}
 
+\item{type}{The type of test. One of \code{"two.sample"},
+\code{"one.sample"}, \code{"paired"}. Defaults to \code{"two.sample"}}
+
 \item{dpm}{Mean of the normal design prior assigned to the mean difference.
 Defaults to the same value as the analysis prior \code{pm}}
 
@@ -49,11 +53,9 @@ Defaults to the same value as the analysis prior \code{pm}}
 mean difference. Defaults to the same value as the analysis prior
 \code{psd}}
 
-\item{nrange}{Sample size search range (only taken into account when \code{n}
-is \code{NULL}). Defaults to \code{c(1, 10^5)}}
-
-\item{type}{The type of test. One of \code{"two.sample"},
-\code{"one.sample"}, \code{"paired"}. Defaults to \code{"two.sample"}}
+\item{nrange}{Sample size search range over which numerical search is
+performed (only taken into account when \code{n} is \code{NULL}).
+Defaults to \code{c(1, 10^5)}}
 }
 \value{
 Object of class \code{"power.bftest"}, a list of the arguments

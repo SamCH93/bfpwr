@@ -454,6 +454,68 @@ axis(side = 2, at = seq(0, 100, 20), labels = paste0(seq(0, 100, 20), "%"), las 
 abline(v = c(n, n2), col = transpblack)
 
 
+## ----"extensions-example", fig.height = 4.5-----------------------------------
+null <- 0
+plocation <- 0
+pscale <- 1/sqrt(2)
+pdf <- 1
+dpm <- 0.5
+dpsd1 <- 0
+dpsd2 <- 0.1
+power <- 0.95
+k <- 1/6
+alternative <- "greater"
+type <- "two.sample"
+nex <- ntbf01(k = k, power = power, null = null, plocation = plocation,
+              pscale = pscale, pdf = pdf, alternative = alternative,
+              type = type, dpm = dpm, dpsd = c(dpsd1, dpsd2))
+
+## nseq <- seq(5, 300, 1)
+## pow <- ptbf01(k = k, n = nseq, null = null, plocation = plocation,
+##               pscale = pscale, pdf = pdf, alternative = alternative,
+##               type = type, dpm = dpm, dpsd = dpsd1)
+## pow2 <- ptbf01(k = k, n = nseq, null = null, plocation = plocation,
+##                pscale = pscale, pdf = pdf, alternative = alternative,
+##                type = type, dpm = dpm, dpsd = dpsd2)
+## powNull <- ptbf01(k = k, n = nseq, null = null, plocation = plocation,
+##                   pscale = pscale, pdf = pdf, alternative = alternative,
+##                   type = type, dpm = null, dpsd = 0)
+## par(mar = c(4, 5, 4, 2.5))
+## matplot(nseq, cbind(pow, pow2, powNull)*100, type = "s", ylim = c(0, 100),
+##         lty = 1, col = cols, ylab = bquote("Pr(BF"["01"] < 1/.(1/k) * " )"),
+##         xlab = bquote("Sample size per group" ~ italic(n)), lwd = 1.5,
+##         yaxt = "n",
+##         panel.first = grid(lty = 3, col = adjustcolor(col = 1, alpha = 0.1)))
+## axis(side = 2, at = seq(0, 100, 20), labels = paste0(seq(0, 100, 20), "%"), las = 1)
+## abline(v = nex, col = transpblack)
+## axis(side = 4, at = power*100, labels = paste0(power*100, "%"), las = 1,
+##      col = transpblack, cex.axis = 0.8)
+## axis(side = 3, at = nex, col = transpblack, cex.axis = 0.8)
+## abline(h = power*100, col = transpblack)
+## legend("right", title = "Data distribution",
+##        legend = c("Point design prior", "Normal design prior", "Null hypothesis"),
+##        lty = 1, lwd = 1.5, col = cols, bg = "white", cex = 0.7)
+
+
+## -----------------------------------------------------------------------------
+## normal moment prior BF01
+## H0: theta = null
+## H1: theta ~ NM(null, ps) with ps the prior spread parameter
+nmBF01 <- function(y, se, null = 0, ps) {
+    (1 + ps^2/se^2)^1.5*exp(-0.5*(y - null)^2/se^2/(1 + se^2/ps^2))/
+        (1 + (y - null)^2/se^2/(1 + se^2/ps^2))
+}
+
+## power to obtain BF01 < k
+## assuming y ~ N(m, v) distribution (could be induced by design prior)
+nmBF01power <- function(k, se, null = 0, ps, m, v) {
+    x <- 2*lamW::lambertW0(x = (1 + ps^2/se^2)^1.5*sqrt(exp(1))/2/k) - 1
+    res <- stats::pnorm((null - se*sqrt(x*(1 + se^2/ps^2)) - m)/sqrt(v)) +
+        1 - stats::pnorm((null + se*sqrt(x*(1 + se^2/ps^2)) - m)/sqrt(v))
+    return(res)
+}
+
+
 ## ----"package-illustration", echo = TRUE, fig.height = 6----------------------
 ## install from CRAN or GitHub (the latter requires "remotes" package)
 ## install.packages("bfpwr") # not yet on CRAN

@@ -4,13 +4,13 @@
 \alias{plot.power.bftest}
 \title{Plot method for class \code{"power.bftest"}}
 \usage{
-\method{plot}{power.bftest}(x, nlim = c(1, 500), plot = TRUE, nullplot = TRUE, ...)
+\method{plot}{power.bftest}(x, nlim = c(2, 500), plot = TRUE, nullplot = TRUE, ...)
 }
 \arguments{
 \item{x}{Object of class \code{"power.bftest"}}
 
 \item{nlim}{Range of samples sizes over which the power should be computed.
-Defaults to \code{c(1, 500)}}
+Defaults to \code{c(2, 500)}}
 
 \item{plot}{Logical indicating whether data should be plotted. If
 \code{FALSE} only the data used for plotting are returned.}
