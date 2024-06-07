@@ -454,7 +454,7 @@ axis(side = 2, at = seq(0, 100, 20), labels = paste0(seq(0, 100, 20), "%"), las 
 abline(v = c(n, n2), col = transpblack)
 
 
-## ----"extensions-example", fig.height = 4.5-----------------------------------
+## ----"extensions-t-example", fig.height = 4.5---------------------------------
 null <- 0
 plocation <- 0
 pscale <- 1/sqrt(2)
@@ -469,6 +469,17 @@ type <- "two.sample"
 nex <- ntbf01(k = k, power = power, null = null, plocation = plocation,
               pscale = pscale, pdf = pdf, alternative = alternative,
               type = type, dpm = dpm, dpsd = c(dpsd1, dpsd2))
+
+
+## library(microbenchmark)
+## microbenchmark({
+##     ntbf01(k = k, power = power, null = null, plocation = plocation,
+##               pscale = pscale, pdf = pdf, alternative = alternative,
+##               type = type, dpm = dpm, dpsd = dpsd1)
+## })
+## #> Unit: milliseconds
+## #>       min       lq     mean   median       uq      max neval
+## #>  94.27834 96.52802 99.69758 97.41885 98.79241 177.8769   100
 
 ## nseq <- seq(5, 300, 1)
 ## pow <- ptbf01(k = k, n = nseq, null = null, plocation = plocation,
@@ -497,23 +508,71 @@ nex <- ntbf01(k = k, power = power, null = null, plocation = plocation,
 ##        lty = 1, lwd = 1.5, col = cols, bg = "white", cex = 0.7)
 
 
+## ----fig.height = 3.5---------------------------------------------------------
+dnmoment <- function(x, location = 0, spread = 1) {
+    stats::dnorm(x = x, mean = location, sd = spread)*(x - location)^2/spread^2
+}
+xseq <- seq(-4, 4, length.out = 500)
+taus <- c(0.5, 1, 2)
+null <- 0
+dens <- sapply(X = taus, FUN = function(tau) dnmoment(x = xseq, location = 0, spread = tau))
+cols <- hcl.colors(n = length(taus), alpha = 0.8)
+par(mar = c(4, 5, 2, 2))
+matplot(xseq, dens, type = "l", lty = 1, col = cols, lwd = 1.5, xlab = bquote(theta),
+        ylab = "Density", las = 1,
+        panel.first = grid(lty = 3, col = adjustcolor(col = 1, alpha = 0.1)))
+leg <- sapply(taus, function(tau) as.expression(bquote({"NM("* theta[0] == "0,"} * tau == .(tau) * ")")))
+legend("topright", legend = leg, col = cols, lty = 1, lwd = 1.5, cex = 0.8)
+
+
 ## -----------------------------------------------------------------------------
 ## normal moment prior BF01
 ## H0: theta = null
 ## H1: theta ~ NM(null, ps) with ps the prior spread parameter
-nmBF01 <- function(y, se, null = 0, ps) {
+nmbf01 <- function(y, se, null = 0, ps) {
     (1 + ps^2/se^2)^1.5*exp(-0.5*(y - null)^2/se^2/(1 + se^2/ps^2))/
         (1 + (y - null)^2/se^2/(1 + se^2/ps^2))
 }
 
 ## power to obtain BF01 < k
 ## assuming y ~ N(m, v) distribution (could be induced by design prior)
-nmBF01power <- function(k, se, null = 0, ps, m, v) {
+pnmbf01. <- function(k, se, null = 0, ps, m, v) {
     x <- 2*lamW::lambertW0(x = (1 + ps^2/se^2)^1.5*sqrt(exp(1))/2/k) - 1
-    res <- stats::pnorm((null - se*sqrt(x*(1 + se^2/ps^2)) - m)/sqrt(v)) +
-        1 - stats::pnorm((null + se*sqrt(x*(1 + se^2/ps^2)) - m)/sqrt(v))
+    if (is.nan(x)) {
+        res <- 1
+    } else {
+        res <- stats::pnorm((null - se*sqrt(x*(1 + se^2/ps^2)) - m)/sqrt(v)) +
+            stats::pnorm((m - null - se*sqrt(x*(1 + se^2/ps^2)))/sqrt(v))
+    }
     return(res)
 }
+pnmbf01 <- Vectorize(FUN = pnmbf01.)
+
+## ## look at example
+## nsim <- 1000
+## k <- 1/6
+## ps <- 1
+## dm <- 1 # assume that design prior is centered around 1
+## dpv <- 0.5 # assume that design prior variance is 1/2
+## nseq <- seq(1, 100, 1)
+## power <- t(sapply(X = nseq, FUN = function(n) {
+##     se <- 2/sqrt(n) # standard error with unit variance 4
+##     v <- se^2 + dpv # marginal variance of y under design prior
+##     ysim <- rnorm(n = nsim, mean = dm, sd = sqrt(v)) # simulate for comparison
+##     bf01sim <- nmbf01(y = ysim, se = se, ps = ps)
+##     powsim <- mean(bf01sim < k)
+##     pow <- pnmbf01(k = k, se = se, ps = ps, m = dm, v = v) # exact
+##     c("exact" = pow, "simulation" = powsim)
+## }))
+
+## ## power curve
+## matplot(nseq, power, xlab = "n", ylab = bquote("Pr(BF"["01"] < 1/.(1/k) * ")"),
+##         ylim = c(0, 1), type = "s", las = 1, col = c(1, 4), lty = 1, lwd = 2)
+## mcse <- sqrt(power[,2]*(1 - power[,2])/nsim)
+## polygon(x = c(nseq, rev(nseq)),
+##         y = c(power[,2] + mcse, rev(power[,2] - mcse)),
+##         border = FALSE, col = adjustcolor(col = 4, alpha.f = 0.1),
+##         lty = 2)
 
 
 ## ----"package-illustration", echo = TRUE, fig.height = 6----------------------
@@ -560,6 +619,9 @@ plot(ssd, nlim = c(1, 400))
 ##     mean(bf < k)
 ## })
 ## lines(nseq, powsim, lty = 2, col = 2)
+## 
+## 
+## 
 
 
 

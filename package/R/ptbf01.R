@@ -57,6 +57,7 @@ ptbf01. <- function(k = 1/10, n, n1 = n, n2 = n, null = 0, plocation = 0,
         if (n1 != n2) {
             warning(paste0('different n1 and n2 supplied but type set to "', type,
                            '", using n = n1'))
+            n2 <- n1
         }
     }
 
@@ -68,7 +69,11 @@ ptbf01. <- function(k = 1/10, n, n1 = n, n2 = n, null = 0, plocation = 0,
     }
 
 
-    ## determine effect estimate region where BF < k for specified sample size
+    ## HACK this is quite a hack, improve! perhaps implement an argument whether
+    ## the search range should be determined adpatively or not
+
+    ## determine effect
+    ## estimate region where BF < k for specified sample size
     se <- 1/sqrt(neff) # standard error of SMD assuming variance is known
     estsd <- sqrt(se^2 + dpsd^2) # standard deviation of SMD under design prior
     rootFun <- function(est) {
@@ -91,15 +96,18 @@ ptbf01. <- function(k = 1/10, n, n1 = n, n2 = n, null = 0, plocation = 0,
         }
 
         ## guess search range based on search range from z-test BF
-        X <- (log(1 + neff*pscale^2) + (null - plocation)^2/pscale^2 - log(k^2))*
-            (1 + 1/neff/pscale^2)/neff
-        M <- (-null - (null - plocation)/neff/pscale^2)
-        lowerz <- -sqrt(X) - M # lower limit z-test BF
-        upperz <- sqrt(X) - M # upper limit z-test BF
-        lowert <- (lowerz - 0.1)*6 # add a bit and blow up by factor 6
-        uppert <- (upperz + 0.1)*6 # add a bit and blow up by factor 6
+        suppressWarnings({
+            X <- (log(1 + neff*pscale^2) + (null - plocation)^2/pscale^2 - log(k^2))*
+                (1 + 1/neff/pscale^2)/neff
+            if (is.nan(X)) X <- 0.1
+            M <- (-null - (null - plocation)/neff/pscale^2)
+            lowerz <- -sqrt(X) - M # lower limit z-test BF
+            upperz <- sqrt(X) - M # upper limit z-test BF
+        })
 
         ## search for critical values
+        lowert <- (lowerz - 0.1)*6 # add a bit and blow up by factor 6
+        uppert <- (upperz + 0.1)*6 # add a bit and blow up by factor 6
         upper <- try(stats::uniroot(f = rootFun, interval = c(0, abs(uppert)),
                                     ... = ...)$root,
                      silent = TRUE)
@@ -119,26 +127,41 @@ ptbf01. <- function(k = 1/10, n, n1 = n, n2 = n, null = 0, plocation = 0,
             powlow <- stats::pnorm(q = lower, mean = dpm, sd = estsd, lower.tail = TRUE)
         }
         if (powup == 0 && powlow == 0) {
+            warning("Numerical problems finding critical value")
             pow <- NaN
         } else {
             pow <- powup + powlow
         }
     } else {
         ## one-sided alternatives
-        searchRange <- dpm + c(-1, 1)*estsd*6 # search 6 sigma around design prior
+        ## search for critical value
+        searchRange <- dpm + c(-1, 1)*5*estsd # search around design prior
+        ## searchRange[1] <- pmin(searchRange[1], null)
+        ## searchRange[2] <- pmax(searchRange[2], null)
+        ## lowert <- pmin(lowerz, null) - 0.01
+        ## uppert <- pmax(upperz, null) + 0.01
+        ## searchRange <- c(lowert, uppert)
         crit <- try(stats::uniroot(f = rootFun, interval = searchRange,
-                                   ... = ...)$root,
+                                   extendInt = "no", ... = ...)$root,
                     silent = TRUE)
         if (inherits(crit, "try-error")) {
-            if (rootFun(dpm) < 0) pow <- 1
-            else pow <- 0
+            ## power at the design prior mean
+            dpmpow <- rootFun(dpm)
+            if (is.nan(dpmpow)) {
+                warning("Numerical problems finding critical value")
+                pow <- NaN
+            } else if (dpmpow < 0) {
+                pow <- 1
+            } else {
+                pow <- 0
+            }
         } else {
             if (alternative == "greater") {
                 pow <- stats::pnorm(q = crit, mean = dpm, sd = estsd,
                                     lower.tail = FALSE)
             } else {
                 pow <- stats::pnorm(q = crit, mean = dpm, sd = estsd,
-                                    lower.tail = FALSE)
+                                    lower.tail = TRUE)
             }
         }
 
@@ -193,12 +216,15 @@ ptbf01. <- function(k = 1/10, n, n1 = n, n2 = n, null = 0, plocation = 0,
 #' @examples
 #' ## example from Schönbrodt and Wagenmakers (2018, p. 135)
 #' ptbf01(k = 1/6, n = 146, dpm = 0.5, dps = 0, alternative = "greater")
-#' ptbf01(k = 6, n = 14, dpm = 0, dpsd = 0, alternative = "greater",
+#' ptbf01(k = 6, n = 146, dpm = 0, dpsd = 0, alternative = "greater",
 #'        lower.tail = FALSE)
 #'
 #' ## two-sided
-#' ptbf01(k = 1/6, n = 14, dpm = 0.5, dps = 0)
-#' ptbf01(k = 6, n = 140, dpm = 0.5, dpsd = 0.1, lower.tail = TRUE)
+#' ptbf01(k = 1/6, n = 146, dpm = 0.5, dpsd = 0)
+#' ptbf01(k = 60, n = 150, dpm = 0.5, dpsd = 0.1, lower.tail = TRUE)
+#'
+#' ## one-sample test
+#' ptbf01(k = 1/6, n = 5000, dpm = -0.25, dpsd = 0, alternative = "less", type = "one.sample")
 #'
 #' @export
 ptbf01 <- Vectorize(FUN = ptbf01.,

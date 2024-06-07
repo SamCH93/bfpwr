@@ -272,8 +272,8 @@ plot.power.bftest <- function(x, nlim = c(2, 500), plot = TRUE, nullplot = TRUE,
         }
         powFun <- function(k, n, lower.tail = TRUE) {
             pbf01(k = k, n = n, sd = usd, null = x$null, pm = x$pm,
-                  psd = x$psd, dpm = x$dpm, dpsd = x$dpsd, lower.tail =
-                                                               lower.tail)
+                  psd = x$psd, dpm = x$dpm, dpsd = x$dpsd,
+                  lower.tail = lower.tail)
         }
         powNullFun <- function(k, n, lower.tail = TRUE) {
             pbf01(k = k, n = n, sd = usd, null = x$null, pm = x$pm, psd = x$psd,

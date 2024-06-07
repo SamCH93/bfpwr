@@ -73,12 +73,15 @@ This function computes the probability of obtaining a
 \examples{
 ## example from Schönbrodt and Wagenmakers (2018, p. 135)
 ptbf01(k = 1/6, n = 146, dpm = 0.5, dps = 0, alternative = "greater")
-ptbf01(k = 6, n = 14, dpm = 0, dpsd = 0, alternative = "greater",
+ptbf01(k = 6, n = 146, dpm = 0, dpsd = 0, alternative = "greater",
        lower.tail = FALSE)
 
 ## two-sided
-ptbf01(k = 1/6, n = 14, dpm = 0.5, dps = 0)
-ptbf01(k = 6, n = 140, dpm = 0.5, dpsd = 0.1, lower.tail = TRUE)
+ptbf01(k = 1/6, n = 146, dpm = 0.5, dpsd = 0)
+ptbf01(k = 60, n = 150, dpm = 0.5, dpsd = 0.1, lower.tail = TRUE)
+
+## one-sample test
+ptbf01(k = 1/6, n = 5000, dpm = -0.25, dpsd = 0, alternative = "less", type = "one.sample")
 
 }
 \seealso{

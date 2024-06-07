@@ -17,7 +17,7 @@ ntbf01(
   dpsd = pscale,
   lower.tail = TRUE,
   integer = TRUE,
-  nrange = c(2, 10^5),
+  nrange = c(2, 10^4),
   ...
 )
 }
@@ -60,7 +60,7 @@ should be returned. If \code{TRUE} the required sample size is rounded to
 the next larger integer. Defaults to \code{TRUE}}
 
 \item{nrange}{Sample size search range over which numerical search is
-performed. Defaults to \code{c(2, 10^5)}}
+performed. Defaults to \code{c(2, 10^4)}}
 
 \item{...}{Other arguments passed to \code{stats::uniroot}}
 }
@@ -82,8 +82,8 @@ An error message will be displayed in case that the specified target
  ## example from Schönbrodt and Wagenmakers (2018, p.135)
  ntbf01(k = 1/6, power = 0.95, dpm = 0.5, dpsd = 0, alternative = "greater")
  ntbf01(k = 1/6, power = 0.95, dpm = 0.5, dpsd = 0.1, alternative = "greater")
- ntbf01(k = 6, power = 0.95, dpm = 0, dpsd = 0, alternative = "greater",
-        lower.tail = FALSE)
+ ntbf01(k = 6, power = 0.95, dpm = 0.5, dpsd = 0, alternative = "greater",
+        lower.tail = FALSE, nrange = c(2, 10000))
 
 }
 \seealso{

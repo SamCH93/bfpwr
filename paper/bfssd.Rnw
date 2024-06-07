@@ -48,7 +48,7 @@
   Center for Reproducible Science (CRS) \\
   University of Zurich \\
   E-mail: \href{mailto:\mail}{\mail} \\[2ex]
-  {\color{blue} Working paper version May 14, 2024}}
+  {\color{blue} Preprint version June 7, 2024}}
 
 %% hyperref options
 %% ----------------------------------------------------------------------------
@@ -113,9 +113,12 @@ library(BayesRep)
   and provide the R package \texttt{bfpwr} for doing so. We also identify
   conditions under which sample sizes can be determined in closed-form, leading
   to novel formulas that are easy-to-use, help fostering intuition, and enable
-  asymptotic analysis. Case studies from medicine and psychology illustrate how
-  researchers can use
-  our methods for planning informative but cost-efficient studies. \\
+  asymptotic analysis. We also present how for more advanced analysis priors,
+  such as Jeffreys-Zellner-Siow priors or non-local normal moment priors, power
+  and sample size can be computed without simulation. Case studies from medicine
+  and psychology illustrate how researchers can use our methods for planning
+  informative but cost-efficient studies.
+  \\
   \textit{Keywords:} Bayesian hypothesis testing, evidence, likelihood ratio,
   numerical methods, study design
 \end{abstract}
@@ -198,14 +201,14 @@ made available through the R package \texttt{bfpwr}.
 
 \begingroup
 \renewcommand{\arraystretch}{1.3} % Default value: 1
-\begin{table}
+\begin{table}[!htb]
   \centering
   \caption{Availability of closed-form sample size formulae for Bayes factor
     hypothesis test of $H_{0} \colon \theta = \theta_{0}$ against
     $H_{1} \colon \theta \neq \theta_{0}$ with either a point prior or a normal
     prior assigned to $\theta$ under $H_{1}$, and data in the form of a normally
     distributed parameter estimate
-    $\hat{\theta} \mid \theta \sim \mathrm{N}(\theta, \sigma_{\scriptscriptstyle \hat{\theta}}^{2}/n)$.
+    $\hat{\theta} \mid \theta \sim \mathrm{N}(\theta, \sigma_{\scriptscriptstyle \hat{\theta}}^{2}/n)$. In all cases, the power can be computed in closed-form.
     % with standard error $\sigma_{\scriptscriptstyle \hat{\theta}}/\surd n$.
   }
   \label{tab:summary}
@@ -342,7 +345,7 @@ the alternative $H_{1}$, while a Bayes factor greater than one
 ($\text{BF}_{01} > 1$) indicates evidence for the null hypothesis $H_{0}$. The
 larger the deviation of the Bayes factor from one, the stronger the evidence.
 The Bayes factor~\eqref{eq:BF01} is implemented in our package in the function
-\texttt{BF01}.
+\texttt{bf01}.
 
 
 The Bayes factor~\eqref{eq:BF01} has already appeared in the literature in one
@@ -1418,48 +1421,9 @@ often used as a `default' Bayes factor in the social sciences
 analysts to incorporate directionality or prior knowledge about the standardized
 mean difference, potentially improving the efficiency of the test
 \citep{Stefan2019}. The Bayes factor~\eqref{eq:tBF} is also implemented in our
-package in the function \texttt{tBF01}.
+package in the function \texttt{tbf01}.
 
-A complication in power and sample size calculations based on the Bayes
-factor~\eqref{eq:tBF} is that it is not available in closed-form but requires
-numerical evaluation of the integral in the denominator. To compute the power
-for a given sample size, we may hence use the following two-stage procedure:
-
-\begin{enumerate}
-  \item For a given sample size $n$ and analysis prior ($\mu, \tau, a, b$), use
-        numerical root-finding to determine the `success region' $S$ in terms of
-        $t$-statistics where the Bayes factor is below the threshold $k$, i.e.,
-        $S = \{t : \mathrm{BF}_{01} \leq k\}$. For a two-sided test $S$ is
-        typically a region specified by two critical values
-        \mbox{$S = (-\infty, t_{\mathrm{crit}-}] \cup [t_{\mathrm{crit}+}, +\infty)$}
-        while for one-sided tests there is typically only one critical value as
-        $S$ is just one interval, e.g., $S = [t_{\mathrm{crit}}, +\infty)$ for a
-        test in positive direction.
-
-  \item For a given design prior, compute the probability of obtaining a
-        $t$-statistic contained in $S$. For example, based on a normal design
-        prior $\theta \sim \mathrm{N}(\mu_{d}, \tau^{2}_{d})$, assuming a
-        two-sample test with equally sized groups and that the data variance
-        $\sigma^{2}$ is known, we have that
-  \begin{align*}
-    \Pr\left(\mathrm{BF}_{01} \leq k \mid n, \mu_{d}, \tau_{d} \right)
-    = \Phi\left(\frac{(2t_{\mathrm{crit}-})/\sqrt{n} - \mu_{d}}{\sqrt{\tau^{2}_{d} + 2/n}}\right)
-    + \Phi\left(\frac{\mu_{d} - (2t_{\mathrm{crit}+})/\sqrt{n}}{\sqrt{\tau^{2}_{d} + 2/n}}\right).
-  \end{align*}
-\end{enumerate}
-
-To calculate a sample size that ensures a certain target power, we can again use
-numerical root-finding. This is substantially faster than the Monte Carlo
-simulation approach. To illustrate this, we now revisit the example from
-\citet{Schoenbrodt2019} which was already re-analyzed in
-Section~\ref{sec:schoenbrodtexample} with a normal analysis prior. We now
-specify a one-sided Cauchy prior with scale $\tau = 1/\sqrt{2}$ as in the
-original analysis. To
-
-Root-finding based power and sample size calculation is also implemented in our
-package via the function \texttt{powertbf01}.
-
-<< "extensions-example", fig.height = 4.5 >>=
+<< "extensions-t-example", fig.height = 4.5 >>=
 null <- 0
 plocation <- 0
 pscale <- 1/sqrt(2)
@@ -1474,6 +1438,17 @@ type <- "two.sample"
 nex <- ntbf01(k = k, power = power, null = null, plocation = plocation,
               pscale = pscale, pdf = pdf, alternative = alternative,
               type = type, dpm = dpm, dpsd = c(dpsd1, dpsd2))
+
+
+## library(microbenchmark)
+## microbenchmark({
+##     ntbf01(k = k, power = power, null = null, plocation = plocation,
+##               pscale = pscale, pdf = pdf, alternative = alternative,
+##               type = type, dpm = dpm, dpsd = dpsd1)
+## })
+## #> Unit: milliseconds
+## #>       min       lq     mean   median       uq      max neval
+## #>  94.27834 96.52802 99.69758 97.41885 98.79241 177.8769   100
 
 ## nseq <- seq(5, 300, 1)
 ## pow <- ptbf01(k = k, n = nseq, null = null, plocation = plocation,
@@ -1503,11 +1478,95 @@ nex <- ntbf01(k = k, power = power, null = null, plocation = plocation,
 @
 
 
+A complication in power and sample size calculations based on the Bayes
+factor~\eqref{eq:tBF} is that it is not available in closed-form but requires
+numerical evaluation of the integral in the denominator. To compute the power
+for a given sample size, we may hence use the following two-stage procedure:
+
+\begin{enumerate}
+  \item For a given sample size $n$ and analysis prior ($\mu, \tau, a, b$), use
+        numerical root-finding to determine the `success region' $S$ in terms of
+        $t$-statistics where the Bayes factor is below the threshold $k$, i.e.,
+        $S = \{t : \mathrm{BF}_{01} \leq k\}$. For a two-sided test, $S$ is
+        typically a region specified by two critical values
+        \mbox{$S = (-\infty, t_{\mathrm{crit}-}] \cup [t_{\mathrm{crit}+}, +\infty)$}
+        while for one-sided tests there is typically only one critical value as
+        $S$ is just one interval, e.g., $S = [t_{\mathrm{crit}}, +\infty)$ for a
+        test in positive direction.
+
+  \item For a given design prior, compute the probability of obtaining a
+        $t$-statistic contained in $S$. For example, based on a normal design
+        prior $\theta \sim \mathrm{N}(\mu_{d}, \tau^{2}_{d})$, assuming a
+        two-sample test with equally sized groups and that the data variance
+        $\sigma^{2}$ is known, we have that
+  \begin{align*}
+    \Pr\left(\mathrm{BF}_{01} \leq k \mid n, \mu_{d}, \tau_{d} \right)
+    = \Phi\left(\frac{(2t_{\mathrm{crit}-})/\sqrt{n} - \mu_{d}}{\sqrt{\tau^{2}_{d} + 2/n}}\right)
+    + \Phi\left(\frac{\mu_{d} - (2t_{\mathrm{crit}+})/\sqrt{n}}{\sqrt{\tau^{2}_{d} + 2/n}}\right).
+  \end{align*}
+\end{enumerate}
+
+To calculate a sample size that ensures a certain target power, we can again use
+numerical root-finding. To illustrate this, we now revisit the example from
+\citet{Schoenbrodt2017} which was already re-analyzed in
+Section~\ref{sec:schoenbrodtexample} with a normal analysis prior. We now
+specify a one-sided scaled Cauchy prior ($\kappa = 1$, $\mu = 0$, $a = 0$,
+$b = +\infty$) with scale $\tau = 1/\sqrt{2}$ as in the original analysis. To
+achieve a target power of \Sexpr{round(power*100)}\%, a sample size of
+$n = \Sexpr{nex[1]}$ is required under the point design prior at
+$\mu_{d} = \Sexpr{dpm}$ differing only slightly from the Monte Carlo based
+$n = 146$ estimate reported by \citet{Schoenbrodt2017}, possibly due to
+numerical or Monte Carlo error . The root-finding approach is, however,
+substantially faster than the Monte Carlo approach. That is, computing the
+sample size for the previous example with root-finding as implemented in our
+package (function \texttt{powertbf01}), takes about 100 milliseconds, while the
+simulation based approach takes about 10 minutes.
+
+
 \subsection{Normal moment priors}
+Nonlocal priors are prior distributions that have no probability density/mass at
+the null value. They were introduced to allow evidence for the null to
+accumulate more quickly if it is indeed true \citep{Johnson2010}. A convenient
+class of nonlocal priors are normal moment priors, which have a density of the
+form
+$\mathrm{NM}(\theta \mid \theta_{0}, \tau^{2}) = \mathrm{N}(\theta \mid \theta_{0}, \tau) \times (\theta - \theta_{0})^{2}/\tau^{2}$
+with location $\theta_{0}$ and spread $\tau$. Figure~\ref{fig:nonlocal} shows
+three examples of normal moment priors. We see that the distributions have zero
+density at the null value $\theta_{0} = 0$, encoding the assumption that
+parameters under the alternative are least likely to be exactly null. Normal
+moment priors have two modes at $\pm \tau \sqrt{2}$, which gives a convenient
+way to elicit a prior, as $\tau$ may, for example, be set to so that the mode
+equals parameter value deemed most plausible under the alternative.
+\begin{figure}[!htb]
+<< fig.height = 3.5 >>=
+dnmoment <- function(x, location = 0, spread = 1) {
+    stats::dnorm(x = x, mean = location, sd = spread)*(x - location)^2/spread^2
+}
+xseq <- seq(-4, 4, length.out = 500)
+taus <- c(0.5, 1, 2)
+null <- 0
+dens <- sapply(X = taus, FUN = function(tau) dnmoment(x = xseq, location = 0, spread = tau))
+cols <- hcl.colors(n = length(taus), alpha = 0.8)
+par(mar = c(4, 5, 2, 2))
+matplot(xseq, dens, type = "l", lty = 1, col = cols, lwd = 1.5, xlab = bquote(theta),
+        ylab = "Density", las = 1,
+        panel.first = grid(lty = 3, col = adjustcolor(col = 1, alpha = 0.1)))
+leg <- sapply(taus, function(tau) as.expression(bquote({"NM("* theta[0] == "0,"} * tau == .(tau) * ")")))
+legend("topright", legend = leg, col = cols, lty = 1, lwd = 1.5, cex = 0.8)
+@
+\caption{Illustration of a normal moment prior density with different spread
+  parameter $\tau$. }
+\label{fig:nonlocal}
+\end{figure}
 
-Priors with density
-$\mathrm{NM}(\theta \mid \theta_{0}, \tau) = \mathrm{N}(\theta \mid \theta_{0}, \tau) \times (\theta - \theta_{0})^{2}/\tau^{2}$
-
+We will now extend power and sample size calculation to Bayes factors with
+nonlocal moment analysis priors and normal design priors. The Bayes factor based
+on a normally distributed parameter estimate
+$\hat{\theta} \mid \theta \sim \mathrm{N}(\theta, \sigma^{2}_{\scriptscriptstyle \hat{\theta}}/n)$
+that contrasts $H_{0} \colon \theta = \theta_{0}$ to
+$H_{1} \colon \theta \neq \theta_{0}$ with prior
+$\theta \mid H_{1} \sim \mathrm{NM}(\theta_{0}, \tau)$ assigned to $\theta$
+under $H_{1}$ is given by
 \begin{align}
   \label{eq:nlBF}
   \mathrm{BF}_{01} =
@@ -1517,14 +1576,13 @@ $\mathrm{NM}(\theta \mid \theta_{0}, \tau) = \mathrm{N}(\theta \mid \theta_{0}, 
   \left\{1 + \frac{n(\hat{\theta} - \theta_{0})^{2}}{
   \sigma^{2}_{\scriptscriptstyle \hat{\theta}}(1 + \sigma^{2}_{\scriptscriptstyle \hat{\theta}}/(n \tau^{2}))}\right\}^{-1}
 \end{align}
-
-
-Under a normal design prior $\theta \sim \mathrm{N}(\mu_{d}, \tau^{2}_{d})$, the
-power to obtain a Bayes factor below a threshold $k$ can (after some tedious
-calculations) be expressed in closed-form
+see e.g., \citet{Pramanik2024}. Under a normal design prior
+$\theta \sim \mathrm{N}(\mu_{d}, \tau^{2}_{d})$, the power to obtain a Bayes
+factor below a threshold $k$ can (after some nasty calculations) be expressed in
+closed-form
 \begin{align}
   \label{eq:pnlBF}
-  \Pr\left(\mathrm{BF}_{01} \leq k \mid n\right) =
+  \Pr\left(\mathrm{BF}_{01} \leq k \mid n, \mu_{d}, \tau_{d}\right) =
   \Phi\left(-\sqrt{Y} - A\right) + \Phi\left(-\sqrt{Y} + A\right)
 \end{align}
 with
@@ -1540,19 +1598,50 @@ Appendix~\ref{app:nmprior} for details.
 ## normal moment prior BF01
 ## H0: theta = null
 ## H1: theta ~ NM(null, ps) with ps the prior spread parameter
-nmBF01 <- function(y, se, null = 0, ps) {
+nmbf01 <- function(y, se, null = 0, ps) {
     (1 + ps^2/se^2)^1.5*exp(-0.5*(y - null)^2/se^2/(1 + se^2/ps^2))/
         (1 + (y - null)^2/se^2/(1 + se^2/ps^2))
 }
 
 ## power to obtain BF01 < k
 ## assuming y ~ N(m, v) distribution (could be induced by design prior)
-nmBF01power <- function(k, se, null = 0, ps, m, v) {
+pnmbf01. <- function(k, se, null = 0, ps, m, v) {
     x <- 2*lamW::lambertW0(x = (1 + ps^2/se^2)^1.5*sqrt(exp(1))/2/k) - 1
-    res <- stats::pnorm((null - se*sqrt(x*(1 + se^2/ps^2)) - m)/sqrt(v)) +
-        1 - stats::pnorm((null + se*sqrt(x*(1 + se^2/ps^2)) - m)/sqrt(v))
+    if (is.nan(x)) {
+        res <- 1
+    } else {
+        res <- stats::pnorm((null - se*sqrt(x*(1 + se^2/ps^2)) - m)/sqrt(v)) +
+            stats::pnorm((m - null - se*sqrt(x*(1 + se^2/ps^2)))/sqrt(v))
+    }
     return(res)
 }
+pnmbf01 <- Vectorize(FUN = pnmbf01.)
+
+## ## look at example
+## nsim <- 1000
+## k <- 1/6
+## ps <- 1
+## dm <- 1 # assume that design prior is centered around 1
+## dpv <- 0.5 # assume that design prior variance is 1/2
+## nseq <- seq(1, 100, 1)
+## power <- t(sapply(X = nseq, FUN = function(n) {
+##     se <- 2/sqrt(n) # standard error with unit variance 4
+##     v <- se^2 + dpv # marginal variance of y under design prior
+##     ysim <- rnorm(n = nsim, mean = dm, sd = sqrt(v)) # simulate for comparison
+##     bf01sim <- nmbf01(y = ysim, se = se, ps = ps)
+##     powsim <- mean(bf01sim < k)
+##     pow <- pnmbf01(k = k, se = se, ps = ps, m = dm, v = v) # exact
+##     c("exact" = pow, "simulation" = powsim)
+## }))
+
+## ## power curve
+## matplot(nseq, power, xlab = "n", ylab = bquote("Pr(BF"["01"] < 1/.(1/k) * ")"),
+##         ylim = c(0, 1), type = "s", las = 1, col = c(1, 4), lty = 1, lwd = 2)
+## mcse <- sqrt(power[,2]*(1 - power[,2])/nsim)
+## polygon(x = c(nseq, rev(nseq)),
+##         y = c(power[,2] + mcse, rev(power[,2] - mcse)),
+##         border = FALSE, col = adjustcolor(col = 4, alpha.f = 0.1),
+##         lty = 2)
 @
 
 \section{Discussion}
@@ -1581,21 +1670,25 @@ method. Nevertheless, simulation methods may be intimidating or too advanced for
 research workers, in which case we believe it is better to do an approximate
 calculation than no calculation at all. One avenue for future work might be to
 extend closed-form sample size calculations to more specific settings, such as,
-binary outcomes or continuous outcomes with unknown variances. Another
-limitation is the type of Bayes factor that we considered for the analysis,
-which is limited to univariate parameters with normal or point priors under the
-alternative. Our work could be extended to ANOVA or regression settings with
-multivariate parameters and/or to other prior distributions such as truncated
-normal distributions to incorporate directionality. Finally, we did not consider
-`open-ended' sequential designs, where data are collected continuously until
-compelling evidence for one of the competing hypotheses is found
-\citep{Wald1947}. The sequential approach is particularly attractive for Bayes
-factor inference as design and analysis prior distributions can be updated based
-on the accumulating data. Researchers can then make informed decisions about
-whether or not it is worthwhile to continue collecting data or to stop
-\citep{Stefan2022}. For these purposes, it would be interesting to consider the
-Bayes factor indexed by the sample size as a stochastic process, and study its
-properties.
+binary outcomes. Another limitation is the types of Bayes factors that we
+considered for the analysis, which is limited to univariate parameters with
+normal, normal moment, $t$, or point priors under the alternative. Our work
+could be extended to ANOVA or regression settings with multivariate parameters
+and/or to other prior distributions. We also did not consider `open-ended'
+sequential designs, where data are collected continuously until compelling
+evidence for one of the competing hypotheses is found \citep{Wald1947}. The
+sequential approach is particularly attractive for Bayes factor inference as
+design and analysis prior distributions can be updated based on the accumulating
+data. Researchers can then make informed decisions about whether or not it is
+worthwhile to continue collecting data or to stop \citep{Stefan2022}. For these
+purposes, it would be interesting to consider the Bayes factor indexed by the
+sample size as a stochastic process, and study its properties. Finally, in
+situations where researchers have only a fixed sample size at their disposal, it
+may be interesting to use a `reverse-Bayes' approach \citep{Held2021b}. That is,
+one may go backwards and determine the design prior required to achieve a
+desired target performance. Researchers can then reason whether or not this
+`reverse Bayes design prior' is scientifically plausible, and whether or not
+they should undertake the study based on their limited resources.
 
 
 \section*{Acknowledgments}
@@ -1681,6 +1774,9 @@ powsim <- sapply(X = nseq, FUN = function(n) {
     mean(bf < k)
 })
 lines(nseq, powsim, lty = 2, col = 2)
+
+
+
 @
 
 
@@ -1778,6 +1874,29 @@ always larger than one.
 
 \section{Power with normal moment prior}
 \label{app:nmprior}
+
+Setting the Bayes factor~\eqref{eq:nlBF} to less or equal than $k$ and applying
+algebraic manipulations, we can bring the inequality into the form
+\begin{align*}
+  \exp\left\{1 + \frac{n(\hat{\theta} - \theta_{0})^{2}}{
+  \sigma^{2}_{\scriptscriptstyle \hat{\theta}}(1 + \sigma^{2}_{\scriptscriptstyle \hat{\theta}}/(n \tau^{2}))}\right\} \,
+  \left\{1 + \frac{n(\hat{\theta} - \theta_{0})^{2}}{
+  \sigma^{2}_{\scriptscriptstyle \hat{\theta}}(1 + \sigma^{2}_{\scriptscriptstyle \hat{\theta}}/(n \tau^{2}))}\right\} \geq
+  \frac{\{1 + (n\tau^{2})/\sigma^{2}_{\scriptscriptstyle \hat{\theta}}\}\sqrt{e}}{2k}.
+\end{align*}
+Applying the Lambert W function on both sides, leads to
+\begin{align}
+  \label{eq:powernmp2}
+  1 + \frac{n(\hat{\theta} - \theta_{0})^{2}}{\sigma^{2}_{\scriptscriptstyle \hat{\theta}}(1 + \sigma^{2}_{\scriptscriptstyle \hat{\theta}}/(n \tau^{2}))} \geq
+  \mathrm{W}_{0} \left[\frac{\{1 + (n\tau^{2})/\sigma^{2}_{\scriptscriptstyle \hat{\theta}}\}\sqrt{e}}{2k}\right].
+\end{align}
+Since the argument of the Lambert W function is real and always non-negative,
+there is the principal branch $\mathrm{W}_{0}$ that can satisfy the inequality
+\citep{Corless1996} . Isolating the parameter estimate $\hat{\theta}$ on the
+left-hand-side further, it is straightforward to arrive at the power
+function~\eqref{eq:pnlBF} when assuming a normal design prior as the
+distribution of $\hat{\theta}$ is then also normal.
+
 
 \end{appendices}
 

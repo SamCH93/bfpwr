@@ -3,7 +3,7 @@ ntbf01. <- function(k = 1/10, power, null = 0, plocation = 0,
                     type = c("two.sample", "one.sample", "paired"),
                     alternative = c("two.sided", "less", "greater"),
                     dpm = plocation, dpsd = pscale, lower.tail = TRUE,
-                    integer = TRUE, nrange = c(2, 10^5), ...) {
+                    integer = TRUE, nrange = c(2, 10^4), ...) {
     ## input checks
     stopifnot(
         length(k) == 1,
@@ -69,9 +69,9 @@ ntbf01. <- function(k = 1/10, power, null = 0, plocation = 0,
     rootFun <- function(n) {
         suppressWarnings({
             ptbf01(k = k, n = n, null = null, plocation = plocation,
-                   pscale = pscale, pdf = pdf, dpm = dpm, dpsd = dpsd, type = type,
-                   alternative = alternative, lower.tail = lower.tail,
-                   ... = ...) - power
+                   pscale = pscale, pdf = pdf, dpm = dpm, dpsd = dpsd,
+                   type = type, alternative = alternative,
+                   lower.tail = lower.tail, ... = ...) - power
         })
     }
 
@@ -134,7 +134,7 @@ ntbf01. <- function(k = 1/10, power, null = 0, plocation = 0,
 #'     should be returned. If \code{TRUE} the required sample size is rounded to
 #'     the next larger integer. Defaults to \code{TRUE}
 #' @param nrange Sample size search range over which numerical search is
-#'     performed. Defaults to \code{c(2, 10^5)}
+#'     performed. Defaults to \code{c(2, 10^4)}
 #' @param ... Other arguments passed to \code{stats::uniroot}
 #'
 #' @return Object of class \code{"power.bftest"}, a list of the arguments
@@ -149,8 +149,8 @@ ntbf01. <- function(k = 1/10, power, null = 0, plocation = 0,
 #'  ## example from Schönbrodt and Wagenmakers (2018, p.135)
 #'  ntbf01(k = 1/6, power = 0.95, dpm = 0.5, dpsd = 0, alternative = "greater")
 #'  ntbf01(k = 1/6, power = 0.95, dpm = 0.5, dpsd = 0.1, alternative = "greater")
-#'  ntbf01(k = 6, power = 0.95, dpm = 0, dpsd = 0, alternative = "greater",
-#'         lower.tail = FALSE)
+#'  ntbf01(k = 6, power = 0.95, dpm = 0.5, dpsd = 0, alternative = "greater",
+#'         lower.tail = FALSE, nrange = c(2, 10000))
 #'
 #' @export
 ntbf01 <- Vectorize(FUN = ntbf01.,

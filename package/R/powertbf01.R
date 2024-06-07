@@ -33,7 +33,7 @@
 #'     \code{"one.sample"}, \code{"paired"}. Defaults to \code{"two.sample"}
 #' @param nrange Sample size search range over which numerical search is
 #'     performed (only taken into account when \code{n} is \code{NULL}).
-#'     Defaults to \code{c(2, 10^5)}
+#'     Defaults to \code{c(2, 10^4)}
 #'
 #' @return Object of class \code{"power.bftest"}, a list of the arguments
 #'     (including the computed one) augmented with \code{method} and \code{note}
@@ -58,7 +58,7 @@ powertbf01 <- function(k = 1/10, n = NULL, power = NULL, null = 0,
                        plocation = 0, pscale = 1/sqrt(2), pdf = 1,
                        type = c("two.sample", "one.sample", "paired"),
                        alternative = c("two.sided", "less", "greater"),
-                       dpm = plocation, dpsd = pscale, nrange = c(2, 10^5)) {
+                       dpm = plocation, dpsd = pscale, nrange = c(2, 10^4)) {
     ## input checks
     if (is.null(n) && is.null(power)) {
         stop("exactly one of 'n' and 'power' must be NULL")

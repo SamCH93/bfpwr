@@ -16,7 +16,7 @@ powertbf01(
   alternative = c("two.sided", "less", "greater"),
   dpm = plocation,
   dpsd = pscale,
-  nrange = c(2, 10^5)
+  nrange = c(2, 10^4)
 )
 }
 \arguments{
@@ -55,7 +55,7 @@ the design prior mean. Defaults to the analysis prior scale}
 
 \item{nrange}{Sample size search range over which numerical search is
 performed (only taken into account when \code{n} is \code{NULL}).
-Defaults to \code{c(2, 10^5)}}
+Defaults to \code{c(2, 10^4)}}
 }
 \value{
 Object of class \code{"power.bftest"}, a list of the arguments
