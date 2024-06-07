@@ -202,8 +202,8 @@ axis(side = 1, at = xticks, labels = paste0(xticks, "%"))
 axis(side = 2, at = yticks, labels = ylabs, las = 1)
 abline(v = 100, lty = 2, col = adjustcolor(col = 1, alpha = 0.6))
 legend("bottom", bg = "white", title = "Analysis/design prior",
-       legend = c(bquote({mu[italic("d")] == .(null)} * ", " * tau[italic("d")]^2 == .(psdlocal1^2)),
-                  bquote({mu[italic("d")] == .(null)} * ", " * tau[italic("d")]^2 == .(psdlocal2^2))),
+       legend = c(bquote({mu[italic("d")] == .(null)} * ", " * tau[italic("d")] == .(psdlocal1)),
+                  bquote({mu[italic("d")] == .(null)} * ", " * tau[italic("d")] == sqrt(.(psdlocal2^2)))),
        lwd = 1.5, lty = 1, col = cols2, cex = 0.7)
 
 
@@ -295,8 +295,11 @@ axis(side = 4, at = power*100, labels = paste0(power*100, "%"), las = 1,
 axis(side = 3, at = c(nanalyt, nanalyt2), col = transpblack, cex.axis = 0.8)
 abline(h = power*100, col = transpblack)
 abline(v = c(nanalyt, nanalyt2), col = transpblack)
-legend("right", title = "Data distribution",
-       legend = c("Point design prior", "Normal design prior", "Null hypothesis"),
+legend("right", title = "Design prior",
+       ## legend = c("Point design prior", "Normal design prior", "Null hypothesis"),
+       legend = c(bquote({mu[italic("d")] == .(dpm)} * ", " * tau[italic("d")] == .(dpsd1)),
+                  bquote({mu[italic("d")] == .(dpm)} * ", " * tau[italic("d")] == .(dpsd2)),
+                  bquote({mu[italic("d")] == .(null)} * ", " * tau[italic("d")] == 0)),
        lty = 1, lwd = 1.5, col = cols, bg = "white", cex = 0.7)
 
 par(mar = c(4, 5, 1, 2.5))
@@ -313,7 +316,7 @@ plot(nseq, powH0*100, xlab = bquote("Sample size per group" ~ italic(n)),
 lines(nseq, pow2H0*100, type = "l", col = cols[2], lwd = 1.5)
 lines(nseq, powNullH0*100, type = "l", col = cols[3], lwd = 1.5)
 axis(side = 2, at = seq(0, 100, 20), labels = paste0(seq(0, 100, 20), "%"), las = 1)
-abline(v = c(nanalyt, nanalyt2), col = transpblack)
+abline(v = nanalyt, col = transpblack)
 abline(h = power*100, col = transpblack)
 axis(side = 4, at = power*100, labels = paste0(power*100, "%"), las = 1,
      col = transpblack, cex.axis = 0.8)
@@ -353,6 +356,8 @@ n <- nbf01(k = k, power = power, sd = sd, null = null, pm = pm, psd = psd,
            dpm = dpm, dpsd = dpsd)
 n2 <- nbf01(k = k, power = power, sd = sd, null = null, pm = pm, psd = psd,
             dpm = dpm, dpsd = dpsd2)
+nH0 <- nbf01(k = 1/k, power = power, sd = sd, null = null, pm = pm, psd = psd,
+            dpm = null, dpsd = 0, lower.tail = FALSE)
 
 ## ## under the null
 ## nbf01(k = 1/k, power = power, sd = sd, null = null, pm = pm, psd = psd, dpm = null,
@@ -432,8 +437,11 @@ axis(side = 4, at = power*100, labels = paste0(power*100, "%"), las = 1,
 axis(side = 3, at = c(n, n2), col = transpblack, cex.axis = 0.8)
 abline(h = power*100, col = transpblack)
 abline(v = c(n, n2), col = transpblack)
-legend("topright", inset = c(0, 1/6), title = "Data distribution",
-       legend = c("Point design prior", "Normal design prior", "Null hypothesis"),
+legend("topright", inset = c(0, 1/6), title = "Design prior",
+       ## legend = c("Point design prior", "Normal design prior", "Null hypothesis"),
+       legend = c(bquote({mu[italic("d")] == .(dpm)} * ", " * tau[italic("d")] == .(dpsd)),
+                  bquote({mu[italic("d")] == .(dpm)} * ", " * tau[italic("d")] == .(dpsd2)),
+                  bquote({mu[italic("d")] == .(null)} * ", " * tau[italic("d")] == 0)),
        lty = 1, lwd = 1.5, col = cols, bg = "white", cex = 0.7)
 legend("bottomright", inset = c(0, 1/6), title = "Computational method",
        legend = c("Closed-form", "Simulation"), lty = c(1, 2), lwd = c(1.5, 1),
@@ -451,7 +459,7 @@ for (i in seq(1, length(powBFDA))) {
                  col = cols[i])
 }
 axis(side = 2, at = seq(0, 100, 20), labels = paste0(seq(0, 100, 20), "%"), las = 1)
-abline(v = c(n, n2), col = transpblack)
+##abline(v = c(n, n2), col = transpblack)
 
 
 ## ----"extensions-t-example", fig.height = 4.5---------------------------------
@@ -525,7 +533,7 @@ leg <- sapply(taus, function(tau) as.expression(bquote({"NM("* theta[0] == "0,"}
 legend("topright", legend = leg, col = cols, lty = 1, lwd = 1.5, cex = 0.8)
 
 
-## -----------------------------------------------------------------------------
+## ----"normal-moment-example", fig.height = 6----------------------------------
 ## normal moment prior BF01
 ## H0: theta = null
 ## H1: theta ~ NM(null, ps) with ps the prior spread parameter
@@ -574,6 +582,88 @@ pnmbf01 <- Vectorize(FUN = pnmbf01.)
 ##         border = FALSE, col = adjustcolor(col = 4, alpha.f = 0.1),
 ##         lty = 2)
 
+## TODO implement in package
+
+pnmbf01. <- function(k, n, sd, null = 0, psd, dpm, dpsd, lower.tail = TRUE) {
+    se <- sd/sqrt(n)
+    v <- se^2 + dpsd^2
+    x <- 2*lamW::lambertW0(x = (1 + psd^2/se^2)^1.5*sqrt(exp(1))/2/k) - 1
+    if (x < 0) {
+        pow <- 1
+    } else {
+        pow <- stats::pnorm((null - se*sqrt(x*(1 + se^2/psd^2)) - dpm)/sqrt(v)) +
+            stats::pnorm((dpm - null - se*sqrt(x*(1 + se^2/psd^2)))/sqrt(v))
+    }
+
+    if (lower.tail == TRUE) {
+        return(pow)
+    } else {
+        return(1 - pow)
+    }
+}
+pnmbf01 <- Vectorize(FUN = pnmbf01.)
+
+
+nseq <- seq(0, 1100, 1)
+dpm <- 0.5
+null <- 0
+k <- 1/6
+sd <- 2
+psd <- 0.5/sqrt(2) # mode at 0.5
+dpriors <- cbind(dpm = c(0.5, 0.5, 0), dpsd = c(0, 0.1, 0))
+power <- 0.95
+powH1 <- sapply(X = seq(1, nrow(dpriors)), FUN = function(i) {
+    pnmbf01(k = k, n = nseq, sd = sd, null = null, psd = psd, dpm = dpriors[i,1], dpsd = dpriors[i,2])
+})
+powH0 <- sapply(X = seq(1, nrow(dpriors)), FUN = function(i) {
+    pnmbf01(k = 1/k, n = nseq, sd = sd, null = null, psd = psd, dpm = dpriors[i,1], dpsd = dpriors[i,2],
+            lower.tail = FALSE)
+})
+nH1 <- ceiling(sapply(X = c(1, 2), FUN = function(i) {
+    rootFun <- function(n) {
+        pnmbf01(k = k, n = n, sd = sd, null = null, psd = psd, dpm = dpriors[i,1],
+                dpsd = dpriors[i,2]) - power
+    }
+    uniroot(f = rootFun, interval = c(1, 10^5))$root
+}))
+nH0 <- ceiling(sapply(X = 3, FUN = function(i) {
+    rootFun <- function(n) {
+        pnmbf01(k = 1/k, n = n, sd = sd, null = null, psd = psd, dpm = dpriors[i,1],
+                dpsd = dpriors[i,2], lower.tail = FALSE) - power
+    }
+    uniroot(f = rootFun, interval = c(1, 10^5))$root
+}))
+
+par(mfrow = c(2, 1), mar = c(3, 5, 2.5, 2.5))
+cols <- rev(palette.colors(n = 4, alpha = 0.95)[2:4])
+transpblack <- adjustcolor(col = 1, alpha = 0.2)
+matplot(nseq, powH1*100, lty = 1, type = "l", las = 1, ylim = c(0, 100),
+        panel.first = grid(lty = 3, col = adjustcolor(col = 1, alpha = 0.1)),
+        yaxt = "n", xlab = bquote("Sample size per group" ~ italic(n)),
+        ylab = bquote("Pr(BF"["01"] < 1/.(1/k) * " )"), col = cols, lwd = 1.5)
+axis(side = 2, at = seq(0, 100, 20), labels = paste0(seq(0, 100, 20), "%"), las = 1)
+axis(side = 4, at = power*100, labels = paste0(power*100, "%"), las = 1,
+     col = transpblack, cex.axis = 0.8)
+axis(side = 3, at = nH1, col = transpblack, cex.axis = 0.8)
+abline(v = nH1, col = transpblack)
+abline(h = power*100, col = transpblack)
+legend("right", bg = "white", title = "Design prior",
+       legend = c(bquote({mu[italic("d")] == .(dpriors[1,1])} * ", " * tau[italic("d")] == .(dpriors[1,2])),
+                  bquote({mu[italic("d")] == .(dpriors[2,1])} * ", " * tau[italic("d")] == .(dpriors[2,2])),
+                  bquote({mu[italic("d")] == .(dpriors[3,1])} * ", " * tau[italic("d")] == .(dpriors[3,2]))),
+       lty = 1, lwd = 1.5, col = cols, cex = 0.7)
+par(mar = c(4, 5, 1.5, 2.5))
+matplot(nseq, powH0*100, lty = 1, type = "l", las = 1, ylim = c(0, 100),
+        panel.first = grid(lty = 3, col = adjustcolor(col = 1, alpha = 0.1)),
+        yaxt = "n", xlab = bquote("Sample size per group" ~ italic(n)),
+        ylab = bquote("Pr(BF"["01"] > .(1/k) * " )"), col = cols, lwd = 1.5)
+axis(side = 2, at = seq(0, 100, 20), labels = paste0(seq(0, 100, 20), "%"), las = 1)
+axis(side = 4, at = power*100, labels = paste0(power*100, "%"), las = 1,
+     col = transpblack, cex.axis = 0.8)
+axis(side = 3, at = nH0, col = transpblack, cex.axis = 0.8)
+abline(v = nH0, col = transpblack)
+abline(h = power*100, col = transpblack)
+
 
 ## ----"package-illustration", echo = TRUE, fig.height = 6----------------------
 ## install from CRAN or GitHub (the latter requires "remotes" package)
@@ -619,9 +709,6 @@ plot(ssd, nlim = c(1, 400))
 ##     mean(bf < k)
 ## })
 ## lines(nseq, powsim, lty = 2, col = 2)
-## 
-## 
-## 
 
 
 
