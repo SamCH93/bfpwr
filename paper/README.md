@@ -9,7 +9,7 @@ A BibTeX entry is given by
 ```BibTeX
 @article{Pawel2024,
   year = {2024},
-  author = {Samuel Pawel},
+  author = {Samuel Pawel and Leonhard Held},
   title = {Closed-Form Power and Sample Size Calculations for {Bayes} Factors},
   url = {https://github.com/SamCH93/bfpwr},
   note = {Preprint}

@@ -1028,12 +1028,15 @@ the efficacy of the drug `zanamivir' in the treatment of influenza A and B. The
 primary endpoint of the trial was the time in days to relief of clinically
 important symptoms of influenza. This outcome was treated as continuous by the
 investigators, and the parameter of interest was the mean difference in time to
-relief between the treatment and placebo groups $\theta$. The null hypothesis
-was defined as no difference in efficacy of the treatment
-($H_{0} \colon \theta = 0$), whereas the alternative hypothesis was defined as a clinically
-relevant difference of one day ($H_{1} \colon \theta = 1$). For sample size
-calculations, the investigators used a standard deviation of $\sigma = 2.75$
-estimated from a previous study.
+relief between the treatment and placebo groups $\theta$. We note that it might
+be preferable to treat this as a survival outcome and use a (log) hazard ratio
+parameter to quantify the effect size, but to stay close to the original
+analysis we will use the continuous outcome approach like the original authors.
+The null hypothesis was defined as no difference in efficacy of the treatment
+($H_{0} \colon \theta = 0$), whereas the alternative hypothesis was defined as a
+clinically relevant difference of one day ($H_{1} \colon \theta = 1$). For
+sample size calculations, the investigators used a standard deviation of
+$\sigma = 2.75$ estimated from a previous study.
 
 While this study was analyzed using frequentist methodology, we will now examine
 what the power and sample size calculations might look like if the planned
@@ -1823,9 +1826,9 @@ resources.
 
 
 \section*{Acknowledgments}
-We thank František Bartoš for valuable comments on drafts of the manuscript. The
-acknowledgment of these individuals does not imply their endorsement of the
-paper.
+We thank Angelika Stefan and František Bartoš for valuable comments on drafts of
+the manuscript. The acknowledgment of these individuals does not imply their
+endorsement of the paper.
 
 \section*{Conflict of interest}
 We declare no conflict of interest.
