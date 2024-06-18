@@ -82,12 +82,12 @@ An error message will be displayed in case that the specified target
  ## example from Schönbrodt and Wagenmakers (2018, p.135)
  ntbf01(k = 1/6, power = 0.95, dpm = 0.5, dpsd = 0, alternative = "greater")
  ntbf01(k = 1/6, power = 0.95, dpm = 0.5, dpsd = 0.1, alternative = "greater")
- ntbf01(k = 6, power = 0.95, dpm = 0.5, dpsd = 0, alternative = "greater",
+ ntbf01(k = 6, power = 0.95, dpm = 0, dpsd = 0, alternative = "greater",
         lower.tail = FALSE, nrange = c(2, 10000))
 
 }
 \seealso{
-\link{plot.power.bftest}, \link{ptbf01}, \link{powertbf01}
+\link{ptbf01}, \link{powertbf01}, \link{tbf01}
 }
 \author{
 Samuel Pawel

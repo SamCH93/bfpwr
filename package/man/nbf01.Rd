@@ -73,7 +73,7 @@ nbf01(k = 1/10, power = 0.9, sd = 1, null = 0, pm = 0.5, psd = 0,
       analytical = c(TRUE, FALSE), integer = FALSE)
 }
 \seealso{
-\link{pbf01}, \link{powerbf01}
+\link{pbf01}, \link{powerbf01}, \link{bf01}
 }
 \author{
 Samuel Pawel

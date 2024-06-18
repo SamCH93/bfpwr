@@ -83,7 +83,7 @@ plot(powertbf01(k = 1/6, power = 0.95, dpm = 0.5, dps = 0, alternative = "greate
 ## TODO implement possibility to power for null?
 }
 \seealso{
-\link{plot.power.bftest}, \link{ptbf01}
+\link{plot.power.bftest}, \link{ptbf01}, \link{ntbf01}, \link{tbf01}
 }
 \author{
 Samuel Pawel

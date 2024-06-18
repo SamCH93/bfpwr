@@ -211,7 +211,7 @@ ptbf01. <- function(k = 1/10, n, n1 = n, n2 = n, null = 0, plocation = 0,
 #'
 #' @author Samuel Pawel
 #'
-#' @seealso \link{tbf01}
+#' @seealso \link{tbf01}, \link{ntbf01}, \link{powertbf01}
 #'
 #' @examples
 #' ## example from Schönbrodt and Wagenmakers (2018, p. 135)

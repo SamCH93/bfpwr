@@ -101,7 +101,7 @@ pbf01. <- function(k, n, sd, null = 0, pm, psd, dpm = pm, dpsd = psd,
 #'
 #' @author Samuel Pawel
 #'
-#' @seealso \link{nbf01}, \link{powerbf01}
+#' @seealso \link{nbf01}, \link{powerbf01}, \link{bf01}
 #'
 #' @examples
 #' ## point alternative (psd = 0)

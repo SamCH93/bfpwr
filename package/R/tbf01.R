@@ -154,6 +154,8 @@ tbf01. <- function(t, n, n1 = n, n2 = n, plocation = 0, pscale = 1/sqrt(2),
 #'     \eqn{t}-Tests. The American Statistician, 74(2):137-143.
 #'     \doi{10.1080/00031305.2018.1562983}
 #'
+#' @seealso \link{powertbf01}, \link{ptbf01}, \link{ntbf01}
+#'
 #' @examples
 #' ## analyses from Rouder et al. (2009):
 #' ## values from Table 1

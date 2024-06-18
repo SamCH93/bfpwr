@@ -59,7 +59,7 @@ plot(nseq, pbf01(k = 1/10, n = nseq, sd = 2, null = 0, pm = 0.3, psd = 0), type 
 
 }
 \seealso{
-\link{nbf01}, \link{powerbf01}
+\link{nbf01}, \link{powerbf01}, \link{bf01}
 }
 \author{
 Samuel Pawel

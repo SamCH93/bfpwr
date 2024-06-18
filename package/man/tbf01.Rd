@@ -105,6 +105,9 @@ Gronau, Q. F., Ly., A., Wagenmakers, E.J. (2020). Informed Bayesian
 \eqn{t}-Tests. The American Statistician, 74(2):137-143.
 \doi{10.1080/00031305.2018.1562983}
 }
+\seealso{
+\link{powertbf01}, \link{ptbf01}, \link{ntbf01}
+}
 \author{
 Samuel Pawel
 }

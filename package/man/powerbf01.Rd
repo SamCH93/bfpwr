@@ -80,7 +80,7 @@ powerbf01(power = 0.99, pm = 0, psd = 1, dpm = 0.5, dpsd = 0)
 
 }
 \seealso{
-\link{plot.power.bftest}, \link{nbf01}, \link{pbf01}
+\link{plot.power.bftest}, \link{nbf01}, \link{pbf01}, \link{bf01}
 }
 \author{
 Samuel Pawel

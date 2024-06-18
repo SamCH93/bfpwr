@@ -41,7 +41,7 @@
 #'
 #' @author Samuel Pawel
 #'
-#' @seealso \link{plot.power.bftest}, \link{nbf01}, \link{pbf01}
+#' @seealso \link{plot.power.bftest}, \link{nbf01}, \link{pbf01}, \link{bf01}
 #'
 #' @examples
 #' ## determine power

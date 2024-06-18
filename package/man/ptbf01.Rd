@@ -85,7 +85,7 @@ ptbf01(k = 1/6, n = 5000, dpm = -0.25, dpsd = 0, alternative = "less", type = "o
 
 }
 \seealso{
-\link{tbf01}
+\link{tbf01}, \link{ntbf01}, \link{powertbf01}
 }
 \author{
 Samuel Pawel
