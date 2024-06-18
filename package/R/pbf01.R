@@ -73,7 +73,7 @@ pbf01. <- function(k, n, sd, null = 0, pm, psd, dpm = pm, dpsd = psd,
 }
 
 
-#' @title Cumulative distribution function of the Bayes factor under normality
+#' @title Cumulative distribution function of the z-test Bayes factor
 #'
 #' @description This function computes the probability of obtaining a Bayes
 #'     factor (\link{bf01}) smaller (or larger) than a threshold \code{k} with a

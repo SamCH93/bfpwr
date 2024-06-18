@@ -105,29 +105,14 @@ nbf01. <- function(k, power, sd, null = 0, pm, psd, dpm = pm, dpsd = psd,
                   dpsd = dpsd, lower.tail = lower.tail) - power
         }
 
-        ## check boundaries of sample size search range
-        if (rootFun(n = nrange[1]) > 0) {
-            warning("lower bound of sample size search range ('nrange') leads to higher power than specified")
-            n <- NaN
-        } else if (rootFun(n = nrange[2]) < 0) {
-            warning("upper bound of sample size search range ('nrange') leads to lower power than specified")
-            n <- NaN
-        } else {
-            ## perform root-finding
-            res <- try(stats::uniroot(f = rootFun, interval = nrange, ... = ...)$root)
-            if (inherits(res, "try-error")) {
-                n <- NaN
-            } else {
-                n <- res
-            }
-        }
+        n <- searchN(rootFun = rootFun, nrange = nrange, ... = ...)
     }
     if (integer) return(ceiling(n))
     else return(n)
 }
 
 
-#' @title Sample size determination for Bayes factor analysis
+#' @title Sample size determination for z-test Bayes factor
 #'
 #' @description This function computes the required sample size to obtain a
 #'     Bayes factor (\link{bf01}) less or greater than a threshold \code{k} with

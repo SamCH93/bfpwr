@@ -2,7 +2,7 @@
 % Please edit documentation in R/powerbf01.R
 \name{powerbf01}
 \alias{powerbf01}
-\title{Power and sample size calculations for Bayes factor under normality}
+\title{Power and sample size calculations for z-test Bayes factor}
 \usage{
 powerbf01(
   n = NULL,

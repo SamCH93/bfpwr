@@ -2,7 +2,7 @@
 % Please edit documentation in R/pbf01.R
 \name{pbf01}
 \alias{pbf01}
-\title{Cumulative distribution function of the Bayes factor under normality}
+\title{Cumulative distribution function of the z-test Bayes factor}
 \usage{
 pbf01(k, n, sd, null = 0, pm, psd, dpm = pm, dpsd = psd, lower.tail = TRUE)
 }

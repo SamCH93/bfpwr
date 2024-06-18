@@ -1,4 +1,4 @@
-#' @title Power and sample size calculations for Bayes factor under normality
+#' @title Power and sample size calculations for z-test Bayes factor
 #'
 #' @description Compute probability that Bayes factor under normality is smaller
 #'     than a specified threshold (the power), or determine sample size to

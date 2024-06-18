@@ -75,22 +75,7 @@ ntbf01. <- function(k = 1/10, power, null = 0, plocation = 0,
         })
     }
 
-    ## check boundaries of sample size search range
-    if (rootFun(n = nrange[1]) > 0) {
-        warning("lower bound of sample size search range ('nrange') leads to higher power than specified")
-        n <- NaN
-    } else if (rootFun(n = nrange[2]) < 0) {
-        warning("upper bound of sample size search range ('nrange') leads to lower power than specified")
-        n <- NaN
-    } else {
-        ## perform root-finding
-        res <- try(stats::uniroot(f = rootFun, interval = nrange, ... = ...)$root)
-        if (inherits(res, "try-error")) {
-            n <- NaN
-        } else {
-            n <- res
-        }
-    }
+    n <- searchN(rootFun = rootFun, nrange = nrange, ... = ...)
 
     if (integer) return(ceiling(n))
     else return(n)
