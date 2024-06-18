@@ -55,8 +55,8 @@ zlim <- (null - pm)/(2*dpsd2)
 plim <- 1 - pnorm(q = zlim)
 abline(h = c(100, plim*100), lty = 2, col = adjustcolor(col = 1, alpha = 0.6))
 legend("bottomright", bg = "white", title = "Design prior",
-       legend = c(bquote({mu[italic("d")] == .(pm)} * "," ~ tau[italic("d")] == .(psd1)),
-                  bquote({mu[italic("d")] == .(pm)} * "," ~ tau[italic("d")] == .(psd2))),
+       legend = c(bquote("N(" * {mu[italic("d")] == .(pm)} * "," ~ tau[italic("d")] == .(psd1) * ")"),
+                  bquote("N(" * {mu[italic("d")] == .(pm)} * "," ~ tau[italic("d")] == .(psd2) * ")")),
        lwd = lwd, lty = 1, col = cols, cex = 0.7)
 
 ## normal prior under the alternative
@@ -178,9 +178,10 @@ lines(powseq*100,
 zlim <- (null - pm)/(2*dpsd2)
 plim <- 1 - pnorm(q = zlim)
 abline(v = c(100, plim*100), lty = 2, col = adjustcolor(col = 1, alpha = 0.6))
-legend("bottom", bg = "white", title = "Design prior",
-       legend = c(bquote({mu[italic("d")] == .(pm)} * ", " * tau[italic("d")] == .(psd1)),
-                  bquote({mu[italic("d")] == .(pm)} * ", " * tau[italic("d")] == .(psd2))),
+legend("bottomleft", bg = "white", title = "Design prior",
+       inset = c(0.15, 0),
+       legend = c(bquote("N(" * {mu[italic("d")] == .(pm)} * ", " * tau[italic("d")] == .(psd1) * ")"),
+                  bquote("N(" * {mu[italic("d")] == .(pm)} * ", " * tau[italic("d")] == .(psd2) * ")")),
        lwd = 1.5, lty = 1, col = cols, cex = 0.7)
 
 ## normal prior under the alternative
@@ -202,8 +203,8 @@ axis(side = 1, at = xticks, labels = paste0(xticks, "%"))
 axis(side = 2, at = yticks, labels = ylabs, las = 1)
 abline(v = 100, lty = 2, col = adjustcolor(col = 1, alpha = 0.6))
 legend("bottom", bg = "white", title = "Analysis/design prior",
-       legend = c(bquote({mu[italic("d")] == .(null)} * ", " * tau[italic("d")] == .(psdlocal1)),
-                  bquote({mu[italic("d")] == .(null)} * ", " * tau[italic("d")] == sqrt(.(psdlocal2^2)))),
+       legend = c(bquote("N(" * {mu[italic("d")] == .(null)} * ", " * tau[italic("d")] == .(psdlocal1) * ")"),
+                  bquote("N(" * {mu[italic("d")] == .(null)} * ", " * tau[italic("d")] == sqrt(.(psdlocal2^2)) * ")")),
        lwd = 1.5, lty = 1, col = cols2, cex = 0.7)
 
 
@@ -297,9 +298,9 @@ abline(h = power*100, col = transpblack)
 abline(v = c(nanalyt, nanalyt2), col = transpblack)
 legend("right", title = "Design prior",
        ## legend = c("Point design prior", "Normal design prior", "Null hypothesis"),
-       legend = c(bquote({mu[italic("d")] == .(dpm)} * ", " * tau[italic("d")] == .(dpsd1)),
-                  bquote({mu[italic("d")] == .(dpm)} * ", " * tau[italic("d")] == .(dpsd2)),
-                  bquote({mu[italic("d")] == .(null)} * ", " * tau[italic("d")] == 0)),
+       legend = c(bquote("N(" * {mu[italic("d")] == .(dpm)} * ", " * tau[italic("d")] == .(dpsd1) * ")"),
+                  bquote("N(" * {mu[italic("d")] == .(dpm)} * ", " * tau[italic("d")] == .(dpsd2) * ")"),
+                  bquote("N(" * {mu[italic("d")] == .(null)} * ", " * tau[italic("d")] == 0 * ")")),
        lty = 1, lwd = 1.5, col = cols, bg = "white", cex = 0.7)
 
 par(mar = c(4, 5, 1, 2.5))
@@ -439,9 +440,9 @@ abline(h = power*100, col = transpblack)
 abline(v = c(n, n2), col = transpblack)
 legend("topright", inset = c(0, 1/6), title = "Design prior",
        ## legend = c("Point design prior", "Normal design prior", "Null hypothesis"),
-       legend = c(bquote({mu[italic("d")] == .(dpm)} * ", " * tau[italic("d")] == .(dpsd)),
-                  bquote({mu[italic("d")] == .(dpm)} * ", " * tau[italic("d")] == .(dpsd2)),
-                  bquote({mu[italic("d")] == .(null)} * ", " * tau[italic("d")] == 0)),
+       legend = c(bquote("N(" * {mu[italic("d")] == .(dpm)} * ", " * tau[italic("d")] == .(dpsd) * ")"),
+                  bquote("N(" * {mu[italic("d")] == .(dpm)} * ", " * tau[italic("d")] == .(dpsd2) * ")"),
+                  bquote("N(" * {mu[italic("d")] == .(null)} * ", " * tau[italic("d")] == 0 * ")")),
        lty = 1, lwd = 1.5, col = cols, bg = "white", cex = 0.7)
 legend("bottomright", inset = c(0, 1/6), title = "Computational method",
        legend = c("Closed-form", "Simulation"), lty = c(1, 2), lwd = c(1.5, 1),
@@ -530,7 +531,8 @@ matplot(xseq, dens, type = "l", lty = 1, col = cols, lwd = 1.5, xlab = bquote(th
         ylab = "Density", las = 1,
         panel.first = grid(lty = 3, col = adjustcolor(col = 1, alpha = 0.1)))
 leg <- sapply(taus, function(tau) as.expression(bquote({"NM("* theta[0] == "0,"} * tau == .(tau) * ")")))
-legend("topright", legend = leg, col = cols, lty = 1, lwd = 1.5, cex = 0.8)
+legend("topright", legend = leg, col = cols, lty = 1, lwd = 1.5, cex = 0.7,
+       bg = "white")
 
 
 ## ----"normal-moment-example", fig.height = 6----------------------------------
@@ -648,9 +650,9 @@ axis(side = 3, at = nH1, col = transpblack, cex.axis = 0.8)
 abline(v = nH1, col = transpblack)
 abline(h = power*100, col = transpblack)
 legend("right", bg = "white", title = "Design prior",
-       legend = c(bquote({mu[italic("d")] == .(dpriors[1,1])} * ", " * tau[italic("d")] == .(dpriors[1,2])),
-                  bquote({mu[italic("d")] == .(dpriors[2,1])} * ", " * tau[italic("d")] == .(dpriors[2,2])),
-                  bquote({mu[italic("d")] == .(dpriors[3,1])} * ", " * tau[italic("d")] == .(dpriors[3,2]))),
+       legend = c(bquote("N(" * {mu[italic("d")] == .(dpriors[1,1])} * ", " * tau[italic("d")] == .(dpriors[1,2]) * ")"),
+                  bquote("N(" * {mu[italic("d")] == .(dpriors[2,1])} * ", " * tau[italic("d")] == .(dpriors[2,2]) * ")"),
+                  bquote("N(" * {mu[italic("d")] == .(dpriors[3,1])} * ", " * tau[italic("d")] == .(dpriors[3,2]) * ")")),
        lty = 1, lwd = 1.5, col = cols, cex = 0.7)
 par(mar = c(4, 5, 1.5, 2.5))
 matplot(nseq, powH0*100, lty = 1, type = "l", las = 1, ylim = c(0, 100),
@@ -663,6 +665,10 @@ axis(side = 4, at = power*100, labels = paste0(power*100, "%"), las = 1,
 axis(side = 3, at = nH0, col = transpblack, cex.axis = 0.8)
 abline(v = nH0, col = transpblack)
 abline(h = power*100, col = transpblack)
+
+## nH0 for normal analysis prior for comparison
+nH0normal <- nbf01(k = 6, power = 0.95, sd = sqrt(2), null = 0, pm = 0,
+                   psd = 1/sqrt(2), dpm = 0, dpsd = 0, lower.tail = FALSE)
 
 
 ## ----"package-illustration", echo = TRUE, fig.height = 6----------------------
