@@ -1623,77 +1623,7 @@ and design based on them is implemented in our R package (functions
 
 \begin{figure}[!htb]
 << "normal-moment-example", fig.height = 6 >>=
-## normal moment prior BF01
-## H0: theta = null
-## H1: theta ~ NM(null, ps) with ps the prior spread parameter
-nmbf01 <- function(y, se, null = 0, ps) {
-    (1 + ps^2/se^2)^1.5*exp(-0.5*(y - null)^2/se^2/(1 + se^2/ps^2))/
-        (1 + (y - null)^2/se^2/(1 + se^2/ps^2))
-}
-
-## power to obtain BF01 < k
-## assuming y ~ N(m, v) distribution (could be induced by design prior)
-pnmbf01. <- function(k, se, null = 0, ps, m, v) {
-    x <- 2*lamW::lambertW0(x = (1 + ps^2/se^2)^1.5*sqrt(exp(1))/2/k) - 1
-    if (is.nan(x)) {
-        res <- 1
-    } else {
-        res <- stats::pnorm((null - se*sqrt(x*(1 + se^2/ps^2)) - m)/sqrt(v)) +
-            stats::pnorm((m - null - se*sqrt(x*(1 + se^2/ps^2)))/sqrt(v))
-    }
-    return(res)
-}
-pnmbf01 <- Vectorize(FUN = pnmbf01.)
-
-## ## look at example
-## nsim <- 1000
-## k <- 1/6
-## ps <- 1
-## dm <- 1 # assume that design prior is centered around 1
-## dpv <- 0.5 # assume that design prior variance is 1/2
-## nseq <- seq(1, 100, 1)
-## power <- t(sapply(X = nseq, FUN = function(n) {
-##     se <- 2/sqrt(n) # standard error with unit variance 4
-##     v <- se^2 + dpv # marginal variance of y under design prior
-##     ysim <- rnorm(n = nsim, mean = dm, sd = sqrt(v)) # simulate for comparison
-##     bf01sim <- nmbf01(y = ysim, se = se, ps = ps)
-##     powsim <- mean(bf01sim < k)
-##     pow <- pnmbf01(k = k, se = se, ps = ps, m = dm, v = v) # exact
-##     c("exact" = pow, "simulation" = powsim)
-## }))
-
-## ## power curve
-## matplot(nseq, power, xlab = "n", ylab = bquote("Pr(BF"["01"] < 1/.(1/k) * ")"),
-##         ylim = c(0, 1), type = "s", las = 1, col = c(1, 4), lty = 1, lwd = 2)
-## mcse <- sqrt(power[,2]*(1 - power[,2])/nsim)
-## polygon(x = c(nseq, rev(nseq)),
-##         y = c(power[,2] + mcse, rev(power[,2] - mcse)),
-##         border = FALSE, col = adjustcolor(col = 4, alpha.f = 0.1),
-##         lty = 2)
-
-## TODO implement in package
-
-pnmbf01. <- function(k, n, sd, null = 0, psd, dpm, dpsd, lower.tail = TRUE) {
-    se <- sd/sqrt(n)
-    v <- se^2 + dpsd^2
-    x <- 2*lamW::lambertW0(x = (1 + psd^2/se^2)^1.5*sqrt(exp(1))/2/k) - 1
-    if (x < 0) {
-        pow <- 1
-    } else {
-        pow <- stats::pnorm((null - se*sqrt(x*(1 + se^2/psd^2)) - dpm)/sqrt(v)) +
-            stats::pnorm((dpm - null - se*sqrt(x*(1 + se^2/psd^2)))/sqrt(v))
-    }
-
-    if (lower.tail == TRUE) {
-        return(pow)
-    } else {
-        return(1 - pow)
-    }
-}
-pnmbf01 <- Vectorize(FUN = pnmbf01.)
-
-
-nseq <- seq(0, 1100, 1)
+nseq <- seq(1, 1100, 1)
 dpm <- 0.5
 null <- 0
 k <- 1/6
@@ -1702,25 +1632,20 @@ psd <- 0.5/sqrt(2) # mode at 0.5
 dpriors <- cbind(dpm = c(0.5, 0.5, 0), dpsd = c(0, 0.1, 0))
 power <- 0.95
 powH1 <- sapply(X = seq(1, nrow(dpriors)), FUN = function(i) {
-    pnmbf01(k = k, n = nseq, sd = sd, null = null, psd = psd, dpm = dpriors[i,1], dpsd = dpriors[i,2])
+    pnmbf01(k = k, n = nseq, sd = sd, null = null, psd = psd, dpm = dpriors[i,1],
+            dpsd = dpriors[i,2])
 })
 powH0 <- sapply(X = seq(1, nrow(dpriors)), FUN = function(i) {
-    pnmbf01(k = 1/k, n = nseq, sd = sd, null = null, psd = psd, dpm = dpriors[i,1], dpsd = dpriors[i,2],
-            lower.tail = FALSE)
+    pnmbf01(k = 1/k, n = nseq, sd = sd, null = null, psd = psd,
+            dpm = dpriors[i,1], dpsd = dpriors[i,2], lower.tail = FALSE)
 })
 nH1 <- ceiling(sapply(X = c(1, 2), FUN = function(i) {
-    rootFun <- function(n) {
-        pnmbf01(k = k, n = n, sd = sd, null = null, psd = psd, dpm = dpriors[i,1],
-                dpsd = dpriors[i,2]) - power
-    }
-    uniroot(f = rootFun, interval = c(1, 10^5))$root
+    nnmbf01(k = k, power = power,, sd = sd, null = null, psd = psd,
+            dpm = dpriors[i,1], dpsd = dpriors[i,2])
 }))
 nH0 <- ceiling(sapply(X = 3, FUN = function(i) {
-    rootFun <- function(n) {
-        pnmbf01(k = 1/k, n = n, sd = sd, null = null, psd = psd, dpm = dpriors[i,1],
-                dpsd = dpriors[i,2], lower.tail = FALSE) - power
-    }
-    uniroot(f = rootFun, interval = c(1, 10^5))$root
+    nnmbf01(k = 1/k, power = power, sd = sd, null = null, psd = psd,
+            dpm = dpriors[i,1], dpsd = dpriors[i,2], lower.tail = FALSE)
 }))
 
 par(mfrow = c(2, 1), mar = c(3, 5, 2.5, 2.5))

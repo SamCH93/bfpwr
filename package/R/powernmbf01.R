@@ -1,4 +1,5 @@
-#' @title Power and sample size calculations for z-test Bayes factor
+#' @title Power and sample size calculations for normal moment prior Bayes
+#'     factor
 #'
 #' @description Compute probability that Bayes factor under normality is smaller
 #'     than a specified threshold (the power), or determine sample size to
@@ -19,18 +20,14 @@
 #'     Defaults to \code{1}
 #' @param null Mean difference under the point null hypothesis. Defaults to
 #'     \code{0}
-#' @param pm Mean of the normal prior assigned to the mean difference under the
-#'     alternative in the analysis
-#' @param psd Standard deviation of the normal prior assigned to the mean
-#'     difference under the alternative in the analysis. Set to \code{0} to
-#'     obtain a point prior at the prior mean
+#' @param psd Spread of the normal moment prior assigned to the parameter under
+#'     the alternative in the analysis. The modes of the prior are located at
+#'     \eqn{\pm\sqrt{2}\,\code{psd}}{+-sqrt(2)*\code{psd}}
 #' @param type The type of test. One of \code{"two.sample"},
 #'     \code{"one.sample"}, \code{"paired"}. Defaults to \code{"two.sample"}
-#' @param dpm Mean of the normal design prior assigned to the mean difference.
-#'     Defaults to the same value as the analysis prior \code{pm}
+#' @param dpm Mean of the normal design prior assigned to the parameter
 #' @param dpsd Standard deviation of the normal design prior assigned to the
-#'     mean difference. Defaults to the same value as the analysis prior
-#'     \code{psd}
+#'     parameter. Set to 0 to obtain a point prior at the prior mean
 #' @param nrange Sample size search range over which numerical search is
 #'     performed (only taken into account when \code{n} is \code{NULL}).
 #'     Defaults to \code{c(1, 10^5)}
@@ -41,19 +38,19 @@
 #'
 #' @author Samuel Pawel
 #'
-#' @seealso \link{plot.power.bftest}, \link{nbf01}, \link{pbf01}, \link{bf01}
+#' @seealso \link{plot.power.bftest}, \link{nnmbf01}, \link{pnmbf01}, \link{nmbf01}
 #'
 #' @examples
 #' ## determine power
-#' powerbf01(n = 100, pm = 0, psd = 1, dpm = 0.5, dpsd = 0)
+#' powernmbf01(n = 100, psd = 1, dpm = 0.5, dpsd = 0)
 #'
 #' ## determine sample size
-#' powerbf01(power = 0.99, pm = 0, psd = 1, dpm = 0.5, dpsd = 0)
+#' powernmbf01(power = 0.99, psd = 1, dpm = 0.5, dpsd = 0)
 #'
 #' @export
-powerbf01 <- function(n = NULL, power = NULL, k = 1/10, sd = 1, null = 0, pm,
-                      psd, type = c("two.sample", "one.sample", "paired"),
-                      dpm = pm, dpsd = psd, nrange = c(1, 10^5)) {
+powernmbf01 <- function(n = NULL, power = NULL, k = 1/10, sd = 1, null = 0, psd,
+                        type = c("two.sample", "one.sample", "paired"), dpm,
+                        dpsd, nrange = c(1, 10^5)) {
     ## input checks
     if (is.null(n) && is.null(power)) {
         stop("exactly one of 'n' and 'power' must be NULL")
@@ -88,14 +85,10 @@ powerbf01 <- function(n = NULL, power = NULL, k = 1/10, sd = 1, null = 0, pm,
         is.numeric(null),
         is.finite(null),
 
-        length(pm) == 1,
-        is.numeric(pm),
-        is.finite(pm),
-
         length(psd) == 1,
         is.numeric(psd),
         is.finite(psd),
-        0 <= psd,
+        0 < psd,
 
         length(dpm) == 1,
         is.numeric(dpm),
@@ -122,19 +115,19 @@ powerbf01 <- function(n = NULL, power = NULL, k = 1/10, sd = 1, null = 0, pm,
 
     ## determine sample size
     if (is.null(n)) {
-        n <- nbf01(k = k, power = power, sd = sqrt(uv), null = null, pm = pm,
-                   psd = psd, dpm = dpm, dpsd = dpsd, nrange = nrange,
-                   integer = FALSE, analytical = TRUE)
+        n <- nnmbf01(k = k, power = power, sd = sqrt(uv), null = null,
+                     psd = psd, dpm = dpm, dpsd = dpsd, nrange = nrange,
+                     integer = FALSE)
     } else {
         ## determine power
-        power <- pbf01(k = k, n = n, sd = sqrt(uv), null = null, pm = pm,
-                       psd = psd, dpm = dpm, dpsd = dpsd, lower.tail = TRUE)
+        power <- pnmbf01(k = k, n = n, sd = sqrt(uv), null = null, psd = psd,
+                         dpm = dpm, dpsd = dpsd, lower.tail = TRUE)
     }
 
     ## return object
-    structure(list(n = n, power = power, sd = sd, null = null, pm = pm,
-                   psd = psd, dpm = dpm, dpsd = dpsd, k = k, nrange = nrange,
-                   type = type, test = "z"),
+    structure(list(n = n, power = power, sd = sd, null = null, psd = psd,
+                   dpm = dpm, dpsd = dpsd, k = k, nrange = nrange, type = type,
+                   test = "nm"),
               class = "power.bftest")
 
 }
@@ -165,7 +158,12 @@ powerbf01 <- function(n = NULL, power = NULL, k = 1/10, sd = 1, null = 0, pm,
 #' @export
 print.power.bftest <- function(x, digits = getOption("digits"), ...) {
 
-    method <- paste0(x$test, "-test ", c("Bayes factor power calculation"))
+    if (x$test %in% c("z", "t")) {
+        methodstring <- paste0(x$test, "-test")
+    } else {
+        methodstring <- "normal moment prior"
+    }
+    method <- paste(methodstring, c("Bayes factor power calculation"))
     note <- "BF oriented in favor of H0 (BF < 1 indicates evidence for H1 over H0)"
     if (x$type == "paired") {
         note <- paste(note,
@@ -197,6 +195,11 @@ print.power.bftest <- function(x, digits = getOption("digits"), ...) {
         names(printx) <- c("n", "power", "sd", "null", "analysis prior mean",
                            "analysis prior sd", "design prior mean",
                            "design prior sd", "BF threshold k")
+    } else if (x$test == "nm") {
+        printx <- x[c("n", "power", "sd", "null", "psd", "dpm", "dpsd", "k")]
+        names(printx) <- c("n", "power", "sd", "null", "analysis prior spread",
+                           "design prior mean", "design prior sd",
+                           "BF threshold k")
     } else {
         ## t-test
         printx <- x[c("n", "power", "sd", "null", "alternative", "plocation",
@@ -220,6 +223,7 @@ print.power.bftest <- function(x, digits = getOption("digits"), ...) {
 #' @param x Object of class \code{"power.bftest"}
 #' @param nlim Range of samples sizes over which the power should be computed.
 #'     Defaults to \code{c(2, 500)}
+#' @param ngrid Number of grid point for which power should be computed. Defaults to 100
 #' @param plot Logical indicating whether data should be plotted. If
 #'     \code{FALSE} only the data used for plotting are returned.
 #' @param nullplot Logcal indicating whether a second plot with the power in
@@ -242,8 +246,8 @@ print.power.bftest <- function(x, digits = getOption("digits"), ...) {
 #' plot(power1, nlim = c(1, 1000))
 #'
 #' @export
-plot.power.bftest <- function(x, nlim = c(2, 500), plot = TRUE, nullplot = TRUE,
-                              ...) {
+plot.power.bftest <- function(x, nlim = c(2, 500), ngrid = 100, plot = TRUE,
+                              nullplot = TRUE, ...) {
     ## input checks
     stopifnot(
         length(nlim) == 2,
@@ -251,6 +255,11 @@ plot.power.bftest <- function(x, nlim = c(2, 500), plot = TRUE, nullplot = TRUE,
         all(is.finite(nlim)),
         nlim[2] > nlim[1],
         nlim[1] >= 1,
+
+        length(ngrid) == 1,
+        is.numeric(ngrid),
+        is.finite(ngrid),
+        ngrid >=1,
 
         length(plot) == 1,
         is.logical(plot),
@@ -281,6 +290,24 @@ plot.power.bftest <- function(x, nlim = c(2, 500), plot = TRUE, nullplot = TRUE,
         nH0 <- nbf01(k = 1/x$k, power = x$power, sd = usd, null = x$null,
                      pm = x$pm, psd = x$psd, dpm = x$null, dpsd = x$null,
                      lower.tail = FALSE)
+    } else if (x$test == "nm") {
+        ## determine unit standard deviation
+        if (x$type == "two.sample") {
+            usd <- sqrt(2)*x$sd
+        } else {
+            usd <- x$sd
+        }
+        powFun <- function(k, n, lower.tail = TRUE) {
+            pnmbf01(k = k, n = n, sd = usd, null = x$null, psd = x$psd,
+                    dpm = x$dpm, dpsd = x$dpsd, lower.tail = lower.tail)
+        }
+        powNullFun <- function(k, n, lower.tail = TRUE) {
+            pnmbf01(k = k, n = n, sd = usd, null = x$null, psd = x$psd,
+                    dpm = x$null, dpsd = 0, lower.tail = lower.tail)
+        }
+        nH0 <- nnmbf01(k = 1/x$k, power = x$power, sd = usd, null = x$null,
+                       psd = x$psd, dpm = x$null, dpsd = x$null,
+                       lower.tail = FALSE)
     } else {
         powFun <- function(k, n, lower.tail = TRUE) {
             ptbf01(k = k, n = n, null = x$null, plocation = x$plocation,
@@ -302,7 +329,7 @@ plot.power.bftest <- function(x, nlim = c(2, 500), plot = TRUE, nullplot = TRUE,
 
 
     ## compute power curves
-    nseq <- seq(from =  nlim[1], to = nlim[2], length.out = 300)
+    nseq <- seq(from =  nlim[1], to = nlim[2], length.out = round(ngrid))
     pow <- powFun(k = x$k, n = nseq)
     powNull <- powNullFun(k = x$k, n = nseq)
     powDF <- rbind(data.frame(n = nseq, power = pow, prior = "Design prior"),
@@ -356,9 +383,9 @@ plot.power.bftest <- function(x, nlim = c(2, 500), plot = TRUE, nullplot = TRUE,
             graphics::axis(side = 3, at = ceiling(x$n), col = "#00000033", cex.axis = 0.8)
             graphics::abline(v = ceiling(x$n), col = "#00000033")
         }
-        graphics::legend("right", title = "Data distribution",
-                         legend = c("Design prior", "Null hypothesis"), lty = 1,
-                         lwd = 1.5, col = c(4, 2), bg = "white", cex = 0.8)
+        graphics::legend("right", legend = c("Design prior", "Null hypothesis"),
+                         lty = 1, lwd = 1.5, col = c(4, 2), bg = "white",
+                         cex = 0.8)
         if (nullplot) {
             plot(nseq, powH0*100, xlab = xlab,
                  ylab = bquote("Pr(BF"["01"] > .(kformatH0) * " )"), type = "l",

@@ -4,9 +4,6 @@
 #'     than a specified threshold (the power), or determine sample size to
 #'     obtain a target power
 #'
-#' @note An error message will be displayed in case that the specified target
-#'     power is not achievable under the specified analysis and design priors.
-#'
 #' @param k Bayes factor threshold. Defaults to \code{1/10}, Jeffreys' threshold
 #'     for 'strong evidence' against the null hypothesis
 #' @param n Sample size (per group for two-sample tests). Has to be \code{NULL}
@@ -51,8 +48,6 @@
 #' plot(powertbf01(k = 1/6, power = 0.95, dpm = 0.5, dps = 0, alternative = "greater"),
 #'      nlim = c(5, 300))
 #'
-#'
-#' ## TODO implement possibility to power for null?
 #' @export
 powertbf01 <- function(k = 1/10, n = NULL, power = NULL, null = 0,
                        plocation = 0, pscale = 1/sqrt(2), pdf = 1,

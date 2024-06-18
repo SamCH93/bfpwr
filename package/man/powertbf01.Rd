@@ -67,10 +67,6 @@ Compute probability that \eqn{t}-test Bayes factor is smaller
     than a specified threshold (the power), or determine sample size to
     obtain a target power
 }
-\note{
-An error message will be displayed in case that the specified target
-    power is not achievable under the specified analysis and design priors.
-}
 \examples{
 ## determine power
 powertbf01(k = 1/6, n = 146, dpm = 0.5, dps = 0, alternative = "greater")
@@ -79,8 +75,6 @@ powertbf01(k = 1/6, n = 146, dpm = 0.5, dps = 0, alternative = "greater")
 plot(powertbf01(k = 1/6, power = 0.95, dpm = 0.5, dps = 0, alternative = "greater"),
      nlim = c(5, 300))
 
-
-## TODO implement possibility to power for null?
 }
 \seealso{
 \link{plot.power.bftest}, \link{ptbf01}, \link{ntbf01}, \link{tbf01}
