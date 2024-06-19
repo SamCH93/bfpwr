@@ -18,6 +18,7 @@ ptbf01(
   type = c("two.sample", "one.sample", "paired"),
   alternative = c("two.sided", "less", "greater"),
   lower.tail = TRUE,
+  drange = "adaptive",
   ...
 )
 }
@@ -53,11 +54,19 @@ the design prior mean. Defaults to the analysis prior scale}
 \code{"one.sample"}, \code{"paired"}. Defaults to \code{"two.sample"}}
 
 \item{alternative}{Direction of the test. Can be either \code{"two.sided"}
-(default), \code{"less"}, or \code{"greater"}}
+(default), \code{"less"}, or \code{"greater"}. The latter two truncate
+the analysis prior to negative and positive effects, respectively. If set
+to \code{"less"} or \code{"greater"}, the power is only computed based on
+data with effect estimates in the direction of the alternative}
 
 \item{lower.tail}{Logical indicating whether Pr(BF \eqn{\leq} \code{k})
 (\code{TRUE}) or Pr(BF \eqn{>} \code{k}) (\code{FALSE}) should be
 computed. Defaults to \code{TRUE}}
+
+\item{drange}{Standardized mean difference search range over which the
+critical values are searched for. Can be either set to a numerical range
+or to \code{"adaptive"} (default) which determines the range in an
+adaptive way from the other input parameters}
 
 \item{...}{Other arguments passed to \code{stats::uniroot}}
 }
@@ -72,16 +81,16 @@ This function computes the probability of obtaining a
 }
 \examples{
 ## example from Schönbrodt and Wagenmakers (2018, p. 135)
-ptbf01(k = 1/6, n = 146, dpm = 0.5, dps = 0, alternative = "greater")
+ptbf01(k = 1/6, n = 146, dpm = 0.5, dpsd = 0, alternative = "greater")
 ptbf01(k = 6, n = 146, dpm = 0, dpsd = 0, alternative = "greater",
        lower.tail = FALSE)
 
 ## two-sided
 ptbf01(k = 1/6, n = 146, dpm = 0.5, dpsd = 0)
-ptbf01(k = 60, n = 150, dpm = 0.5, dpsd = 0.1, lower.tail = TRUE)
+ptbf01(k = 6, n = 146, dpm = 0, dpsd = 0, lower.tail = FALSE)
 
 ## one-sample test
-ptbf01(k = 1/6, n = 5000, dpm = -0.25, dpsd = 0, alternative = "less", type = "one.sample")
+ptbf01(k = 1/6, n = 146, dpm = 0.5, dpsd = 0, alternative = "greater", type = "one.sample")
 
 }
 \seealso{

@@ -46,6 +46,9 @@ Pramanik, S. and Johnson, V. E. (2024). Efficient alternatives for Bayesian
     hypothesis tests in psychology. Psychological Methods, 29(2):243–261.
     \doi{10.1037/met0000482}
 }
+\seealso{
+\link{nmbf01}, \link{pnmbf01}, \link{nnmbf01}, \link{powernmbf01}
+}
 \author{
 Samuel Pawel
 }

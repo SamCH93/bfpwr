@@ -94,10 +94,10 @@ nnmbf01. <- function(k, power, sd, null = 0, psd, dpm, dpsd,
 #'
 #' @author Samuel Pawel
 #'
-#' @seealso \link{pnmbf01}, \link{nmbf01}
+#' @seealso \link{nmbf01}, \link{pnmbf01}, \link{powernmbf01}
 #'
 #' @examples
-#' nnmbf01(k = 1/10, power = 0.9, sd = 1, null = 0, psd = 0.5/sqrt(2), dpm = 0.5, dpsd = 0, integer = FALSE)
+#' nnmbf01(k = 1/10, power = 0.9, sd = 1, null = 0, psd = 0.5/sqrt(2), dpm = 0.5, dpsd = 0)
 #' @export
 nnmbf01 <- Vectorize(FUN = nnmbf01.,
                      vectorize.args = c("k", "power", "sd", "null", "psd",

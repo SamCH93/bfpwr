@@ -85,7 +85,7 @@ pnmbf01. <- function(k, n, sd, null = 0, psd, dpm, dpsd, lower.tail = TRUE) {
 #'
 #' @author Samuel Pawel
 #'
-#' @seealso \link{nmbf01}
+#' @seealso \link{nmbf01}, \link{nnmbf01}, \link{powernmbf01}
 #'
 #' @examples
 #' ## point desing prior (psd = 0)

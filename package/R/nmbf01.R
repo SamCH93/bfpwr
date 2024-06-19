@@ -67,5 +67,7 @@ nmbf01. <- function(estimate, se, null = 0, psd, log = FALSE) {
 #' @examples
 #' nmbf01(estimate = 0.25, se = 0.05, null = 0, psd = 0.5/sqrt(2)) # mode at 0.5
 #'
+#' @seealso \link{nmbf01}, \link{pnmbf01}, \link{nnmbf01}, \link{powernmbf01}
+#'
 #' @export
 nmbf01 <- Vectorize(FUN = nmbf01.)

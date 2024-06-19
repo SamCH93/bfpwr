@@ -1618,7 +1618,7 @@ with
 with $\mathrm{W}_{0}$ the principal branch of the Lambert W function, see
 Appendix~\ref{app:nmprior} for details. Also normal moment prior Bayes factors
 and design based on them is implemented in our R package (functions
-\texttt{nmbf01} and \texttt{powernmbf01}, TODO).
+\texttt{nmbf01} and \texttt{powernmbf01}).
 
 
 \begin{figure}[!htb]

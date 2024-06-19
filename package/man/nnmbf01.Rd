@@ -58,10 +58,10 @@ This function computes the required sample size to obtain a
     a specified target power.
 }
 \examples{
-nnmbf01(k = 1/10, power = 0.9, sd = 1, null = 0, psd = 0.5/sqrt(2), dpm = 0.5, dpsd = 0, integer = FALSE)
+nnmbf01(k = 1/10, power = 0.9, sd = 1, null = 0, psd = 0.5/sqrt(2), dpm = 0.5, dpsd = 0)
 }
 \seealso{
-\link{pnmbf01}, \link{nmbf01}
+\link{nmbf01}, \link{pnmbf01}, \link{powernmbf01}
 }
 \author{
 Samuel Pawel
