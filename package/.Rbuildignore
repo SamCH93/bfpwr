@@ -3,3 +3,5 @@ LICENSE
 .gitignore
 Makefile
 out/
+power.png
+README.md
