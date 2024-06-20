@@ -48,7 +48,7 @@
   Center for Reproducible Science (CRS) \\
   University of Zurich \\
   E-mail: \href{mailto:\mail}{\mail} \\[2ex]
-  {\color{blue} Preprint version June 7, 2024}}
+  {\color{blue} Preprint version June 19, 2024}}
 
 %% hyperref options
 %% ----------------------------------------------------------------------------
@@ -101,23 +101,8 @@ library(BayesRep)
 % Abstract
 % ======================================================================
 \begin{abstract}
-  \noindent An important aspect of study design is the determination of an
-  appropriate sample size. The choice of sample size should be consistent with
-  the planned analysis. If the planned analysis involves Bayes factor hypothesis
-  testing, the sample size is usually desired to ensure a sufficiently high
-  probability of obtaining compelling evidence for a hypothesis, given that the
-  hypothesis is true. In practice, sample size determination based on Bayes
-  factor analyses are typically performed using computationally intensive Monte
-  Carlo simulation methods. Here we summarize how, under approximate normality
-  assumptions, sample sizes can be determined numerically without simulation,
-  and provide the R package \texttt{bfpwr} for doing so. We also identify
-  conditions under which sample sizes can be determined in closed-form, leading
-  to novel formulas that are easy-to-use, help fostering intuition, and enable
-  asymptotic analysis. We also show how power and sample size can be computed
-  without simulation for more advanced analysis priors, such as
-  Jeffreys-Zellner-Siow priors or nonlocal normal moment priors. Case studies
-  from medicine and psychology illustrate how researchers can use our methods
-  for planning informative but cost-efficient studies.
+  \noindent Determining an appropriate sample size is a crucial element of study design, and it
+  should be consistent with the planned analysis. If the planned analysis involves Bayes factor hypothesis testing, the sample size is usually desired to ensure a sufficiently high probability of obtaining a Bayes factor that indicates compelling evidence for a hypothesis, given that the hypothesis is true. In practice, Bayes factor sample size determination is typically performed using computationally intensive Monte Carlo simulation. Here we summarize an alternative approach that enables sample size determination without simulation. We show how, under approximate normality assumptions, sample sizes can be determined numerically, and provide the R package \texttt{bfpwr} for doing so. Additionally, we identify conditions under which sample sizes can even be determined in closed-form, resulting in novel, easy-to-use formulas that also help fostering intuition and enable asymptotic analysis. Furthermore, we show how in our framework, power and sample size can be computed without simulation for more advanced analysis priors, such as Jeffreys-Zellner-Siow priors or nonlocal normal moment priors. Case studies from medicine and psychology illustrate how researchers can use our methods for planning informative yet cost-efficient studies.
   \\
   \textit{Keywords:} Bayesian hypothesis testing, evidence, likelihood ratio,
   numerical methods, study design
@@ -158,7 +143,7 @@ calculations and is often accurate enough for practical purposes. It also helps
 fostering intuition and is therefore useful, for example, in teaching of
 statistics or the study of asymptotics.
 
-% introduce the Bayes factor and explain why one may want to use it
+
 An alternative to frequentist hypothesis testing is Bayesian hypothesis testing.
 There are different flavors of Bayesian hypothesis testing, one of the most
 popular being the approach centered around the \emph{Bayes factor}, which is the
@@ -187,15 +172,27 @@ normality assumptions similar to those underlying the
 formula~\eqref{eq:freqsamplesize}, a sample size formula can be derived for a
 planned Bayes factor analysis. As we will show, the answer is affirmative under
 certain assumptions about the analysis prior (the prior distribution for the
-parameter under the alternative used in the analysis) and the design prior (the
-prior distribution for the parameter used in the design). Specifically, for
-Bayes factors with point analysis priors (i.e., likelihood ratios) and point or
-normal design priors, and for Bayes factors with local normal analysis and
-design priors (i.e., normal priors centered around the null value) closed-form
-sample sizes are available, see Table~\ref{tab:summary} for an overview of our
-results. We also summarize sample size determination for Bayes factors analysis
-based on numerical root-finding \citep{Weiss1997} that, while not being
-available in closed-form, is much faster and deterministic compared to
+parameter used in the analysis) and the design prior (the prior distribution for
+the parameter used in the design). A distinction must be made between point
+priors and normal priors, both in the design and in the analysis. Point analysis
+priors lead to Bayes factors reducing to likelihood ratios, the analysis thereby
+corresponding with a frequentist `likelihoodist' analysis \citep{Edwards1971,
+  Royall1997, Blume2002, Strug2018}, while point design priors lead to
+`conditional power', which corresponds to traditional frequentist power. In
+contrast, normal analysis and design prior can account for parameter
+uncertainty, producing Bayes factors that differ from likelihood ratios and
+`predictive power' that differs from frequentist power \citep[see e.g.,][for
+conditional/predictive power related to posterior tail probability
+analyses]{OHagan2005, Micheloud2020, Grieve2022}.
+
+Based on the point/normal prior distinction, we find that closed-form sample
+sizes are available for Bayes factors with point analysis priors (i.e.,
+likelihood ratios) along with point or normal design priors, and for Bayes
+factors with local normal analysis and design priors (i.e., normal priors
+centered on the null value), see Table~\ref{tab:summary} for an overview of our
+results. Another aim of our paper is to summarize sample size determination for
+Bayes factor analysis based on numerical root-finding \citep{Weiss1997}, which,
+while not available in closed-form, is much faster and deterministic compared to
 simulation-based approaches. To facilitate reuse of our results, all methods are
 made available through the R package \texttt{bfpwr}.
 
@@ -206,25 +203,26 @@ made available through the R package \texttt{bfpwr}.
   \caption{Availability of closed-form sample size formulas for Bayes factor
     hypothesis test of $H_{0} \colon \theta = \theta_{0}$ against
     $H_{1} \colon \theta \neq \theta_{0}$ with either a point prior or a normal
-    prior assigned to $\theta$ under $H_{1}$, and data in the form of a normally
-    distributed parameter estimate
-    $\hat{\theta} \mid \theta \sim \mathrm{N}(\theta, \sigma_{\scriptscriptstyle \hat{\theta}}^{2}/n)$. In all cases, the power can be computed in closed-form.
-    % with standard error $\sigma_{\scriptscriptstyle \hat{\theta}}/\surd n$.
-  }
+    analysis prior assigned to $\theta$ under $H_{1}$, and data in the form of a
+    normally distributed parameter estimate
+    $\hat{\theta} \mid \theta \sim \mathrm{N}(\theta, \sigma_{\scriptscriptstyle \hat{\theta}}^{2}/n)$.
+    In all cases, the power can be computed in closed-form.}
   \label{tab:summary}
+  {\small
   \begin{tabular}{l c c }
     \toprule
     & \multicolumn{2}{c}{Analysis prior} \\
     \cmidrule{2-3}
-    Design prior & Point prior & Normal prior \\
+    \multicolumn{1}{c}{Design prior} & Point prior (likelihood ratio) & Normal prior (Bayes factor) \\
     % & $\theta = \mu$ & $\theta \sim \mathrm{N}(\mu, \tau^{2})$ \\
     \midrule
-    Point prior % $\theta = \mu_{d}$
+    Point prior (conditional power) % $\theta = \mu_{d}$
  &\cellcolor{green!10}  \cmark ~ Equation~\eqref{eq:nLR2} & \cellcolor{red!10} \xmark ~ Unavailable \\
-    Normal prior % $\theta \sim \mathrm{N}(\mu_{d}, \tau^{2}_{d})$
-    & \cellcolor{green!10} \cmark ~ Equation~\eqref{eq:nLR} & \cellcolor{yellow!10} \cmark ~ Equation~\eqref{eq:nBF}, but only for local normal priors \\
+    Normal prior (predictive power) % $\theta \sim \mathrm{N}(\mu_{d}, \tau^{2}_{d})$
+    & \cellcolor{green!10} \cmark ~ Equation~\eqref{eq:nLR} & \cellcolor{yellow!10} \cmark ~ Equation~\eqref{eq:nBF} for local normal priors \\
     \bottomrule
   \end{tabular}
+  }
 \end{table}
 \endgroup
 
@@ -679,28 +677,72 @@ Bayes factors with point analysis priors ($\tau^2 = 0$) and normal analysis prio
 Assuming that the alternative $\mu$ is larger than the null $\theta_{0}$ and
 setting the power function~\eqref{eq:prLR} equal to a target power of
 $1 - \beta$ lower than the limiting power~\eqref{eq:powerlimLR}, we obtain a
-quadratic equation in the sample size $n$
-\begin{align*}
-  n^{2} \underbrace{\left\{\left(\frac{\theta_{0} + \mu}{2} - \mu_{d}\right)^{2} - z^{2}_{1 - \beta} \tau^{2}_{d}\right\}}_{=a} +
-  n \underbrace{\sigma^2_{\scriptscriptstyle \hat{\theta}}\left\{\frac{(\theta_{0} + \mu - 2 \mu_{d}) \log k}{\theta_{0} - \mu} - z^{2}_{1 - \beta}\right\}}_{=b} +
-  \underbrace{\left(\frac{\sigma^2_{\scriptscriptstyle \hat{\theta}} \log k}{\theta_{0} - \mu}\right)^{2}}_{=c} = 0.
-\end{align*}
-Its solution is given by
+quadratic equation in the sample size $n$. Its solution can be
+% \begin{align*}
+%   n^{2} \underbrace{\left\{\left(\frac{\theta_{0} + \mu}{2} - \mu_{d}\right)^{2} - z^{2}_{1 - \beta} \tau^{2}_{d}\right\}}_{=a} +
+%   n \underbrace{\sigma^2_{\scriptscriptstyle \hat{\theta}}\left\{\frac{(\theta_{0} + \mu - 2 \mu_{d}) \log k}{\theta_{0} - \mu} - z^{2}_{1 - \beta}\right\}}_{=b} +
+%   \underbrace{\left(\frac{\sigma^2_{\scriptscriptstyle \hat{\theta}} \log k}{\theta_{0} - \mu}\right)^{2}}_{=c} = 0.
+% \end{align*}
+written as
 \begin{align}
 \label{eq:nLR}
-    n = \frac{-b + \sqrt{b^{2} - 4ac}}{2a}.
+  n = \left[
+  \left\{z_{1 - \beta} + \sqrt{z_{1 - \beta}^{2} - \frac{\Delta_{{\mu_{d}}}\log k^{2}}{\Delta_{\mu}} + \left(\frac{\tau_{d} \log k^{2}}{\Delta_{\mu}}\right)^{2}}\right\}^{2} - \left(\frac{\tau_{d} \log k^{2}}{\Delta_{\mu}}\right)^{2}\right]
+  \times \frac{\sigma^2_{\scriptscriptstyle \hat{\theta}}}{
+  \Delta_{\mu_{d}}^{2} - 4 z_{1 - \beta}^{2} \tau^{2}_{d}}
 \end{align}
-Of note, the second solution of the quadratic equation gives the sample size
-that leads to a power of $\beta$ instead of $1 - \beta$. The sample
-size~\eqref{eq:nLR} also typically needs to be rounded to the next larger
-integer in order to be an evaluable sample size in practice.
+where $\Delta_{\mu_{d}} = 2\mu_{d} - \mu - \theta_{0}$, which reduces to the
+ordinary `effect size' $\Delta_{\mu} = \mu - \theta_{0}$ when the design prior mean is
+set to the parameter value under the alternative ($\mu_{d} = \mu$).
+% \begin{align}
+% \label{eq:nLR}
+%     n = \frac{-b + \sqrt{b^{2} - 4ac}}{2a}.
+% \end{align}
+Of note, if power values $1 - \beta > 50\%$ are possible, replacing the first
+plus in~\eqref{eq:nLR} by a minus gives the sample size that leads to a power of
+$\beta$ instead of $1 - \beta$. The sample size~\eqref{eq:nLR} also typically
+needs to be rounded to the next larger integer in order to be an evaluable
+sample size in practice.
+
+<< "verify-equation" >>=
+## null <- 0.1
+## pm <- 0.4
+## psd <- 0
+## dpm1 <- pm
+## dpm2 <- 0.35
+## dpsd1 <- 0
+## dpsd2 <- 0.3
+## sd <- sqrt(2)
+
+## k <- 1/10
+## power <- 0.63
+## zb <- qnorm(p = power)
+
+## library(bfpwr)
+## ## formula (9)
+## nbf01(k = k, power = power, sd = sd, null = null, pm = pm, psd = 0, dpm = pm,
+##       dpsd = 0, analytical = c(FALSE, TRUE), integer = FALSE)
+## sd^2*(zb + sqrt(zb^2 - log(k^2)))^2/(pm - null)^2
+
+## ## formula (8)
+## nbf01(k = k, power = power, sd = sd, null = null, pm = pm, psd = 0, dpm = dpm2,
+##       dpsd = 0, analytical = c(FALSE, TRUE), integer = FALSE)
+## sd^2*(zb + sqrt(zb^2 - log(k^2)*(null + pm - 2*dpm2)/(null - pm)))^2/(null + pm - 2*dpm2)^2
+
+## ## formula (7)
+## dpsd2 <- 0.1
+## nbf01(k = k, power = 1 - power, sd = sd, null = null, pm = pm, psd = 0, dpm = dpm2,
+##       dpsd = dpsd2, analytical = c(FALSE, TRUE), integer = FALSE)
+## A <- sqrt(zb^2 - (2*dpm2 - null - pm)/(pm- null)*log(k^2) + (dpsd2*log(k^2)/(pm - null))^2)
+## ((zb + A)^2 - (dpsd2*log(k^2)/(pm - null))^2)/(((2*dpm2- pm - null)^2 - 4*zb^2*dpsd2^2)/sd^2)
+@
 
 We will now investigate the sample size~\eqref{eq:nLR} for two special cases.
 First, suppose that the design prior is a point prior ($\tau^{2}_{d} = 0$) at
 $\mu_{d}$, not necessarily the same as the alternative $\mu$. This leads to
 \begin{align}
   \label{eq:nLR2}
-  n = \frac{\left[z_{1 - \beta} + \sqrt{z_{1 - \beta}^2 - \log k^2 \{(\theta_0 + \mu - 2\mu_{d})/(\theta_0 - \mu)\}}\right]^2}{(\mu + \theta_0 - 2\mu_{d})^2 / \sigma^2_{\scriptscriptstyle \hat{\theta}}}.
+  n = \frac{\left[z_{1 - \beta} + \sqrt{z_{1 - \beta}^2 - \log k^2 (\Delta_{\mu_{d}}/\Delta_{\mu})}\right]^2}{\Delta_{\mu_{d}}^2 / \sigma^2_{\scriptscriptstyle \hat{\theta}}}.
 \end{align}
 Assuming, for instance, that the tested parameter is a mean difference with unit
 variance $\sigma^2_{\scriptscriptstyle \hat{\theta}} = 2\sigma^{2}$ (see
@@ -721,14 +763,14 @@ Second, assume that the design prior is also equal to the alternative
 ($\mu_{d} = \mu$), so that the formula~\eqref{eq:nLR2} further reduces to
 \begin{align}
 \label{eq:nLR3}
-    n = \frac{\left\{z_{1 - \beta} + \sqrt{z_{1 - \beta}^2 - \log k^2}\right\}^2}{(\mu - \theta_0)^2 / \sigma^2_{\scriptscriptstyle \hat{\theta}}}.
+    n = \frac{\left\{z_{1 - \beta} + \sqrt{z_{1 - \beta}^2 - \log k^2}\right\}^2}{\Delta_{\mu}^2 / \sigma^2_{\scriptscriptstyle \hat{\theta}}}.
 \end{align}
 The same formula~\eqref{eq:nLR3} was also found by \citet{Strug2007} for
 `evidential' sample size calculations, but is unfortunately not well known.
 Unsurprisingly the two formulas coincide as Bayes factors and likelihood ratios
 -- the measure of evidence used in `evidential statistics' \citep[see
-e.g.,][]{Edwards1971, Royall1997, Blume2002, Strug2018} -- coincide when the
-Bayes factor involves only point hypotheses. Our more general
+e.g.,][]{Edwards1971, Royall1997, Blume2002, Strug2018} -- are equivalent when
+the Bayes factor involves only point hypotheses. Our more general
 formulas~\eqref{eq:nLR} and~\eqref{eq:nLR2} thus also generalize evidential
 sample size calculations to incorporate different assumed design parameters
 and/or parameter uncertainty, similar to how Bayesian design priors can be used
@@ -1014,12 +1056,6 @@ numerically with our R package which is quicker and more reliable than computing
 it with a simulation approach.
 
 
-% However, we may also want to use a different design prior than the one under
-% the alternative. One possibility is to ignore the term in~\eqref{eq:prBF} in
-% the opposite direction of the prior under the alternative as this term may be
-% close to zero. A similar assumption is made when deriving the classical sample
-% size formula.
-
 \section{Application}
 \label{sec:application}
 We will now illustrate Bayes factor sample size and power calculations using
@@ -1090,6 +1126,7 @@ a <- ((null + pm)/2 - dpm)^2 - zb^2*dpsd2^2
 b <- sd^2*((null + pm - 2*dpm)*log(k)/(null - pm) - zb^2)
 c <- (sd^2*log(k)/(null - pm))^2
 nanalyt2 <- ceiling((-b + sqrt(b^2 - 4*a*c))/(2*a))
+
 
 ## ## sample size to achieve 80% power under the null
 ## nbf01(k = 1/k, power = power, sd = sd, null = null, pm = pm, psd = psd,
@@ -1409,7 +1446,10 @@ of sample sizes.
 The types of Bayes factor that we considered so far are limited to data in the
 form of asymptotically normally distributed parameter estimates, and normal or
 point priors under the alternative. Researchers may also want to use different
-data models or prior distributions. In the following we outline two extensions.
+data models or prior distributions in the analysis. In the following, we outline
+two extensions that modify the assumed Bayes factor in the analysis, while still
+retaining the normal likelihood and point/normal design prior assumed in the
+design.
 
 \subsection{Informed Bayesian \textit{t}-test}
 
@@ -1437,13 +1477,14 @@ one-sided test in positive direction, we have $a = 0$ and $b=+\infty$, while for
 a two-sided test we have $a = -\infty$ and $b=+\infty$. When the prior under the
 alternative is set to a (scaled) Cauchy distribution ($\kappa = 1$, $\mu = 0$,
 $a = -\infty$, $b=+\infty$), the Bayes factor reduces to the
-`Jeffreys-Zellner-Siow' Bayes factor \citep{Jeffreys1961, Zellner1980}, which is
-often used as a `default' Bayes factor in the social sciences
+`Jeffreys-Zellner-Siow' (JZS) Bayes factor \citep{Jeffreys1961, Zellner1980},
+which is often used as a `default' Bayes factor in the social sciences
 \citep{Rouder2009}. Setting other values for these parameters allows data
-analysts to incorporate directionality or prior knowledge about the standardized
-mean difference, potentially improving the efficiency of the test
-\citep{Stefan2019}. The Bayes factor~\eqref{eq:tBF} is also implemented in our
-package in the function \texttt{tbf01}.
+analysts to incorporate directionality, such as a one-sided JZS Bayes factor
+\citep{Wetzels2009}, or prior knowledge about the standardized mean difference,
+potentially improving the efficiency of the test \citep{Stefan2019}. The Bayes
+factor~\eqref{eq:tBF} is also implemented in our package in the function
+\texttt{tbf01}.
 
 << "extensions-t-example", fig.height = 4.5 >>=
 null <- 0
@@ -1502,8 +1543,10 @@ nex <- ntbf01(k = k, power = power, null = null, plocation = plocation,
 
 A complication in power and sample size calculations based on the Bayes
 factor~\eqref{eq:tBF} is that it is not available in closed-form but requires
-numerical evaluation of the integral in the denominator. To compute the power
-for a given sample size, we may hence use the following two-stage procedure:
+numerical evaluation of the integral in the denominator. Perhaps for this
+reason, so far power and sample size have been computed using simulation. To
+compute the power for a given sample size without simulation, we propose to use
+the following two-step procedure instead:
 
 \begin{enumerate}
   \item For a given sample size $n$ and analysis prior
@@ -1519,13 +1562,17 @@ for a given sample size, we may hence use the following two-stage procedure:
 
   \item For a given design prior, compute the probability of obtaining a
         $t$-statistic included in $S$. For example, based on a normal design
-        prior $\theta \sim \mathrm{N}(\mu_{d}, \tau^{2}_{d})$, assuming a
+        prior $\theta \sim \mathrm{N}(\mu_{d}, \tau^{2}_{d})$ and assuming a
         two-sample test with equally sized groups and that the data variance
-        $\sigma^{2}$ is known, we have that
+        $\sigma^{2}$ is known, we have that approximately
+        \mbox{$t \mid n, \mu_{d}, \tau^{2}_{d} \sim \mathrm{N}\{\mu_{d}\sqrt{n/2}, 1 + (n\tau^{2})/2\}$},
+        hence the power can be computed by
   \begin{align*}
     \Pr\left(\mathrm{BF}_{01} \leq k \mid n, \mu_{d}, \tau_{d} \right)
-    = \Phi\left(\frac{(2t_{\mathrm{crit}-})/\sqrt{n} - \mu_{d}}{\sqrt{\tau^{2}_{d} + 2/n}}\right)
-    + \Phi\left(\frac{\mu_{d} - (2t_{\mathrm{crit}+})/\sqrt{n}}{\sqrt{\tau^{2}_{d} + 2/n}}\right).
+    % = \Phi\left(\frac{t_{\mathrm{crit}-}/\sqrt{n/2} - \mu_{d}}{\sqrt{\tau^{2}_{d} + 2/n}}\right)
+    % + \Phi\left(\frac{\mu_{d} - t_{\mathrm{crit}+}/\sqrt{n/2}}{\sqrt{\tau^{2}_{d} + 2/n}}\right).
+    = \Phi\left(\frac{t_{\mathrm{crit}-} - \mu_{d}\sqrt{n/2}}{\sqrt{1 + (n\tau^{2}_{d})/2}}\right)
+    + \Phi\left(\frac{\mu_{d}\sqrt{n/2} - t_{\mathrm{crit}+}}{\sqrt{1 + (n\tau^{2}_{d})/2}}\right).
   \end{align*}
 \end{enumerate}
 
@@ -1533,19 +1580,28 @@ To calculate a sample size that ensures a certain target power, we can again use
 numerical root-finding. To illustrate this, we now revisit the example from
 \citet{Schoenbrodt2017} which was already re-analyzed in
 Section~\ref{sec:schoenbrodtexample} with a normal analysis prior. We now
-specify a one-sided scaled Cauchy prior ($\mu = 0$, $\kappa = 1$, $a = 0$,
-$b = +\infty$) with scale $\tau = 1/\sqrt{2}$ as in the original analysis. Using
-the previously described iterative approach, we compute that a sample size of
+specify the analysis parameters
+$\mu = 0, \tau = 1/\sqrt{2}, \kappa = 1, a = 0, b = +\infty$, i.e., a one-sided
+JZS Bayes factor \citep{Wetzels2009}, as in the original analysis. Using the
+previously described iterative approach, we compute that a sample size of
 \mbox{$n = \Sexpr{nex[1]}$} is required under a point design prior at
 $\mu_{d} = \Sexpr{dpm}$ to achieve a target power of \Sexpr{round(power*100)}\%.
 This differs only slightly from the simulation-based $n = 146$ reported by
 \citet{Schoenbrodt2017}, possibly due to Monte Carlo error. The root-finding
 approach is, however, substantially faster than the Monte Carlo approach. That
 is, computing the sample size for the previous example with root-finding as
-implemented in our package (function \texttt{powertbf01}, TODO improve
-implementation), takes about 100 milliseconds, while the simulation based
-approach takes about 10 minutes.
+implemented in our package (function \texttt{powertbf01}), takes about 100
+milliseconds, while the simulation based approach takes about 10 minutes.
 
+<< >>=
+## microbenchmark::microbenchmark({
+##     powertbf01(k = 1/6, power = 0.95, null = 0, plocation = 0, pscale = 1/sqrt(2),
+##                pdf = 1, alternative = "greater", dpm = 0.5, dpsd = 0)
+## })
+## ##> + Unit: milliseconds
+## ##>       min       lq     mean   median       uq      max neval
+## ##>  83.67747 85.16477 92.08307 88.00866 98.46287 117.2702   100
+@
 
 \subsection{Normal moment priors}
 Nonlocal priors are prior distributions that have no probability density/mass at
@@ -1562,7 +1618,7 @@ priors have two modes at $\pm \tau \sqrt{2}$, which gives a convenient way to
 elicit a prior, as $\tau$ may, for example, be set to so that the mode equals
 two parameter values deemed most plausible under the alternative.
 \begin{figure}[!htb]
-<< fig.height = 3.5 >>=
+<< "moment-priors-illustration-plot", fig.height = 3.5 >>=
 dnmoment <- function(x, location = 0, spread = 1) {
     stats::dnorm(x = x, mean = location, sd = spread)*(x - location)^2/spread^2
 }
@@ -1616,9 +1672,12 @@ with
   &A = \frac{\mu_{d} - \theta_{0}}{\sqrt{\tau^{2}_{d} + \sigma^{2}_{\scriptscriptstyle \hat{\theta}}/n}}&
 \end{align*}
 with $\mathrm{W}_{0}$ the principal branch of the Lambert W function, see
-Appendix~\ref{app:nmprior} for details. Also normal moment prior Bayes factors
-and design based on them is implemented in our R package (functions
-\texttt{nmbf01} and \texttt{powernmbf01}).
+Appendix~\ref{app:nmprior} for details. Based on the power
+function~\eqref{eq:pnlBF}, numerical root-finding can be used to determine the
+sample size such that a certain target power is achieved. Methods for power and
+sample size calculations for normal moment prior Bayes factors are both
+implemented in our R package (functions \texttt{nmbf01} and
+\texttt{powernmbf01}).
 
 
 \begin{figure}[!htb]
@@ -1718,12 +1777,13 @@ methods rely on the approximate normality of parameter estimates (but not of the
 underlying data), which is a common assumption in the methodology of power and
 sample size calculations. We have synthesized and extended previous theoretical
 results on power functions for Bayes factors and implemented them in an R
-package \texttt{bfpwr}. We also derived novel sample size formulas that
-are-easy-to-use, help fostering intuition, and enable asymptotic analysis of
-power and sample size. Compared to commonly used simulation-based methods, our
-methods are less general. However, in the setting where they are applicable --
-which includes many common scenarios, such as testing mean differences -- they
-are faster, deterministic, and require no simulation parameters to be specified.
+package \texttt{bfpwr}. We also derived novel sample size formulas that are
+easy-to-use, help fostering intuition, and enable understanding of theoretical
+properties such as asymptotic power or (non-)existence of samples size for a
+given power. Compared to commonly used simulation-based methods, our methods are
+less general. However, in the setting where they are applicable -- which
+includes many common scenarios, such as testing mean differences -- they are
+faster, deterministic, and require no simulation parameters to be specified.
 Therefore, we believe that the availability of such methods addresses an
 important practical need and can help researchers design efficient studies with
 minimal effort.

@@ -118,6 +118,39 @@ abline(h = 100, lty = 2, col = adjustcolor(col = 1, alpha = 0.6))
 ##        lwd = 1.5, col = c(1, 2))
 
 
+## ----"verify-equation"--------------------------------------------------------
+## null <- 0.1
+## pm <- 0.4
+## psd <- 0
+## dpm1 <- pm
+## dpm2 <- 0.35
+## dpsd1 <- 0
+## dpsd2 <- 0.3
+## sd <- sqrt(2)
+
+## k <- 1/10
+## power <- 0.63
+## zb <- qnorm(p = power)
+
+## library(bfpwr)
+## ## formula (9)
+## nbf01(k = k, power = power, sd = sd, null = null, pm = pm, psd = 0, dpm = pm,
+##       dpsd = 0, analytical = c(FALSE, TRUE), integer = FALSE)
+## sd^2*(zb + sqrt(zb^2 - log(k^2)))^2/(pm - null)^2
+
+## ## formula (8)
+## nbf01(k = k, power = power, sd = sd, null = null, pm = pm, psd = 0, dpm = dpm2,
+##       dpsd = 0, analytical = c(FALSE, TRUE), integer = FALSE)
+## sd^2*(zb + sqrt(zb^2 - log(k^2)*(null + pm - 2*dpm2)/(null - pm)))^2/(null + pm - 2*dpm2)^2
+
+## ## formula (7)
+## dpsd2 <- 0.1
+## nbf01(k = k, power = 1 - power, sd = sd, null = null, pm = pm, psd = 0, dpm = dpm2,
+##       dpsd = dpsd2, analytical = c(FALSE, TRUE), integer = FALSE)
+## A <- sqrt(zb^2 - (2*dpm2 - null - pm)/(pm- null)*log(k^2) + (dpsd2*log(k^2)/(pm - null))^2)
+## ((zb + A)^2 - (dpsd2*log(k^2)/(pm - null))^2)/(((2*dpm2- pm - null)^2 - 4*zb^2*dpsd2^2)/sd^2)
+
+
 ## ----"nTable1", results = "asis"----------------------------------------------
 ## compute a table with sample sizes
 kseq <- rev(c(1/1000, 1/300, 1/100, 1/30, 1/10, 1/9, 1/8, 1/7, 1/6, 1/5, 1/4, 1/3))
@@ -268,6 +301,7 @@ a <- ((null + pm)/2 - dpm)^2 - zb^2*dpsd2^2
 b <- sd^2*((null + pm - 2*dpm)*log(k)/(null - pm) - zb^2)
 c <- (sd^2*log(k)/(null - pm))^2
 nanalyt2 <- ceiling((-b + sqrt(b^2 - 4*a*c))/(2*a))
+
 
 ## ## sample size to achieve 80% power under the null
 ## nbf01(k = 1/k, power = power, sd = sd, null = null, pm = pm, psd = psd,
@@ -517,7 +551,17 @@ nex <- ntbf01(k = k, power = power, null = null, plocation = plocation,
 ##        lty = 1, lwd = 1.5, col = cols, bg = "white", cex = 0.7)
 
 
-## ----fig.height = 3.5---------------------------------------------------------
+## -----------------------------------------------------------------------------
+## microbenchmark::microbenchmark({
+##     powertbf01(k = 1/6, power = 0.95, null = 0, plocation = 0, pscale = 1/sqrt(2),
+##                pdf = 1, alternative = "greater", dpm = 0.5, dpsd = 0)
+## })
+## ##> + Unit: milliseconds
+## ##>       min       lq     mean   median       uq      max neval
+## ##>  83.67747 85.16477 92.08307 88.00866 98.46287 117.2702   100
+
+
+## ----"moment-priors-illustration-plot", fig.height = 3.5----------------------
 dnmoment <- function(x, location = 0, spread = 1) {
     stats::dnorm(x = x, mean = location, sd = spread)*(x - location)^2/spread^2
 }
