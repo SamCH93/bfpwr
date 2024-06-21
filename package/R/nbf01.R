@@ -71,6 +71,7 @@ nbf01. <- function(k, power, sd, null = 0, pm, psd, dpm = pm, dpsd = psd,
             } else {
                 powlim <- 0.5
             }
+            if (lower.tail == FALSE) powlim <- 1 - powlim
             if (power > powlim) {
                 warnmessage <- paste0("specified power (", round(power, 2),
                                       ") higher than limiting power (", round(powlim, 2),
