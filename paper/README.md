@@ -5,17 +5,6 @@ This directory contains code and data related to the preprint
    Pawel, S., Held, L. (2024). Closed-Form Power and Sample Size Calculations
    for Bayes Factors.
 
-A BibTeX entry is given by
-
-```BibTeX
-@article{Pawel2024,
-  year = {2024},
-  author = {Samuel Pawel and Leonhard Held},
-  title = {Closed-Form Power and Sample Size Calculations for {Bayes} Factors},
-  url = {https://github.com/SamCH93/bfpwr},
-  note = {Preprint}
-}
-```
 
 ## Reproducibility
 

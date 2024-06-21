@@ -610,7 +610,7 @@ cols <- rev(palette.colors(n = 4, alpha = 0.95)[2:4])
 transpblack <- adjustcolor(col = 1, alpha = 0.2)
 matplot(nseq, powH1*100, lty = 1, type = "l", las = 1, ylim = c(0, 100),
         panel.first = grid(lty = 3, col = adjustcolor(col = 1, alpha = 0.1)),
-        yaxt = "n", xlab = bquote("Sample size per group" ~ italic(n)),
+        yaxt = "n", xlab = "",
         ylab = bquote("Pr(BF"["01"] < 1/.(1/k) * " )"), col = cols, lwd = 1.5)
 axis(side = 2, at = seq(0, 100, 20), labels = paste0(seq(0, 100, 20), "%"), las = 1)
 axis(side = 4, at = power*100, labels = paste0(power*100, "%"), las = 1,
