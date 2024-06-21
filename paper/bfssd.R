@@ -27,15 +27,14 @@ pm <- dpm <- 0.3 # large SMD
 psd1 <- dpsd1 <- 0 # point prior
 psd2 <- dpsd2 <- 0.2 # normal prior
 
-nseq <- exp(seq(log(10), log(10^5), length.out = 500))
-
+## plot power curves
 par(mfrow = c(1, 2), mar = c(5.1, 4.2, 2, 1))
+nseq <- exp(seq(log(10), log(10^5), length.out = 500))
 yticks <- seq(0, 100, 20)
 xticks <- c(1, 10, 10^2, 10^3, 10^4, 10^5)
 lwd <- 1.5
 xlabs <- as.expression(c(bquote(1), bquote(10),
                          sapply(seq(2, 5), FUN = function(x) bquote(10^.(x)))))
-
 cols <- adjustcolor(col = c(2, 4), alpha = 0.8)
 ## point prior under the alternative
 plot(nseq, pbf01(k = k, n = nseq, sd = sd, null = null, pm = pm, psd = psd1,
@@ -49,14 +48,16 @@ axis(side = 1, at = xticks, labels = xlabs)
 axis(side = 2, at = yticks, labels = paste0(yticks, "%"), las = 1)
 lines(nseq,
       pbf01(k = k, n = nseq, sd = sd, null = null, pm = pm, psd = psd1,
-            dpm = dpm, dpsd = dpsd2)*100, lwd = lwd,
-      col = cols[2])
+            dpm = dpm, dpsd = dpsd2)*100,
+      lwd = lwd, col = cols[2])
 zlim <- (null - pm)/(2*dpsd2)
 plim <- 1 - pnorm(q = zlim)
 abline(h = c(100, plim*100), lty = 2, col = adjustcolor(col = 1, alpha = 0.6))
 legend("bottomright", bg = "white", title = "Design prior",
-       legend = c(bquote("N(" * {mu[italic("d")] == .(pm)} * "," ~ tau[italic("d")] == .(psd1) * ")"),
-                  bquote("N(" * {mu[italic("d")] == .(pm)} * "," ~ tau[italic("d")] == .(psd2) * ")")),
+       legend = c(bquote("N(" * {mu[italic("d")] == .(pm)} * ","
+                         ~ tau[italic("d")] == .(psd1) * ")"),
+                  bquote("N(" * {mu[italic("d")] == .(pm)} * ","
+                         ~ tau[italic("d")] == .(psd2) * ")")),
        lwd = lwd, lty = 1, col = cols, cex = 0.7)
 
 ## normal prior under the alternative
@@ -76,83 +77,41 @@ lines(nseq,
 abline(h = 100, lty = 2, col = adjustcolor(col = 1, alpha = 0.6))
 
 
-## ----"asymptotics", eval = FALSE----------------------------------------------
-## ## check asymptotics
-## library(bfpwr)
-## nseq <- exp(seq(log(1), log(10^10), length.out = 500))
-## k <- 1/10
-## null <- 0
-## sd <- sqrt(2)
-## dpm <- 0.6
-## dpsd1 <- 0
-## dpsd2 <- 1.5
+## ----"verify-equation", eval = FALSE------------------------------------------
+## ## ## verify closed-form sample size formulas
+## ## null <- 0.1
+## ## pm <- 0.4
+## ## psd <- 0
+## ## dpm1 <- pm
+## ## dpm2 <- 0.35
+## ## dpsd1 <- 0
+## ## dpsd2 <- 0.3
+## ## sd <- sqrt(2)
 ## 
-## ## BF with point analysis prior
-## pm <- 1
-## psd <- 0
-## pow1 <- pbf01(k = k, n = nseq, null = null, sd = sd, pm = pm, psd = psd, dpm = dpm,
-##               dpsd = dpsd1)
-## pow2 <- pbf01(k = k, n = nseq, null = null, sd = sd, pm = pm, psd = psd, dpm = dpm,
-##               dpsd = dpsd2)
-## zlim2 <- (null + pm - 2*dpm)*0.5/dpsd2
-## matplot(nseq, cbind(pow1, pow2), type = "l", lty = c(1, 2), col = c(1, 2), lwd = 1.5,
-##         xlab = "n", ylab = "Power", las = 1, log = "x", ylim = c(0, 1),
-##         main = "Bayes factor with point analysis prior")
-## abline(h = 1 - pnorm(zlim2), lty = 3)
-## legend("bottomright", c("Point design prior", "Normal design prior"), lty = c(1, 2),
-##        lwd = 1.5, col = c(1, 2))
+## ## k <- 1/10
+## ## power <- 0.63
+## ## zb <- qnorm(p = power)
 ## 
+## ## ## formula (9)
+## ## nbf01(k = k, power = power, sd = sd, null = null, pm = pm, psd = 0, dpm = pm,
+## ##       dpsd = 0, analytical = c(FALSE, TRUE), integer = FALSE)
+## ## sd^2*(zb + sqrt(zb^2 - log(k^2)))^2/(pm - null)^2
 ## 
-## ## BF with normal alternative
-## pm <- 1
-## psd <- 2
-## pow1 <- pbf01(k = k, n = nseq, null = null, sd = sd, pm = pm, psd = psd, dpm = dpm,
-##               dpsd = dpsd1)
-## pow2 <- pbf01(k = k, n = nseq, null = null, sd = sd, pm = pm, psd = psd, dpm = dpm,
-##               dpsd = dpsd2)
-## matplot(nseq, cbind(pow1, pow2), type = "l", lty = c(1, 2), col = c(1, 2), lwd = 1.5,
-##         xlab = "n", ylab = "Power", las = 1, log = "x", ylim = c(0, 1),
-##         main = "Bayes factor with normal analysis prior")
-## abline(h = 1, lty = 3)
-## legend("bottomright", c("Point design prior", "Normal design prior"), lty = c(1, 2),
-##        lwd = 1.5, col = c(1, 2))
-
-
-## ----"verify-equation"--------------------------------------------------------
-## null <- 0.1
-## pm <- 0.4
-## psd <- 0
-## dpm1 <- pm
-## dpm2 <- 0.35
-## dpsd1 <- 0
-## dpsd2 <- 0.3
-## sd <- sqrt(2)
-
-## k <- 1/10
-## power <- 0.63
-## zb <- qnorm(p = power)
-
-## library(bfpwr)
-## ## formula (9)
-## nbf01(k = k, power = power, sd = sd, null = null, pm = pm, psd = 0, dpm = pm,
-##       dpsd = 0, analytical = c(FALSE, TRUE), integer = FALSE)
-## sd^2*(zb + sqrt(zb^2 - log(k^2)))^2/(pm - null)^2
-
-## ## formula (8)
-## nbf01(k = k, power = power, sd = sd, null = null, pm = pm, psd = 0, dpm = dpm2,
-##       dpsd = 0, analytical = c(FALSE, TRUE), integer = FALSE)
-## sd^2*(zb + sqrt(zb^2 - log(k^2)*(null + pm - 2*dpm2)/(null - pm)))^2/(null + pm - 2*dpm2)^2
-
-## ## formula (7)
-## dpsd2 <- 0.1
-## nbf01(k = k, power = power, sd = sd, null = null, pm = pm, psd = 0, dpm = dpm2,
-##       dpsd = dpsd2, analytical = c(FALSE, TRUE), integer = FALSE)
-## A <- sqrt(zb^2 - (2*dpm2 - null - pm)/(pm- null)*log(k^2) + (dpsd2*log(k^2)/(pm - null))^2)
-## ((zb + A)^2 - (dpsd2*log(k^2)/(pm - null))^2)/(((2*dpm2- pm - null)^2 - 4*zb^2*dpsd2^2)/sd^2)
+## ## ## formula (8)
+## ## nbf01(k = k, power = power, sd = sd, null = null, pm = pm, psd = 0, dpm = dpm2,
+## ##       dpsd = 0, analytical = c(FALSE, TRUE), integer = FALSE)
+## ## sd^2*(zb + sqrt(zb^2 - log(k^2)*(null + pm - 2*dpm2)/(null - pm)))^2/(null + pm - 2*dpm2)^2
+## 
+## ## ## formula (7)
+## ## dpsd2 <- 0.1
+## ## nbf01(k = k, power = power, sd = sd, null = null, pm = pm, psd = 0, dpm = dpm2,
+## ##       dpsd = dpsd2, analytical = c(FALSE, TRUE), integer = FALSE)
+## ## A <- sqrt(zb^2 - (2*dpm2 - null - pm)/(pm- null)*log(k^2) + (dpsd2*log(k^2)/(pm - null))^2)
+## ## ((zb + A)^2 - (dpsd2*log(k^2)/(pm - null))^2)/(((2*dpm2- pm - null)^2 - 4*zb^2*dpsd2^2)/sd^2)
 
 
 ## ----"nTable1", results = "asis"----------------------------------------------
-## compute a table with sample sizes
+## produce a table with sample sizes based on closed-form sample size for LRs
 kseq <- rev(c(1/1000, 1/300, 1/100, 1/30, 1/10, 1/9, 1/8, 1/7, 1/6, 1/5, 1/4, 1/3))
 powseq <- seq(0.5, 0.95, 0.05)
 smd <- 1
@@ -184,15 +143,14 @@ pm <- dpm <- 1 # large SMD
 psd1 <- dpsd1 <- 0 # point prior
 psd2 <- dpsd2 <- 0.5 # normal prior
 
-powseq <- seq(0.25, 0.999999, length.out = 1000)
-
+## plot sample sizes as a function of power
 par(mfrow = c(1, 2), mar = c(5.1, 4.2, 2, 1))
+powseq <- seq(0.25, 0.999999, length.out = 1000)
 lwd <- 1.5
 xticks <- seq(0, 100, 25)
 yticks <- c(1, 10, 10^2, 10^3, 10^4, 10^5)
 ylabs <- as.expression(c(bquote(1), bquote(10),
                          sapply(seq(2, 5), FUN = function(x) bquote(10^.(x)))))
-
 cols <- adjustcolor(col = c(2, 4), alpha = 0.8)
 ## point prior under the alternative
 plot(powseq*100,
@@ -213,8 +171,10 @@ plim <- 1 - pnorm(q = zlim)
 abline(v = c(100, plim*100), lty = 2, col = adjustcolor(col = 1, alpha = 0.6))
 legend("bottomleft", bg = "white", title = "Design prior",
        inset = c(0.15, 0),
-       legend = c(bquote("N(" * {mu[italic("d")] == .(pm)} * ", " * tau[italic("d")] == .(psd1) * ")"),
-                  bquote("N(" * {mu[italic("d")] == .(pm)} * ", " * tau[italic("d")] == .(psd2) * ")")),
+       legend = c(bquote("N(" * {mu[italic("d")] == .(pm)} * ", "
+                         * tau[italic("d")] == .(psd1) * ")"),
+                  bquote("N(" * {mu[italic("d")] == .(pm)} * ", "
+                         * tau[italic("d")] == .(psd2) * ")")),
        lwd = 1.5, lty = 1, col = cols, cex = 0.7)
 
 ## normal prior under the alternative
@@ -223,26 +183,25 @@ psdlocal1 <- 1
 psdlocal2 <- sqrt(2)
 nnormal1 <- ceiling(k^2*exp(-lambertWm1(x = -k^2*qnorm(p = powseq/2)^2))*2/psdlocal1^2)
 nnormal2 <- ceiling(k^2*exp(-lambertWm1(x = -k^2*qnorm(p = powseq/2)^2))*2/psdlocal2^2)
-plot(powseq*100,
-     nnormal1,
-     ## nbf01(k = k, power = powseq, sd = sd, null = null, pm = null, psd = psdlocal1,
-     ##       dpm = null, dpsd = psdlocal1),
-     xlab = "Target power", ylab = bquote("Sample size per group" ~ italic(n)),
-     type = "s", xaxt = "n", yaxt = "n", ylim = c(1, 10^4), col = cols2[1],
-     lwd = lwd, log = "y", main = "Local normal analysis prior",
+plot(powseq*100, nnormal1, xlab = "Target power",
+     ylab = bquote("Sample size per group" ~ italic(n)), type = "s", xaxt = "n",
+     yaxt = "n", ylim = c(1, 10^4), col = cols2[1], lwd = lwd, log = "y",
+     main = "Local normal analysis prior",
      panel.first = graphics::grid(lty = 3, col = adjustcolor(col = 1, alpha = 0.1)))
 lines(powseq*100, nnormal2, type = "s", col = cols2[2], lwd = lwd)
 axis(side = 1, at = xticks, labels = paste0(xticks, "%"))
 axis(side = 2, at = yticks, labels = ylabs, las = 1)
 abline(v = 100, lty = 2, col = adjustcolor(col = 1, alpha = 0.6))
 legend("bottom", bg = "white", title = "Analysis/design prior",
-       legend = c(bquote("N(" * {mu[italic("d")] == .(null)} * ", " * tau[italic("d")] == .(psdlocal1) * ")"),
-                  bquote("N(" * {mu[italic("d")] == .(null)} * ", " * tau[italic("d")] == sqrt(.(psdlocal2^2)) * ")")),
+       legend = c(bquote("N(" * {mu[italic("d")] == .(null)} * ", "
+                         * tau[italic("d")] == .(psdlocal1) * ")"),
+                  bquote("N(" * {mu[italic("d")] == .(null)} * ", "
+                         * tau[italic("d")] == sqrt(.(psdlocal2^2)) * ")")),
        lwd = 1.5, lty = 1, col = cols2, cex = 0.7)
 
 
 ## ----"nTable2", results = "asis"----------------------------------------------
-## compute a table with sample sizes
+## produce a table with sample sizes computed with formula
 kseq <- rev(c(1/1000, 1/300, 1/100, 1/30, 1/10, 1/9, 1/8, 1/7, 1/6, 1/5, 1/4, 1/3))
 powseq <- seq(0.5, 0.95, 0.05)
 results <- sapply(X = kseq, FUN = function(k) {
@@ -294,9 +253,6 @@ nnum <- nbf01(k = k, power = power, sd = sd, null = null, pm = pm, psd = psd,
 zb <- qnorm(p = power)
 nanalyt <- ceiling((zb + sqrt(zb^2 - log(k^2)*(pm + null - 2*dpm)/(null - pm)))^2/
                    (pm + null - 2*dpm)^2*sd^2)
-## a <- zb^2*dpsd2^2 - ((null + pm)/2 - dpm)^2
-## b <- sd^2*(zb^2 - (null + pm - 2*dpm)*log(k)/(null - pm))
-## c <- (sd^2*log(k)/(null - pm))^2
 a <- ((null + pm)/2 - dpm)^2 - zb^2*dpsd2^2
 b <- sd^2*((null + pm - 2*dpm)*log(k)/(null - pm) - zb^2)
 c <- (sd^2*log(k)/(null - pm))^2
@@ -305,9 +261,9 @@ nanalyt2 <- ceiling((-b + sqrt(b^2 - 4*a*c))/(2*a))
 
 ## ## sample size to achieve 80% power under the null
 ## nbf01(k = 1/k, power = power, sd = sd, null = null, pm = pm, psd = psd,
-##       dpm = null, dpsd = 0, lower.tail = FALSE)
+##       dpm = null, dpsd = 0, lower.tail = FALSE, analytical = FALSE)
 
-## plot power curve
+## plot power curves
 par(mfrow = c(2, 1), mar = c(2.5, 5, 2.5, 2.5))
 cols <- rev(palette.colors(n = 4, alpha = 0.95)[2:4])
 transpblack <- adjustcolor(col = 1, alpha = 0.2)
@@ -315,7 +271,7 @@ nseq <- seq(from = 5, to = 550, by = 1)
 pow <- pbf01(k = k, n = nseq, sd = sd, null = null, pm = pm, psd = psd,
              dpm = dpm, dpsd = dpsd1)
 pow2 <- pbf01(k = k, n = nseq, sd = sd, null = null, pm = pm, psd = psd,
-             dpm = dpm, dpsd = dpsd2)
+              dpm = dpm, dpsd = dpsd2)
 powNull <- pbf01(k = k, n = nseq, sd = sd, null = null, pm = pm, psd = psd,
                  dpm = null, dpsd = 0)
 plot(nseq, pow*100, xlab = "",
@@ -331,12 +287,13 @@ axis(side = 3, at = c(nanalyt, nanalyt2), col = transpblack, cex.axis = 0.8)
 abline(h = power*100, col = transpblack)
 abline(v = c(nanalyt, nanalyt2), col = transpblack)
 legend("right", title = "Design prior",
-       ## legend = c("Point design prior", "Normal design prior", "Null hypothesis"),
-       legend = c(bquote("N(" * {mu[italic("d")] == .(dpm)} * ", " * tau[italic("d")] == .(dpsd1) * ")"),
-                  bquote("N(" * {mu[italic("d")] == .(dpm)} * ", " * tau[italic("d")] == .(dpsd2) * ")"),
-                  bquote("N(" * {mu[italic("d")] == .(null)} * ", " * tau[italic("d")] == 0 * ")")),
+       legend = c(bquote("N(" * {mu[italic("d")] == .(dpm)} * ", "
+                         * tau[italic("d")] == .(dpsd1) * ")"),
+                  bquote("N(" * {mu[italic("d")] == .(dpm)} * ", "
+                         * tau[italic("d")] == .(dpsd2) * ")"),
+                  bquote("N(" * {mu[italic("d")] == .(null)} * ", "
+                         * tau[italic("d")] == 0 * ")")),
        lty = 1, lwd = 1.5, col = cols, bg = "white", cex = 0.7)
-
 par(mar = c(4, 5, 1, 2.5))
 powH0 <- pbf01(k = 1/k, n = nseq, sd = sd, null = null, pm = pm, psd = psd,
                dpm = dpm, dpsd = dpsd1, lower.tail = FALSE)
@@ -358,11 +315,10 @@ axis(side = 4, at = power*100, labels = paste0(power*100, "%"), las = 1,
 
 
 ## ----fig.height = 6-----------------------------------------------------------
-
-## 1) In the example given below, we used two populations with normal
+## "1) In the example given below, we used two populations with normal
 ## distributions and a fixed standardized mean difference of delta =0.5 3) In
-## the example given below, we analyzed simulated data with a Cauchy prior
-## (scale parameter = 1/sqrt(2))
+## the example given below, we analyzed simulated data with a Cauchy prior"
+## (scale parameter = 1/sqrt(2))"
 
 
 ## ## compare Normal to Cauchy prior
@@ -473,15 +429,16 @@ axis(side = 3, at = c(n, n2), col = transpblack, cex.axis = 0.8)
 abline(h = power*100, col = transpblack)
 abline(v = c(n, n2), col = transpblack)
 legend("topright", inset = c(0, 1/6), title = "Design prior",
-       ## legend = c("Point design prior", "Normal design prior", "Null hypothesis"),
-       legend = c(bquote("N(" * {mu[italic("d")] == .(dpm)} * ", " * tau[italic("d")] == .(dpsd) * ")"),
-                  bquote("N(" * {mu[italic("d")] == .(dpm)} * ", " * tau[italic("d")] == .(dpsd2) * ")"),
-                  bquote("N(" * {mu[italic("d")] == .(null)} * ", " * tau[italic("d")] == 0 * ")")),
+       legend = c(bquote("N(" * {mu[italic("d")] == .(dpm)} * ", "
+                         * tau[italic("d")] == .(dpsd) * ")"),
+                  bquote("N(" * {mu[italic("d")] == .(dpm)} * ", "
+                         * tau[italic("d")] == .(dpsd2) * ")"),
+                  bquote("N(" * {mu[italic("d")] == .(null)} * ", "
+                         * tau[italic("d")] == 0 * ")")),
        lty = 1, lwd = 1.5, col = cols, bg = "white", cex = 0.7)
 legend("bottomright", inset = c(0, 1/6), title = "Computational method",
        legend = c("Closed-form", "Simulation"), lty = c(1, 2), lwd = c(1.5, 1),
        col = 1, bg = "white", cex = 0.7)
-
 par(mar = c(4, 5, 1, 2.5))
 plot(nseq, powH0*100, xlab = bquote("Sample size per group" ~ italic(n)),
      ylab = bquote("Pr(BF"["01"] > .(1/k) * " )"), type = "l",
@@ -494,7 +451,6 @@ for (i in seq(1, length(powBFDA))) {
                  col = cols[i])
 }
 axis(side = 2, at = seq(0, 100, 20), labels = paste0(seq(0, 100, 20), "%"), las = 1)
-##abline(v = c(n, n2), col = transpblack)
 
 
 ## ----"extensions-t-example", fig.height = 4.5---------------------------------
@@ -524,6 +480,7 @@ nex <- ntbf01(k = k, power = power, null = null, plocation = plocation,
 ## #>       min       lq     mean   median       uq      max neval
 ## #>  94.27834 96.52802 99.69758 97.41885 98.79241 177.8769   100
 
+## ## plot power curves
 ## nseq <- seq(5, 300, 1)
 ## pow <- ptbf01(k = k, n = nseq, null = null, plocation = plocation,
 ##               pscale = pscale, pdf = pdf, alternative = alternative,
@@ -546,7 +503,7 @@ nex <- ntbf01(k = k, power = power, null = null, plocation = plocation,
 ##      col = transpblack, cex.axis = 0.8)
 ## axis(side = 3, at = nex, col = transpblack, cex.axis = 0.8)
 ## abline(h = power*100, col = transpblack)
-## legend("right", title = "Data distribution",
+## legend("right",
 ##        legend = c("Point design prior", "Normal design prior", "Null hypothesis"),
 ##        lty = 1, lwd = 1.5, col = cols, bg = "white", cex = 0.7)
 
@@ -580,6 +537,7 @@ legend("topright", legend = leg, col = cols, lty = 1, lwd = 1.5, cex = 0.7,
 
 
 ## ----"normal-moment-example", fig.height = 6----------------------------------
+## plot power curves for normal moment prior example
 nseq <- seq(1, 1100, 1)
 dpm <- 0.5
 null <- 0
@@ -619,9 +577,12 @@ axis(side = 3, at = nH1, col = transpblack, cex.axis = 0.8)
 abline(v = nH1, col = transpblack)
 abline(h = power*100, col = transpblack)
 legend("right", bg = "white", title = "Design prior",
-       legend = c(bquote("N(" * {mu[italic("d")] == .(dpriors[1,1])} * ", " * tau[italic("d")] == .(dpriors[1,2]) * ")"),
-                  bquote("N(" * {mu[italic("d")] == .(dpriors[2,1])} * ", " * tau[italic("d")] == .(dpriors[2,2]) * ")"),
-                  bquote("N(" * {mu[italic("d")] == .(dpriors[3,1])} * ", " * tau[italic("d")] == .(dpriors[3,2]) * ")")),
+       legend = c(bquote("N(" * {mu[italic("d")] == .(dpriors[1,1])} * ", "
+                         * tau[italic("d")] == .(dpriors[1,2]) * ")"),
+                  bquote("N(" * {mu[italic("d")] == .(dpriors[2,1])} * ", "
+                         * tau[italic("d")] == .(dpriors[2,2]) * ")"),
+                  bquote("N(" * {mu[italic("d")] == .(dpriors[3,1])} * ", "
+                         * tau[italic("d")] == .(dpriors[3,2]) * ")")),
        lty = 1, lwd = 1.5, col = cols, cex = 0.7)
 par(mar = c(4, 5, 1.5, 2.5))
 matplot(nseq, powH0*100, lty = 1, type = "l", las = 1, ylim = c(0, 100),
@@ -668,22 +629,6 @@ ssd
 
 ## plot power curve
 plot(ssd, nlim = c(1, 400))
-
-
-## ----"simulation-verification", eval = FALSE----------------------------------
-## nseq <- seq(from = 1, to = 1000, by = 1)
-## pow <- pbf01(k = k, n = nseq, sd = sd, null = null, pm = pm, psd = psd,
-##              dpm = dpm, dpsd = dpsd)
-## plot(nseq, pow, xlab = "n", ylab = "Power", type = "s", ylim = c(0, 1), las = 1)
-## set.seed(123)
-## powsim <- sapply(X = nseq, FUN = function(n) {
-##     ## verify power with simulation
-##     se <- sd/sqrt(n)
-##     y <- rnorm(n = 1000, mean = dpm, sd = sqrt(dpsd^2 + se^2))
-##     bf <- bf01(estimate = y, se = se, null = null, pm = pm, psd = psd)
-##     mean(bf < k)
-## })
-## lines(nseq, powsim, lty = 2, col = 2)
 
 
 
