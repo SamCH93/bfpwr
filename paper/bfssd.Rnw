@@ -101,8 +101,25 @@ library(BayesRep)
 % Abstract
 % ======================================================================
 \begin{abstract}
-  \noindent Determining an appropriate sample size is a crucial element of study design, and it
-  should be consistent with the planned analysis. If the planned analysis involves Bayes factor hypothesis testing, the sample size is usually desired to ensure a sufficiently high probability of obtaining a Bayes factor that indicates compelling evidence for a hypothesis, given that the hypothesis is true. In practice, Bayes factor sample size determination is typically performed using computationally intensive Monte Carlo simulation. Here we summarize an alternative approach that enables sample size determination without simulation. We show how, under approximate normality assumptions, sample sizes can be determined numerically, and provide the R package \texttt{bfpwr} for doing so. Additionally, we identify conditions under which sample sizes can even be determined in closed-form, resulting in novel, easy-to-use formulas that also help fostering intuition and enable asymptotic analysis. Furthermore, we show how in our framework, power and sample size can be computed without simulation for more advanced analysis priors, such as Jeffreys-Zellner-Siow priors or nonlocal normal moment priors. Case studies from medicine and psychology illustrate how researchers can use our methods for planning informative yet cost-efficient studies.
+  \noindent Determining an appropriate sample size is a crucial element of study
+  design, and the method used for doing so should be consistent with the planned
+  analysis. If the planned analysis involves Bayes factor hypothesis testing,
+  the sample size is usually desired to ensure a sufficiently high probability
+  of obtaining a Bayes factor that indicates compelling evidence for a
+  hypothesis, given that the hypothesis is true. In practice, Bayes factor
+  sample size determination is usually performed using computationally intensive
+  Monte Carlo simulation. Here we summarize an alternative approach that enables
+  sample size determination without simulation. We show how, under approximate
+  normality assumptions, sample sizes can be determined numerically, and provide
+  the R package \texttt{bfpwr} for doing so. Additionally, we identify
+  conditions under which sample sizes can even be determined in closed-form,
+  resulting in novel, easy-to-use formulas that also help fostering intuition
+  and enable asymptotic analysis. Furthermore, we show how in our framework,
+  power and sample size can be computed without simulation for more advanced
+  analysis priors, such as Jeffreys-Zellner-Siow priors or nonlocal normal
+  moment priors. Case studies from medicine and psychology illustrate how
+  researchers can use our methods for planning informative yet cost-efficient
+  studies.
   \\
   \textit{Keywords:} Bayesian hypothesis testing, evidence, likelihood ratio,
   numerical methods, study design
@@ -675,15 +692,14 @@ Bayes factors with point analysis priors ($\tau^2 = 0$) and normal analysis prio
 % information and uncertainty. This leads to a predictive distribution with mean
 % $m = \mu_{d}$ and variance $v = \tau^{2}_{d} + \sigma^{2}/n$.
 Assuming that the alternative $\mu$ is larger than the null $\theta_{0}$ and
-setting the power function~\eqref{eq:prLR} equal to a target power of
-$1 - \beta$ lower than the limiting power~\eqref{eq:powerlimLR}, we obtain a
-quadratic equation in the sample size $n$. Its solution can be
+setting the power function~\eqref{eq:prLR} equal to a target power, we obtain a
+quadratic equation in the sample size $n$.
 % \begin{align*}
 %   n^{2} \underbrace{\left\{\left(\frac{\theta_{0} + \mu}{2} - \mu_{d}\right)^{2} - z^{2}_{1 - \beta} \tau^{2}_{d}\right\}}_{=a} +
 %   n \underbrace{\sigma^2_{\scriptscriptstyle \hat{\theta}}\left\{\frac{(\theta_{0} + \mu - 2 \mu_{d}) \log k}{\theta_{0} - \mu} - z^{2}_{1 - \beta}\right\}}_{=b} +
 %   \underbrace{\left(\frac{\sigma^2_{\scriptscriptstyle \hat{\theta}} \log k}{\theta_{0} - \mu}\right)^{2}}_{=c} = 0.
 % \end{align*}
-written as
+Its solution can be written as
 \begin{align}
 \label{eq:nLR}
   n = \left[
@@ -691,18 +707,21 @@ written as
   \times \frac{\sigma^2_{\scriptscriptstyle \hat{\theta}}}{
   \Delta_{\mu_{d}}^{2} - 4 z_{1 - \beta}^{2} \tau^{2}_{d}}
 \end{align}
-where $\Delta_{\mu_{d}} = 2\mu_{d} - \mu - \theta_{0}$, which reduces to the
-ordinary `effect size' $\Delta_{\mu} = \mu - \theta_{0}$ when the design prior mean is
-set to the parameter value under the alternative ($\mu_{d} = \mu$).
-% \begin{align}
-% \label{eq:nLR}
-%     n = \frac{-b + \sqrt{b^{2} - 4ac}}{2a}.
-% \end{align}
-Of note, if power values $1 - \beta > 50\%$ are possible, replacing the first
-plus in~\eqref{eq:nLR} by a minus gives the sample size that leads to a power of
-$\beta$ instead of $1 - \beta$. The sample size~\eqref{eq:nLR} also typically
-needs to be rounded to the next larger integer in order to be an evaluable
-sample size in practice.
+where $\Delta_{\mu_{d}} = 2\mu_{d} - \mu - \theta_{0}$ is the `generalized
+effect size`, which reduces to the ordinary effect size
+$\Delta_{\mu} = \mu - \theta_{0}$ when the design prior mean is set to the
+parameter value under the alternative ($\mu_{d} = \mu$). From looking
+at~\eqref{eq:nLR} one can recognize that a valid sample size can only exist if
+the denominator in the right factor is positive as sample sizes cannot be
+negative. This condition is equivalent to the target power $1 - \beta$ being
+lower than the limiting power~\eqref{eq:powerlimLR}. Of note, if for a given
+design prior the limiting power~\eqref{eq:powerlimLR} is higher than 50\%,
+replacing the first plus in~\eqref{eq:nLR} by a minus gives the sample size that
+leads to a target power of $\beta$ instead of $1 - \beta$. It is also worth
+nothing that in practice, the sample size formula~\eqref{eq:nLR} will usually
+produce non-integer values and hence needs to be rounded to the next larger
+integer in order to be an evaluable sample size (e.g., number of participants or
+animals).
 
 << "verify-equation" >>=
 ## null <- 0.1
@@ -731,52 +750,54 @@ sample size in practice.
 
 ## ## formula (7)
 ## dpsd2 <- 0.1
-## nbf01(k = k, power = 1 - power, sd = sd, null = null, pm = pm, psd = 0, dpm = dpm2,
+## nbf01(k = k, power = power, sd = sd, null = null, pm = pm, psd = 0, dpm = dpm2,
 ##       dpsd = dpsd2, analytical = c(FALSE, TRUE), integer = FALSE)
 ## A <- sqrt(zb^2 - (2*dpm2 - null - pm)/(pm- null)*log(k^2) + (dpsd2*log(k^2)/(pm - null))^2)
 ## ((zb + A)^2 - (dpsd2*log(k^2)/(pm - null))^2)/(((2*dpm2- pm - null)^2 - 4*zb^2*dpsd2^2)/sd^2)
 @
 
-We will now investigate the sample size~\eqref{eq:nLR} for two special cases.
-First, suppose that the design prior is a point prior ($\tau^{2}_{d} = 0$) at
-$\mu_{d}$, not necessarily the same as the alternative $\mu$. This leads to
+To better understand the sample size formula~\eqref{eq:nLR}, we will now
+investigate it closer for two special cases. First, suppose that the design
+prior is a point prior ($\tau^{2}_{d} = 0$) at $\mu_{d}$, not necessarily the
+same as the alternative $\mu$. This leads to~\eqref{eq:nLR} reducing to
 \begin{align}
   \label{eq:nLR2}
-  n = \frac{\left[z_{1 - \beta} + \sqrt{z_{1 - \beta}^2 - \log k^2 (\Delta_{\mu_{d}}/\Delta_{\mu})}\right]^2}{\Delta_{\mu_{d}}^2 / \sigma^2_{\scriptscriptstyle \hat{\theta}}}.
+  n = \frac{\sigma^2_{\scriptscriptstyle \hat{\theta}}
+  \left\{z_{1 - \beta} + \sqrt{z_{1 - \beta}^2 - \log k^2 (\Delta_{\mu_{d}}/\Delta_{\mu})}\right\}^2}{\Delta_{\mu_{d}}^2}.
 \end{align}
-Assuming, for instance, that the tested parameter is a mean difference with unit
-variance $\sigma^2_{\scriptscriptstyle \hat{\theta}} = 2\sigma^{2}$ (see
-Table~\ref{tab:outcomes}, second row), we can see that the
-formula~\eqref{eq:nLR2} represents a modification of the frequentist
-formula~\eqref{eq:freqsamplesize}: The `standardized effect size'
-$(\mu - \theta_0)/ \sigma$ in the denominator is replaced by a standardized
-effect size that takes into account the mean of the design prior
-$(\mu + \theta_0 - 2\mu_{d})/\sigma$, but reduces to the standardized effect
-size when the assumed parameter in the design equals the assumed parameter in
-the analysis (when $\mu_{d} = \mu$). Moreover, the quantile $z_{1-\alpha/2}$ is
-replaced by
-$\surd [z^2_{1-\beta} - \log k^2 \{(\theta_0 + \mu - 2m)/(\theta_0 - \mu)\}]$,
-reflecting the fact that we are interested in a Bayes factor hypothesis test and
-not a frequentist significance test.
+Assuming that the tested parameter is a mean difference with unit variance
+$\sigma^2_{\scriptscriptstyle \hat{\theta}} = 2\sigma^{2}$ (see
+Table~\ref{tab:outcomes}, second row), we can see that~\eqref{eq:nLR2}
+represents a modification of the frequentist sample size
+formula~\eqref{eq:freqsamplesize}: The effect size
+$\Delta_{\mu} = \mu - \theta_0$ in the denominator of the frequentist sample
+size is replaced by the generalized effect size $\Delta_{\mu_{d}}$ that takes
+into account the mean of the design prior $\mu_{d}$, but reduces to the effect
+size when the design prior mean equals parameter under the alternative
+($\mu_{d} = \mu$). Moreover, the quantile $z_{1-\alpha/2}$ in the frequentist
+sample size is replaced by
+$\surd \{z^2_{1-\beta} - \log k^2 (\Delta_{\mu_{d}}/\Delta_{\mu})\}$, reflecting
+the fact that we are interested in a Bayes factor hypothesis test with evidence
+threshold $k$ instead of a frequentist test with level $\alpha$.
 
 Second, assume that the design prior is also equal to the alternative
 ($\mu_{d} = \mu$), so that the formula~\eqref{eq:nLR2} further reduces to
 \begin{align}
 \label{eq:nLR3}
-    n = \frac{\left\{z_{1 - \beta} + \sqrt{z_{1 - \beta}^2 - \log k^2}\right\}^2}{\Delta_{\mu}^2 / \sigma^2_{\scriptscriptstyle \hat{\theta}}}.
+    n = \frac{\sigma^2_{\scriptscriptstyle \hat{\theta}} \left\{z_{1 - \beta} + \sqrt{z_{1 - \beta}^2 - \log k^2}\right\}^2}{\Delta_{\mu}^2}.
 \end{align}
 The same formula~\eqref{eq:nLR3} was also found by \citet{Strug2007} for
-`evidential' sample size calculations, but is unfortunately not well known.
-Unsurprisingly the two formulas coincide as Bayes factors and likelihood ratios
--- the measure of evidence used in `evidential statistics' \citep[see
-e.g.,][]{Edwards1971, Royall1997, Blume2002, Strug2018} -- are equivalent when
-the Bayes factor involves only point hypotheses. Our more general
-formulas~\eqref{eq:nLR} and~\eqref{eq:nLR2} thus also generalize evidential
-sample size calculations to incorporate different assumed design parameters
-and/or parameter uncertainty, similar to how Bayesian design priors can be used
-for incorporating parameter uncertainty in a planned frequentist analysis
-\citep[see e.g.,][for an overview of Bayesian/frequentist hybrid design
-approaches]{Grieve2022}.
+`evidential' sample size calculations, but is unfortunately not well known. Not
+surprisingly, the two formulas coincide, since Bayes factors and likelihood
+ratios -- the measure of evidence used in evidential/likelihoodist statistics
+\citep[see e.g.,][]{Edwards1971, Royall1997, Blume2002, Strug2018} -- are
+equivalent when the Bayes factor involves only point hypotheses. Our more
+general formulas~\eqref{eq:nLR} and~\eqref{eq:nLR2} thus enable `hybrid
+Bayesian/likelihoodist' design that assumes a likelihoodist analysis but can
+incorporate prior knowledge and uncertainty via Bayesian design prior, similar
+to how Bayesian design priors can be used to incorporate parameter uncertainty
+in the design of frequentist hypothesis tests \citep[see e.g.,][for a review of
+such Bayesian/frequentist hybrid design approaches]{Grieve2022}.
 
 
 \begin{table}[ht]
@@ -784,9 +805,9 @@ approaches]{Grieve2022}.
 \caption{Sample size per group $n$ to obtain a Bayes factor
   $\mathrm{BF}_{01} \leq k$ with at least a power of $1 - \beta$. The parameter
   of interest is a standardized mean difference and the analysis and design
-  prior are both points priors one standard deviation away from the null value
-  ($\mu - \theta_{0} = 1$) so that equation~\eqref{eq:nLR3} can be used to
-  compute the sample size in closed-form.}
+  prior assume both an effect size of one ($\Delta_{\mu} = 1$) so that
+  equation~\eqref{eq:nLR3} can be used to compute the sample size in
+  closed-form.}
 \label{tab:smdn}
 
   \rowcolors{1}{}{lightgray}
@@ -820,14 +841,17 @@ standardized mean difference with unit variance
 $\sigma^2_{\scriptscriptstyle \hat{\theta}} = 2$ so that $n$ can be interpreted
 as the number of samples per group (see the third row in
 Table~\ref{tab:outcomes}). Table~\ref{tab:smdn} shows the sample
-size~\eqref{eq:nLR3} based on an assumed standardized mean difference of one
-($\mu - \theta_{0} = 1$). We see, for instance, that $n = 20$ samples per group
-are required to achieve $1 - \beta = 80\%$ power for a Bayes factor threshold
-$k = 1/10$. If the assumed standardized mean difference were smaller, the
+size~\eqref{eq:nLR3} based on an assumed effect size of one
+($\Delta_{\mu} = 1$). We see, for instance, that
+$n = \Sexpr{nbf01(k = 1/10, power = 0.8, sd = sqrt(2), pm = 1, psd = 0, integer = TRUE)}$
+samples per group are required to achieve $1 - \beta = 80\%$ power for a Bayes
+factor threshold $k = 1/10$. If the assumed effect size was smaller, the
 required sample size would become larger. For example, for a half as large
-standardized mean difference, the sample sizes from Table~\ref{tab:smdn}
-quadruple, e.g., requiring $n = 80$ samples per group to have $1 - \beta = 80\%$
-power for a Bayes factor threshold of $k = 1/10$.
+effect size, the sample sizes from Table~\ref{tab:smdn} quadruple, e.g.,
+requiring
+$n = \Sexpr{nbf01(k = 1/10, power = 0.8, sd = sqrt(2), pm = 0.5, psd = 0, integer = TRUE)}$
+samples per group to have $1 - \beta = 80\%$ power for a Bayes factor threshold
+of $k = 1/10$.
 
 
 \begin{figure}[!htb]
@@ -1842,10 +1866,12 @@ used the statistical programming language
 
 \section{The bfpwr R package}
 \label{app:pkg}
-Our R package can be installed by running \texttt{install.packages("bfpwr")} in
-an R session, the development version can be installed from GitHub
-(\url{https://github.com/SamCH93/bfpwr}). The workhorse function of our R
-package is \texttt{powerbf01}. It is inspired by the \texttt{power.t.test}
+Our R package
+% can be installed by running \texttt{install.packages("bfpwr")} in an R
+% session, the development version
+can be installed from GitHub (\url{https://github.com/SamCH93/bfpwr}), we plan
+to submit the package to CRAN in the near future. The workhorse function of our
+R package is \texttt{powerbf01}. It is inspired by the \texttt{power.t.test}
 function from the \texttt{stats} package, with which many user will be familiar.
 As \texttt{power.t.test}, the function \texttt{powerbf01} assumes that the data
 are continuous and that the parameter of interest is either a mean or a

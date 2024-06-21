@@ -145,7 +145,7 @@ abline(h = 100, lty = 2, col = adjustcolor(col = 1, alpha = 0.6))
 
 ## ## formula (7)
 ## dpsd2 <- 0.1
-## nbf01(k = k, power = 1 - power, sd = sd, null = null, pm = pm, psd = 0, dpm = dpm2,
+## nbf01(k = k, power = power, sd = sd, null = null, pm = pm, psd = 0, dpm = dpm2,
 ##       dpsd = dpsd2, analytical = c(FALSE, TRUE), integer = FALSE)
 ## A <- sqrt(zb^2 - (2*dpm2 - null - pm)/(pm- null)*log(k^2) + (dpsd2*log(k^2)/(pm - null))^2)
 ## ((zb + A)^2 - (dpsd2*log(k^2)/(pm - null))^2)/(((2*dpm2- pm - null)^2 - 4*zb^2*dpsd2^2)/sd^2)
