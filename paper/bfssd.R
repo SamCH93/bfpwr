@@ -77,7 +77,7 @@ lines(nseq,
 abline(h = 100, lty = 2, col = adjustcolor(col = 1, alpha = 0.6))
 
 
-## ----"verify-equation", eval = FALSE------------------------------------------
+## ----"verify-equations", eval = FALSE-----------------------------------------
 ## ## ## verify closed-form sample size formulas
 ## ## null <- 0.1
 ## ## pm <- 0.4

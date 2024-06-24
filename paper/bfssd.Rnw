@@ -255,7 +255,7 @@ analysis priors (Section~\ref{sec:ssd}). Examples from medicine and the social
 sciences then illustrates how our formulas can be implemented by researchers in
 practice (Section~\ref{sec:application}). Section~\ref{sec:extensions}
 illustrates possible extensions of our framework to other popular types of
-analysis priors, such as informed $t$ priors \citep{Gronau2021} and nonlocal
+analysis priors, such as informed $t$ priors \citep{Gronau2020} and nonlocal
 normal moment priors \citep{Johnson2010}. The paper ends with a closing
 discussion of our results and final remarks on limitations and extensions
 (Section~\ref{sec:discussion}). Our R package \texttt{bfpwr} that implements the
@@ -1426,7 +1426,7 @@ design.
 
 \subsection{Informed Bayesian \textit{t}-test}
 
-\citet{Gronau2021} proposed a Bayes factor for testing a standardized mean
+\citet{Gronau2020} proposed a Bayes factor for testing a standardized mean
 difference parameter based on normally distributed data with unknown variance --
 the same situation where a classical $t$-test would be used. The Bayes factor is
 given by

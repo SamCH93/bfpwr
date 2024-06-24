@@ -146,7 +146,7 @@ tbf01. <- function(t, n, n1 = n, n2 = n, plocation = 0, pscale = 1/sqrt(2),
 #' @author Samuel Pawel
 #'
 #' @references Rouder, J. N., Speckman, P. L., Sun, D., Morey, R. D., Iverson,
-#'     G. (2014). Bayesian \eqn{t} tests for accepting and rejecting the null
+#'     G. (2009). Bayesian \eqn{t} tests for accepting and rejecting the null
 #'     hypothesis. Psychonomic Bulletin & Review, 16(2):225-237.
 #'     \doi{10.3758/PBR.16.2.225}
 #'
