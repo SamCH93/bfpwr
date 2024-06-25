@@ -63,9 +63,9 @@ Object of class \code{"power.bftest"}, a list of the arguments
     elements
 }
 \description{
-Compute probability that Bayes factor under normality is smaller
-    than a specified threshold (the power), or determine sample size to
-    obtain a target power
+Compute probability that z-test Bayes factor is smaller than a
+    specified threshold (the power), or determine sample size to obtain a
+    target power
 }
 \note{
 An error message will be displayed in case that the specified target

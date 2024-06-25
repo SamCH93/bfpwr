@@ -56,11 +56,11 @@ This function computes the Bayes factor that forms the basis of
 the informed Bayesian \eqn{t}-test from Gronau et al. (2020). The Bayes
 factor quantifies the evidence that the data provide for the null
 hypothesis that the standardized mean difference (SMD) is zero against
-the alternative that the SMD is non-zero. A \eqn{t}-distribution is
-assumed for the SMD under the alternative. The Jeffreys-Zellner-Siow
-(JZS) Bayes factor (Rouder et al., 2009) is obtained as a special case by
-setting the location of the prior to zero and the prior degrees of
-freedom to one, which is the default.
+the alternative that the SMD is non-zero. A location-scale
+\eqn{t}-distribution is assumed for the SMD under the alternative
+hypothesis. The Jeffreys-Zellner-Siow (JZS) Bayes factor (Rouder et al.,
+2009) is obtained as a special case by setting the location of the prior
+to zero and the prior degrees of freedom to one, which is the default.
 
 The data are summarized by \eqn{t}-statistics and sample sizes. The
 following types of \eqn{t}-statistics are accepted:

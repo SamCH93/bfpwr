@@ -32,7 +32,7 @@ This function computes the Bayes factor that quantifies the
     evidence that the data (in the form of an asympotically normally
     distributed parameter estimate with standard error) provide for a point
     null hypothesis with a normal prior assigned to the parameter under the
-    alternative.
+    alternative. The standard error is assumed to be known
 }
 \examples{
 bf01(estimate = 0.2, se = 0.05, null = 0, pm = 0, psd = 2)

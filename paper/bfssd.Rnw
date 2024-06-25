@@ -1631,7 +1631,7 @@ under $H_{1}$ is given by
   \left[1 + \frac{n(\hat{\theta} - \theta_{0})^{2}}{
   \sigma^{2}_{\scriptscriptstyle \hat{\theta}}\{1 + \sigma^{2}_{\scriptscriptstyle \hat{\theta}}/(n \tau^{2})\}}\right]^{-1}
 \end{align}
-see e.g., \citet{Pramanik2024}. Under a normal design prior
+see e.g., \citet{Pramanik2024, Pawel2023}. Under a normal design prior
 $\theta \sim \mathrm{N}(\mu_{d}, \tau^{2}_{d})$, the power to obtain a Bayes
 factor below a threshold $k$ can be expressed in closed-form
 \begin{align}

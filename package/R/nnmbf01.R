@@ -67,8 +67,8 @@ nnmbf01. <- function(k, power, sd, null = 0, psd, dpm, dpsd,
 #' @title Sample size determination for normal moment prior Bayes factor
 #'
 #' @description This function computes the required sample size to obtain a
-#'     Bayes factor (\link{bf01}) less or greater than a threshold \code{k} with
-#'     a specified target power.
+#'     normal moment prior Bayes factor (\link{nbf01}) less or greater than a
+#'     threshold \code{k} with a specified target power.
 #'
 #' @param k Bayes factor threshold
 #' @param power Target power

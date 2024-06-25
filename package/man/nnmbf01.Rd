@@ -54,8 +54,8 @@ The required sample size to achieve the specified power
 }
 \description{
 This function computes the required sample size to obtain a
-    Bayes factor (\link{bf01}) less or greater than a threshold \code{k} with
-    a specified target power.
+    normal moment prior Bayes factor (\link{nbf01}) less or greater than a
+    threshold \code{k} with a specified target power.
 }
 \examples{
 nnmbf01(k = 1/10, power = 0.9, sd = 1, null = 0, psd = 0.5/sqrt(2), dpm = 0.5, dpsd = 0)

@@ -58,13 +58,9 @@ Object of class \code{"power.bftest"}, a list of the arguments
     elements
 }
 \description{
-Compute probability that Bayes factor under normality is smaller
-    than a specified threshold (the power), or determine sample size to
-    obtain a target power
-}
-\note{
-An error message will be displayed in case that the specified target
-    power is not achievable under the specified analysis and design priors.
+Compute probability that normal moment prior Bayes factor is
+    smaller than a specified threshold (the power), or determine sample size
+    to obtain a target power
 }
 \examples{
 ## determine power

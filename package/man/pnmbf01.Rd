@@ -33,9 +33,9 @@ The probability that the Bayes factor is less or greater (depending
     on the specified \code{lower.tail}) than the specified threshold \code{k}
 }
 \description{
-This function computes the probability of obtaining a Bayes
-    factor (\link{nmbf01}) smaller (or larger) than a threshold \code{k} with
-    a specified sample size.
+This function computes the probability of obtaining a normal
+    moment prior Bayes factor (\link{nmbf01}) smaller (or larger) than a
+    threshold \code{k} with a specified sample size.
 }
 \examples{
 ## point desing prior (psd = 0)

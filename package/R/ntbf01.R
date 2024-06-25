@@ -88,8 +88,6 @@ ntbf01. <- function(k = 1/10, power, null = 0, plocation = 0,
 #'     \eqn{t}-test Bayes factor (\link{tbf01}) less or greater than a threshold
 #'     \code{k} with a specified target power.
 #'
-#' @note An error message will be displayed in case that the specified target
-#'     power is not achievable under the specified analysis and design priors.
 #'
 #' @param k Bayes factor threshold. Defaults to \code{1/10}, Jeffreys' threshold
 #'     for 'strong evidence' against the null hypothesis

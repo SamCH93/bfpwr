@@ -37,8 +37,15 @@ nmbf01. <- function(estimate, se, null = 0, psd, log = FALSE) {
 #' @description This function computes the Bayes factor that quantifies the
 #'     evidence that the data (in the form of an asympotically normally
 #'     distributed parameter estimate with standard error) provide for a point
-#'     null hypothesis with a normal normal prior assigned to the parameter
+#'     null hypothesis with a normal moment prior assigned to the parameter
 #'     under the alternative.
+#'
+#' @details A normal moment prior has density \eqn{f(x \mid \code{null},
+#'     \code{psd}) = N(x \mid \code{null}, \code{psd}^2) \times (x -
+#'     \code{null})/ \code{psd}^2}{f(x|\code{null},\code{psd}) =
+#'     N(x|\code{null},\code{psd})*(x - \code{null})^2/\code{psd}^2} with
+#'     \eqn{N(x \mid m, v)}{N(x|m,v)} the normal density with mean \eqn{m} and
+#'     variance \eqn{v} evaluated at \eqn{x}.
 #'
 #' @param estimate Parameter estimate
 #' @param se Standard error of the parameter estimate

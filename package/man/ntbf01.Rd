@@ -76,10 +76,6 @@ This function computes the required sample size to obtain a
     \eqn{t}-test Bayes factor (\link{tbf01}) less or greater than a threshold
     \code{k} with a specified target power.
 }
-\note{
-An error message will be displayed in case that the specified target
-    power is not achievable under the specified analysis and design priors.
-}
 \examples{
  ## example from Schönbrodt and Wagenmakers (2018, p.135)
  ntbf01(k = 1/6, power = 0.95, dpm = 0.5, dpsd = 0, alternative = "greater")
