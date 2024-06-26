@@ -16,6 +16,7 @@ library(bfpwr)
 library(xtable)
 library(lamW)
 library(BayesRep)
+library(BFDA)
 
 
 ## ----"plot-power", fig.height = 4.5-------------------------------------------
@@ -613,8 +614,8 @@ library(bfpwr)
 k <- 1/6 # BF threshold
 null <- 0 # null value
 sd <- 1 # standard deviation of one observation
-pm <- null # analysis prior centered around null value
-psd <- sqrt(2) # unit information sd for a standardized mean difference
+pm <- null # analysis prior mean set to the null value
+psd <- sqrt(2) # analysis prior sd set to sqrt(2)
 type <- "two.sample" # two-sample test
 
 ## design prior
