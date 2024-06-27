@@ -102,28 +102,10 @@ library(BFDA)
 % Abstract
 % ======================================================================
 \begin{abstract}
-  \noindent Determining an appropriate sample size is a crucial element of study
-  design, and the method used for doing so should be consistent with the planned
-  analysis. If the planned analysis involves Bayes factor hypothesis testing,
-  the sample size is usually desired to ensure a sufficiently high probability
-  of obtaining a Bayes factor that indicates compelling evidence for a
-  hypothesis, given that the hypothesis is true. In practice, Bayes factor
-  sample size determination is typically performed using computationally
-  intensive Monte Carlo simulation. Here we summarize an alternative approach
-  that enables sample size determination without simulation. We show how, under
-  approximate normality assumptions, sample sizes can be determined numerically,
-  and provide the R package \texttt{bfpwr} for doing so. Additionally, we
-  identify conditions under which sample sizes can even be determined in
-  closed-form, resulting in novel, easy-to-use formulas that also help fostering
-  intuition and enable asymptotic analysis. Furthermore, we show how in our
-  framework, power and sample size can be computed without simulation for more
-  advanced analysis priors, such as Jeffreys-Zellner-Siow priors or nonlocal
-  normal moment priors. Case studies from medicine and psychology illustrate how
-  researchers can use our methods for planning informative yet cost-efficient
-  studies.
+  \noindent Determining an appropriate sample size is a critical element of study design, and the method used to determine it should be consistent with the planned analysis. When the planned analysis involves Bayes factor hypothesis testing, the sample size is usually desired to ensure a sufficiently high probability of obtaining a Bayes factor indicating compelling evidence for a hypothesis, given that the hypothesis is true. In practice, Bayes factor sample size determination is typically performed using computationally intensive Monte Carlo simulation. Here, we summarize alternative approaches that enable sample size determination without simulation. We show how, under approximate normality assumptions, sample sizes can be determined numerically, and provide the R package \texttt{bfpwr} for this purpose. Additionally, we identify conditions under which sample sizes can even be determined in closed-form, resulting in novel, easy-to-use formulas that also help foster intuition, enable asymptotic analysis, and can also be used for hybrid likelihood/Bayesian design. Furthermore, we show how in our framework power and sample size can be computed without simulation for more complex analysis priors, such as Jeffreys-Zellner-Siow priors or nonlocal normal moment priors. Case studies from medicine and psychology illustrate how researchers can use our methods to design informative yet cost-efficient studies.
   \\
   \textit{Keywords:} Bayesian hypothesis testing, evidence, likelihood ratio,
-  numerical methods, study design
+  predictive power, study design
 \end{abstract}
 
 
