@@ -22,6 +22,18 @@
 \newcommand{\cmark}{\ding{51}}%
 \newcommand{\xmark}{\ding{55}}%
 
+% for anonymization
+\newif\ifanonymize % Boolean variable to control anonymization
+\newcommand{\anonymize}[1]{%
+  \ifanonymize
+    \phantom{#1}%
+  \else
+    #1%
+  \fi
+}
+% \anonymizetrue % set to true to anonymize
+\anonymizefalse % set to false to deanonymize
+
 %% margins
 \usepackage{geometry}
 \geometry{
@@ -41,14 +53,16 @@
   \textbf{\textsf{Closed-Form Power and Sample Size Calculations for Bayes Factors}}
 }
 \author{
-  \textbf{Samuel Pawel} \orcidlink{0000-0003-2779-320X} \and
-  \textbf{Leonhard Held} \orcidlink{0000-0002-8686-5325}
+  \anonymize{\textbf{Samuel Pawel} \orcidlink{0000-0003-2779-320X}} \and
+  \anonymize{\textbf{Leonhard Held} \orcidlink{0000-0002-8686-5325}}
 }
-\date{Epidemiology, Biostatistics and Prevention Institute (EBPI) \\
-  Center for Reproducible Science (CRS) \\
-  University of Zurich \\
-  E-mail: \href{mailto:\mail}{\mail} \\[2ex]
-  {\color{blue} Preprint version June 26, 2024}}
+\date{
+  \anonymize{Epidemiology, Biostatistics and Prevention Institute (EBPI)} \\
+  \anonymize{Center for Reproducible Science (CRS)} \\
+  \anonymize{University of Zurich} \\
+  \anonymize{E-mail: \href{mailto:\mail}{\mail}} \\[2ex]
+  \anonymize{{\color{blue} Preprint version June 28, 2024}}
+}
 
 %% hyperref options
 %% ----------------------------------------------------------------------------
@@ -56,6 +70,7 @@
 \hypersetup{
   bookmarksopen=true, 
   breaklinks=true,
+  pdftitle={Closed-Form Power and Sample Size Calculations for Bayes Factors},
   pdfsubject={},
   pdfkeywords={},
   colorlinks=true,
@@ -71,7 +86,7 @@
 \pagestyle{fancy}
 % \lhead{Desert Island Sample Size Calculations for Bayesians}
 \lhead{Closed-Form Power and Sample Size Calculations for Bayes Factors}
-\rhead{S. Pawel and L. Held}
+\rhead{\anonymize{S. Pawel and L. Held}}
 
 
 << "main-setup", include = FALSE >>=
@@ -1793,21 +1808,22 @@ resources.
 
 
 \section*{Acknowledgments}
-We thank Angelika Stefan and František Bartoš for valuable comments on drafts of
-the manuscript. The acknowledgment of these individuals does not imply their
-endorsement of the paper.
+We thank \anonymize{Angelika Stefan} and \anonymize{František Bartoš} for
+valuable comments on drafts of the manuscript. The acknowledgment of these
+individuals does not imply their endorsement of the paper.
 
 \section*{Conflict of interest}
 We declare no conflict of interest.
 
 \section*{Software and data}
-Code and data to reproduce our analyses are openly available
-at \url{https://github.com/SamCH93/bfpwr}. A snapshot of the repository at the
-time of writing is available at \url{https://doi.org/10.5281/zenodo.XXXXXX}. We
-used the statistical programming language
-\Sexpr{R.Version()[["version.string"]]} for analyses \citep{R} along with the
-\texttt{BFDA} \citep{Schoenbrodt2019}, \texttt{lamW} \citep{Adler2015},
-\texttt{xtable} \citep{Dahl2019}, and \texttt{knitr} \citep{Xie2024} packages.
+Code and data to reproduce our analyses are openly available at
+\anonymize{\url{https://github.com/SamCH93/bfpwr}}. A snapshot of the repository
+at the time of writing is available at
+\anonymize{\url{https://doi.org/10.5281/zenodo.XXXXXX}}. We used the statistical
+programming language \Sexpr{R.Version()[["version.string"]]} for analyses
+\citep{R} along with the \texttt{BFDA} \citep{Schoenbrodt2019}, \texttt{lamW}
+\citep{Adler2015}, \texttt{xtable} \citep{Dahl2019}, and \texttt{knitr}
+\citep{Xie2024} packages.
 
 
 \begin{appendices}
@@ -1818,12 +1834,14 @@ used the statistical programming language
 Our R package
 % can be installed by running \texttt{install.packages("bfpwr")} in an R
 % session, the development version
-can be installed from GitHub (\url{https://github.com/SamCH93/bfpwr}), we plan
-to submit the package to CRAN in the near future. The workhorse function of our
-R package is \texttt{powerbf01}. It is inspired by the \texttt{power.t.test}
-function from the \texttt{stats} package, with which many user will be familiar.
-As \texttt{power.t.test}, the function \texttt{powerbf01} assumes that the data
-are continuous and that the parameter of interest is either a mean or a
+can be installed from GitHub with the R command
+\texttt{remotes::install\_github(repo = \anonymize{"SamCH93/bfpwr", subdir =
+    "package"})} (requires the \texttt{remotes} package). We plan to submit the
+package to CRAN in the near future. The workhorse function of our R package is
+\texttt{powerbf01}. It is inspired by the \texttt{power.t.test} function from
+the \texttt{stats} package, with which many user will be familiar. As
+\texttt{power.t.test}, the function \texttt{powerbf01} assumes that the data are
+continuous and that the parameter of interest is either a mean or a
 (standardized) mean difference. The functions \texttt{pbf01} and \texttt{nbf01}
 are more general and can be used for any approximately normally distributed
 parameter estimate with approximate variance
@@ -1836,11 +1854,6 @@ how \texttt{powerbf01} can be used.
 
 
 << "package-illustration", echo = TRUE, fig.height = 6 >>=
-## install from CRAN or GitHub (the latter requires "remotes" package)
-## install.packages("bfpwr") # not yet on CRAN
-## remotes::install_github(repo = "SamCH93/bfpwr", subdir = "package")
-
-## load package
 library(bfpwr)
 
 ## BF parameters

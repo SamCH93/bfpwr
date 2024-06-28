@@ -603,11 +603,6 @@ nH0normal <- nbf01(k = 6, power = 0.95, sd = sqrt(2), null = 0, pm = 0,
 
 
 ## ----"package-illustration", echo = TRUE, fig.height = 6----------------------
-## install from CRAN or GitHub (the latter requires "remotes" package)
-## install.packages("bfpwr") # not yet on CRAN
-## remotes::install_github(repo = "SamCH93/bfpwr", subdir = "package")
-
-## load package
 library(bfpwr)
 
 ## BF parameters
