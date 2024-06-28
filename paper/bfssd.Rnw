@@ -1822,11 +1822,11 @@ We declare no conflict of interest.
 Code and data to reproduce our analyses are openly available at
 \anonymize{\url{https://github.com/SamCH93/bfpwr}}. A snapshot of the repository
 at the time of writing is available at
-\anonymize{\url{https://doi.org/10.5281/zenodo.XXXXXX}}. We used the statistical
-programming language \Sexpr{R.Version()[["version.string"]]} for analyses
-\citep{R} along with the \texttt{BFDA} \citep{Schoenbrodt2019}, \texttt{lamW}
-\citep{Adler2015}, \texttt{xtable} \citep{Dahl2019}, and \texttt{knitr}
-\citep{Xie2024} packages.
+\anonymize{\url{https://doi.org/10.5281/zenodo.12582277}}. We used the
+statistical programming language \Sexpr{R.Version()[["version.string"]]} for
+analyses \citep{R} along with the \texttt{BFDA} \citep{Schoenbrodt2019},
+\texttt{lamW} \citep{Adler2015}, \texttt{xtable} \citep{Dahl2019}, and
+\texttt{knitr} \citep{Xie2024} packages.
 
 
 \begin{appendices}
