@@ -15,8 +15,9 @@ The results can be reproduced by installing the necessary R packages
 pkgs <- c("BayesRep", "lamW", "xtable", "remotes", "knitr")
 install.packages(pkgs)
 
-## GitHub package
-remotes::install_github("https://github.com/SamCH93/bfpwr", subdir = "package")
+## GitHub packages
+remotes::install_github("SamCH93/bfpwr", subdir = "package")
+remotes::install_github("nicebread/BFDA", subdir = "package")
 ```
 
 and then rerunning the code in `paper/bfssd.R`. To recompile the manuscript make
