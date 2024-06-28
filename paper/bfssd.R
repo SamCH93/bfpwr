@@ -349,7 +349,7 @@ n <- nbf01(k = k, power = power, sd = sd, null = null, pm = pm, psd = psd,
 n2 <- nbf01(k = k, power = power, sd = sd, null = null, pm = pm, psd = psd,
             dpm = dpm, dpsd = dpsd2)
 nH0 <- nbf01(k = 1/k, power = power, sd = sd, null = null, pm = pm, psd = psd,
-            dpm = null, dpsd = 0, lower.tail = FALSE)
+             dpm = null, dpsd = 0, lower.tail = FALSE)
 
 ## ## under the null
 ## nbf01(k = 1/k, power = power, sd = sd, null = null, pm = pm, psd = psd, dpm = null,
@@ -360,7 +360,7 @@ nseq <- seq(from = 2, to = 800, by = 1)
 pow <- pbf01(k = k, n = nseq, sd = sd, null = null, pm = pm, psd = psd,
              dpm = dpm, dpsd = dpsd)
 powH0 <- pbf01(k = 1/k, n = nseq, sd = sd, null = null, pm = pm, psd = psd,
-             dpm = dpm, dpsd = dpsd, lower.tail = FALSE)
+               dpm = dpm, dpsd = dpsd, lower.tail = FALSE)
 powNull <- pbf01(k = k, n = nseq, sd = sd, null = null, pm = pm, psd = psd,
                  dpm = null, dpsd = 0)
 powNullH0 <- pbf01(k = 1/k, n = nseq, sd = sd, null = null, pm = pm, psd = psd,
@@ -529,8 +529,8 @@ null <- 0
 dens <- sapply(X = taus, FUN = function(tau) dnmoment(x = xseq, location = 0, spread = tau))
 cols <- hcl.colors(n = length(taus), alpha = 0.8)
 par(mar = c(4, 5, 2, 2))
-matplot(xseq, dens, type = "l", lty = 1, col = cols, lwd = 1.5, xlab = bquote(theta),
-        ylab = "Density", las = 1,
+matplot(xseq, dens, type = "l", lty = 1, col = cols, lwd = 1.5,
+        xlab = bquote("Parameter" ~ theta), ylab = "Density", las = 1,
         panel.first = grid(lty = 3, col = adjustcolor(col = 1, alpha = 0.1)))
 leg <- sapply(taus, function(tau) as.expression(bquote({"NM("* theta[0] == "0,"} * tau == .(tau) * ")")))
 legend("topright", legend = leg, col = cols, lty = 1, lwd = 1.5, cex = 0.7,

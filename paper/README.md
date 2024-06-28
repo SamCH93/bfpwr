@@ -33,7 +33,6 @@ the following output
 
 ``` r
 sessionInfo()
-
 #> R version 4.4.0 (2024-04-24)
 #> Platform: x86_64-pc-linux-gnu
 #> Running under: Ubuntu 22.04.4 LTS
@@ -78,8 +77,7 @@ sessionInfo()
 #> [49] Rcpp_1.0.12        TeachingDemos_2.13 xfun_0.44          tibble_3.2.1      
 #> [53] tidyselect_1.2.1   htmltools_0.5.8.1  nlme_3.1-165       elliptic_1.4-0    
 #> [57] compiler_4.4.0 
-#> 
-cat(paste(Sys.time(), Sys.timezone(), "\n"))
 
-#> 2024-06-26 17:34:58.035313 Europe/Zurich 
+cat(paste(Sys.time(), Sys.timezone(), "\n"))
+#> 2024-06-28 15:03:59.985729 Europe/Zurich
 ```
