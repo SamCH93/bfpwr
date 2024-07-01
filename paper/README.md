@@ -3,7 +3,7 @@
 This directory contains code and data related to the preprint
 
    Pawel, S., Held, L. (2024). Closed-Form Power and Sample Size Calculations
-   for Bayes Factors.
+   for Bayes Factors. <https://doi.org/10.48550/arxiv.2406.19940>
 
 
 ## Reproducibility
