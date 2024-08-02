@@ -11,6 +11,8 @@
 \allsectionsfont{\sffamily} % for sections use sans serif
 \usepackage[labelfont={bf,sf},font=small]{caption} % customize captions
 \usepackage[onehalfspacing]{setspace} % more space
+\usepackage[dvipsnames,table]{xcolor}
+\usepackage{booktabs} % nicer tables
 
 % margins
 \usepackage{geometry}
@@ -24,8 +26,8 @@
 }
 
 % title, author, date, etc.
-\title{\textsf{\textbf{Using the bfpwr package}}}
-\author{\textbf{Samuel Pawel} \orcidlink{0000-0003-2779-320X}}
+\title{\vspace{-2em}\textsf{\textbf{Using the bfpwr package}}}
+\author{\textbf{Samuel Pawel} \orcidlink{0000-0003-2779-320X} \\ University of Zurich}
 \date{Package version \Sexpr{packageVersion(pkg = "bfpwr")} \\ \today}
 
 % hyperref options
@@ -43,6 +45,11 @@
   urlcolor=blue
 }
 
+\usepackage{fancyhdr}
+\pagestyle{fancy}
+\lhead{Using the \textbf{bfpwr} package}
+\rhead{S. Pawel}
+
 \begin{document}
 
 << "knitr-options", echo = FALSE >>=
@@ -56,15 +63,120 @@ opts_chunk$set(fig.height = 4.5,
 
 \maketitle
 
-This vignette provides an overview of how the R package \textbf{bfpwr} can be
-used to perform power and sample size calculations for Bayes factor analyses.
 
-For technical details see \citet{Pawel2024}.
+The \textbf{bfpwr} package provides functions for conducting power and sample
+size calculations when the planned analysis involves Bayesian hypothesis testing
+with Bayes factors. The theoretical underpinnings of the package are described
+in \citet{Pawel2024}. This vignette shows how the package can be used in some
+typical situations -- design based on the \textit{z}-test Bayes factor
+(Section~\ref{sec:ztest}), the \textit{t}-test Bayes factor
+(Section~\ref{sec:ttest}), and the nonlocal moment prior Bayes factor
+(Section~\ref{sec:nonlocal}). The package will soon be submitted to CRAN. At the
+moment, the package can be installed from GitHub by running
+<< "installation", eval = FALSE >>=
+## install.packages("remotes")
+remotes::install_github(repo = "SamCH93/bfpwr", subdir = "package")
+@
 
 
-% references
+
+\section{\textit{z}-test Bayes factor}
+\label{sec:ztest}
+The \textit{z}-test Bayes factor is a fairly general analysis method that
+assumes that the data are summarized by a parameter estimate $\hat{\theta}$ of
+an unknown parameter $\theta$. To conduct sample size and power calculations,
+the parameter estimate is assumed to have a standard error of the form
+$\sigma_{\scriptscriptstyle \hat{\theta}}/\sqrt{n}$ where
+$\sigma_{\scriptscriptstyle \hat{\theta}}$ is the standard deviation of one
+effective observation and $n$ is the `effective sample size'.
+Table~\ref{tab:outcomes} lists how some typically used parameters can be cast
+into this framework.
+
+\begingroup
+\renewcommand{\arraystretch}{1.3} % Default value: 1
+\begin{table}[!h]
+  \centering
+  \caption{Different types of parameter estimates $\hat{\theta}$ with
+    approximate variance
+    $\mathrm{Var}(\hat{\theta}) = \sigma^2_{\scriptscriptstyle \hat{\theta}}/n$
+    and corresponding interpretation of sample size $n$ and unit variance
+    $\sigma^2_{\scriptscriptstyle \hat{\theta}}$ (adapted from Chapter 2.4 in
+    \citealp{Spiegelhalter2004} and Chapter 1 in \citealp{Grieve2022}). The
+    variance of one continuous outcome observation is denoted by $\sigma^{2}$.
+    Parameter estimates based on two groups assume an equal number of observations
+    per group.}
+  \label{tab:outcomes}
+  \rowcolors{1}{}{gray!15}
+  \begin{tabular}{l l l c}
+    \toprule
+    \textbf{Outcome} & \textbf{Parameter estimate} $\hat{\theta}$ & \textbf{Interpretation of} $n$ & \textbf{Unit variance} $\sigma^2_{\scriptscriptstyle \hat{\theta}}$ \\
+    \midrule
+    Continuous & Mean & Sample size & $\sigma^{2}$ \\
+    Continuous & Mean difference & Sample size per group & $2\sigma^{2}$ \\
+    Continuous & Standardized mean difference & Sample size per group & 2 \\
+    Continuous & $z$-transformed correlation & Sample size minus 3 & 1 \\
+    Binary & Log odds ratio & Total number of events & 4 \\
+    Binary & Arcsine square root difference & Sample size per group & 1/2 \\
+    Survival & Log hazard ratio & Total number of events & 4 \\
+    Count & Log rate ratio & Total count & 4 \\
+
+    \bottomrule
+    \end{tabular}
+\end{table}
+\endgroup
+
+The \textit{z}-test Bayes factor now uses the parameter estimate and standard
+error to quantify the evidence for the null hypothesis
+$H_{0} \colon \theta = \theta_{0}$ against the alternative hypothesis
+$H_{1} \colon \theta \neq \theta_{0}$, assuming that the estimate is
+approximately normally distributed around the true parameter $\theta$ with
+variance $\sigma_{\scriptscriptstyle \hat{\theta}}^{2}/n$, and that a normal
+`analysis prior distribution' is assigned to parameter under the alternative
+$H_{1}$. If we had specified a prior and observed a parameter estimate with
+standard error, the Bayes factor could be computed with function \texttt{bf01}
+as demonstrated below for a hypothetical standardized mean difference estimate
+\begin{spacing}{1}
+<< "bf01-illustration", echo = TRUE, fig.height = 6 >>=
+## load package
+library(bfpwr)
+
+## hypothetical data
+estimate <- 0.1 # standardized mean difference effect estimate
+se <- sqrt(2/30) # standard error of effect estimate
+
+## Bayes factor parameters
+null <- 0 # null value
+sd <- 2 # standard deviation of one observation (Table 1, third row)
+pm <- 0.3 # analysis prior mean
+psd <- 1 # analysis prior sd
+
+## compute z-test Bayes factor
+bf01(estimate = estimate, se = se, null = null, pm = pm, psd = psd)
+@
+\end{spacing}
+As the Bayes factor is oriented in favor of the null hypothesis over the
+alternative, we can see that in this case the data provide moderate evidence for
+the null over the alternative since
+$\mathrm{BF}_{01} = \Sexpr{round(bf01(estimate = estimate, se = se, null = null, pm = pm, psd = psd), 1)}$.
+
+However, from now on we will assume that we do not yet have observed the
+estimate and standard error, and we want to use to use the \textbf{bfpwr}
+package to compute a sample size such that we can obtain a large enough Bayes
+factor for the correct hypothesis with a sufficiently high probability.
+
+% References
 \bibliographystyle{apalike}
 \bibliography{bibliography}
+
+
+
+\section{\textit{t}-test Bayes factor}
+\label{sec:ttest}
+
+
+\section{Nonlocal moment prior Bayes factor}
+\label{sec:nonlocal}
+
 
 \newpage
 \section*{Computational details}
