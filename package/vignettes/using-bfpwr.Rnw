@@ -1,0 +1,76 @@
+% \VignetteEngine{knitr::knitr}
+% \VignetteEncoding{UTF-8}
+% \VignetteIndexEntry{Using the bfpwr package}
+% \VignetteDepends{knitr}
+\documentclass[a4paper, 11pt]{article}
+\usepackage{amsmath, amssymb} % math
+\usepackage[round]{natbib} % references
+\usepackage{orcidlink} % for ORCID symbol with link
+\usepackage{helvet} % helvetica sans serif font
+\usepackage{sectsty} % use different fonts for different sections
+\allsectionsfont{\sffamily} % for sections use sans serif
+\usepackage[labelfont={bf,sf},font=small]{caption} % customize captions
+\usepackage[onehalfspacing]{setspace} % more space
+
+% margins
+\usepackage{geometry}
+\geometry{
+  a4paper,
+  total={170mm,257mm},
+  left=20mm,
+  right=20mm,
+  top=30mm,
+  bottom=25mm,
+}
+
+% title, author, date, etc.
+\title{\textsf{\textbf{Using the bfpwr package}}}
+\author{\textbf{Samuel Pawel} \orcidlink{0000-0003-2779-320X}}
+\date{Package version \Sexpr{packageVersion(pkg = "bfpwr")} \\ \today}
+
+% hyperref options
+\usepackage{hyperref}
+\hypersetup{
+  bookmarksopen=true,
+  breaklinks=true,
+  pdftitle={},
+  pdfsubject={},
+  pdfkeywords={},
+  colorlinks=true,
+  linkcolor=black,
+  anchorcolor=black,
+  citecolor=blue,
+  urlcolor=blue
+}
+
+\begin{document}
+
+<< "knitr-options", echo = FALSE >>=
+library(knitr)
+opts_chunk$set(fig.height = 4.5,
+               fig.align = "center",
+               cache = FALSE,
+               message = FALSE,
+               warning = FALSE)
+@
+
+\maketitle
+
+This vignette provides an overview of how the R package \textbf{bfpwr} can be
+used to perform power and sample size calculations for Bayes factor analyses.
+
+For technical details see \citet{Pawel2024}.
+
+
+% references
+\bibliographystyle{apalike}
+\bibliography{bibliography}
+
+\newpage
+\section*{Computational details}
+<< "sessionInfo", echo = TRUE >>=
+cat(paste(Sys.time(), Sys.timezone(), "\n"))
+sessionInfo()
+@
+
+\end{document}
