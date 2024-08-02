@@ -9,7 +9,8 @@
 \usepackage[title]{appendix} % better appendices
 \usepackage{nameref} % reference appendices with names
 \usepackage[dvipsnames,table]{xcolor}
-\usepackage[onehalfspacing]{setspace} % more space
+%% \usepackage[doublespacing]{setspace} % line spacing
+\usepackage[onehalfspacing]{setspace}
 \usepackage[labelfont=bf,font=small]{caption} % smaller captions
 \usepackage{helvet}
 \usepackage{mathpazo}
@@ -496,7 +497,7 @@ uncertainty can be arbitrarily reduced by increasing the sample size. This
 parallels similar results on bounds for hybrid Bayesian/frequentist power
 \citep{Spiegelhalter2004, Micheloud2020, Grieve2022}.
 
-\begin{figure}[!htb]
+\begin{figure}[!tb]
 << "plot-power", fig.height = 4.5 >>=
 ## BF parameters
 k <- 1/10
@@ -763,7 +764,7 @@ in the design of frequentist hypothesis tests \citep[see e.g.,][for an overview
 of hybrid Bayesian/frequentist design approaches]{Grieve2022}.
 
 
-\begin{table}[ht]
+\begin{table}[!htb]
 \centering
 \caption{Sample size per group $n$ to obtain a Bayes factor
   $\mathrm{BF}_{01} \leq k$ with at least a power of $1 - \beta$. The parameter
@@ -817,7 +818,7 @@ per group to have $1 - \beta = 80\%$ power for a Bayes factor threshold of
 $k = 1/10$.
 
 
-\begin{figure}[!tb]
+\begin{figure}[!htb]
 << "plot-n", fig.height = 4.5 >>=
 ## BF parameters
 k <- 1/10
@@ -1855,7 +1856,7 @@ exist also for $t$-test Bayes factors (\texttt{powertbf01}) and normal moment
 prior Bayes factors (\texttt{powernmbf01}). The following code chunk illustrate
 how \texttt{powerbf01} can be used.
 
-
+\begin{spacing}{1}
 << "package-illustration", echo = TRUE, fig.height = 6 >>=
 library(bfpwr)
 
@@ -1880,6 +1881,7 @@ ssd
 ## plot power curve
 plot(ssd, nlim = c(1, 400))
 @
+\end{spacing}
 
 \section{Distribution of the Bayes factor}
 \label{app:distributions}
