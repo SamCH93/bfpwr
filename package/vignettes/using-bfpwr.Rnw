@@ -26,7 +26,7 @@
 }
 
 % title, author, date, etc.
-\title{\vspace{-2em}\textsf{\textbf{Using the bfpwr package}}}
+\title{\vspace{-3em}\textsf{\textbf{Using the bfpwr package}}}
 \author{\textbf{Samuel Pawel} \orcidlink{0000-0003-2779-320X} \\ University of Zurich}
 \date{Package version \Sexpr{packageVersion(pkg = "bfpwr")} \\ \today}
 
@@ -64,15 +64,16 @@ opts_chunk$set(fig.height = 4.5,
 \maketitle
 
 
-The \textbf{bfpwr} package provides functions for conducting power and sample
-size calculations when the planned analysis involves Bayesian hypothesis testing
-with Bayes factors. The theoretical underpinnings of the package are described
-in \citet{Pawel2024}. This vignette shows how the package can be used in some
-typical situations -- design based on the \textit{z}-test Bayes factor
-(Section~\ref{sec:ztest}), the \textit{t}-test Bayes factor
-(Section~\ref{sec:ttest}), and the nonlocal moment prior Bayes factor
-(Section~\ref{sec:nonlocal}). The package will soon be submitted to CRAN. At the
-moment, the package can be installed from GitHub by running
+In situations where data are analyzed with Bayesian hypothesis testing using
+Bayes factors, the \textbf{bfpwr} package provides functions for performing
+corresponding power and sample size calculations. The theoretical background of
+the package is described in \citet{Pawel2024}. This vignette illustrates how the
+package can be used in some typical situations -- design based on the
+\textit{z}-test Bayes factor (Section~\ref{sec:ztest}), the \textit{t}-test
+Bayes factor (Section~\ref{sec:ttest}), and the nonlocal moment prior Bayes
+factor (Section~\ref{sec:nonlocal}). The package will be submitted to CRAN soon.
+For now, the package can be installed from GitHub by running
+
 << "installation", eval = FALSE >>=
 ## install.packages("remotes")
 remotes::install_github(repo = "SamCH93/bfpwr", subdir = "package")
@@ -97,27 +98,28 @@ into this framework.
 \begin{table}[!h]
   \centering
   \caption{Different types of parameter estimates $\hat{\theta}$ with
-    approximate variance
-    $\mathrm{Var}(\hat{\theta}) = \sigma^2_{\scriptscriptstyle \hat{\theta}}/n$
-    and corresponding interpretation of sample size $n$ and unit variance
-    $\sigma^2_{\scriptscriptstyle \hat{\theta}}$ (adapted from Chapter 2.4 in
+    approximate standard error
+    $\sigma_{\scriptscriptstyle \hat{\theta}}/\sqrt{n}$ and corresponding
+    interpretation of sample size $n$ and unit standard deviation
+    $\sigma_{\scriptscriptstyle \hat{\theta}}$ (adapted from Chapter 2.4 in
     \citealp{Spiegelhalter2004} and Chapter 1 in \citealp{Grieve2022}). The
-    variance of one continuous outcome observation is denoted by $\sigma^{2}$.
-    Parameter estimates based on two groups assume an equal number of observations
-    per group.}
+    standard deviation of one continuous outcome observation is denoted by
+    $\sigma$. Parameter estimates based on two groups assume an equal number of
+    observations per group.}
   \label{tab:outcomes}
+  \small
   \rowcolors{1}{}{gray!15}
   \begin{tabular}{l l l c}
     \toprule
-    \textbf{Outcome} & \textbf{Parameter estimate} $\hat{\theta}$ & \textbf{Interpretation of} $n$ & \textbf{Unit variance} $\sigma^2_{\scriptscriptstyle \hat{\theta}}$ \\
+    \textbf{Outcome} & \textbf{Parameter estimate} $\hat{\theta}$ & \textbf{Interpretation of} $n$ & \textbf{Unit standard deviation} $\sigma_{\scriptscriptstyle \hat{\theta}}$ \\
     \midrule
-    Continuous & Mean & Sample size & $\sigma^{2}$ \\
-    Continuous & Mean difference & Sample size per group & $2\sigma^{2}$ \\
-    Continuous & Standardized mean difference & Sample size per group & 2 \\
+    Continuous & Mean & Sample size & $\sigma$ \\
+    Continuous & Mean difference & Sample size per group & $\sigma\sqrt{2}$ \\
+    Continuous & Standardized mean difference & Sample size per group & $\sqrt{2}$ \\
     Continuous & $z$-transformed correlation & Sample size minus 3 & 1 \\
-    Binary & Log odds ratio & Total number of events & 4 \\
-    Binary & Arcsine square root difference & Sample size per group & 1/2 \\
-    Survival & Log hazard ratio & Total number of events & 4 \\
+    Binary & Log odds ratio & Total number of events & 2 \\
+    Binary & Arcsine square root difference & Sample size per group & $1/\sqrt{2}$ \\
+    Survival & Log hazard ratio & Total number of events & 2 \\
     Count & Log rate ratio & Total count & 4 \\
 
     \bottomrule
@@ -125,18 +127,21 @@ into this framework.
 \end{table}
 \endgroup
 
-The \textit{z}-test Bayes factor now uses the parameter estimate and standard
-error to quantify the evidence for the null hypothesis
-$H_{0} \colon \theta = \theta_{0}$ against the alternative hypothesis
-$H_{1} \colon \theta \neq \theta_{0}$, assuming that the estimate is
-approximately normally distributed around the true parameter $\theta$ with
+The \textit{z}-test Bayes factor then uses the parameter estimate and standard
+error as the data to quantify the evidence for the null hypothesis that the
+parameter takes a certain null value $H_{0} \colon \theta = \theta_{0}$ against
+the alternative hypothesis that it takes a different value
+$H_{1} \colon \theta \neq \theta_{0}$. It is further assumed that the estimate
+is approximately normally distributed around the true parameter $\theta$ with
 variance $\sigma_{\scriptscriptstyle \hat{\theta}}^{2}/n$, and that a normal
-`analysis prior distribution' is assigned to parameter under the alternative
-$H_{1}$. If we had specified a prior and observed a parameter estimate with
-standard error, the Bayes factor could be computed with function \texttt{bf01}
-as demonstrated below for a hypothetical standardized mean difference estimate
+`analysis prior distribution' is assigned to the parameter under the alternative
+$H_{1}$.
+
+In case we have an observed parameter estimate and its standard error, the Bayes
+factor can be computed with function \texttt{bf01} as demonstrated below for
+hypothetical data
 \begin{spacing}{1}
-<< "bf01-illustration", echo = TRUE, fig.height = 6 >>=
+<< "bf01-illustration", echo = TRUE >>=
 ## load package
 library(bfpwr)
 
@@ -146,7 +151,6 @@ se <- sqrt(2/30) # standard error of effect estimate
 
 ## Bayes factor parameters
 null <- 0 # null value
-sd <- 2 # standard deviation of one observation (Table 1, third row)
 pm <- 0.3 # analysis prior mean
 psd <- 1 # analysis prior sd
 
@@ -154,15 +158,86 @@ psd <- 1 # analysis prior sd
 bf01(estimate = estimate, se = se, null = null, pm = pm, psd = psd)
 @
 \end{spacing}
-As the Bayes factor is oriented in favor of the null hypothesis over the
-alternative, we can see that in this case the data provide moderate evidence for
-the null over the alternative since
-$\mathrm{BF}_{01} = \Sexpr{round(bf01(estimate = estimate, se = se, null = null, pm = pm, psd = psd), 1)}$.
+\noindent We can see that the data provide moderate evidence for the null over
+the alternative
+($\mathrm{BF}_{01} = \Sexpr{round(bf01(estimate = estimate, se = se, null = null, pm = pm, psd = psd), 2)}$).
+Note that the Bayes factor from the function \texttt{bf01} and all other
+functions in \textbf{bfpwr} are oriented \emph{in favor of the null} hypothesis
+over the alternative, so $\mathrm{BF}_{01} > 1$ indicates evidence for the null
+hypothesis, whereas $\mathrm{BF}_{01} < 1$ indicates evidence for the
+alternative hypothesis. If a Bayes factor oriented in favor of the alternative
+over the null is desired instead, we can invert the Bayes factor by
+$\mathrm{BF}_{10} = 1/\mathrm{BF}_{01}$.
 
-However, from now on we will assume that we do not yet have observed the
-estimate and standard error, and we want to use to use the \textbf{bfpwr}
-package to compute a sample size such that we can obtain a large enough Bayes
-factor for the correct hypothesis with a sufficiently high probability.
+However, the typical reason we would want to use \textbf{bfpwr} is that we have
+no observed data yet, and we want to either (i) compute a sample size that will
+produce a compelling Bayes factor with a given probability, or (ii) compute the
+probability of obtaining a compelling Bayes factor for a given sample size (the
+`power'). The function \texttt{powerbf01} can be used for this purpose. It is
+inspired by the \texttt{power.t.test} function from the \texttt{stats} package,
+with which many user will be familiar. As \texttt{power.t.test}, the function
+assumes that the data are continuous and that the parameter of interest is
+either a mean or a (standardized) mean difference. The functions \texttt{pbf01}
+and \texttt{nbf01} are more general and can be used for any approximately
+normally distributed parameter estimate with approximate standard error
+$\sigma_{\scriptscriptstyle \hat{\theta}}/\sqrt{n}$, although users have to
+specify the unit standard deviation themselves as shown in
+Table~\ref{tab:outcomes}. The code below demonstrates usage of
+\texttt{powerbf01} for a two-sample test of a standardized mean difference
+parameter
+
+\begin{spacing}{1}
+<< "powerbf01-illustration", echo = TRUE >>=
+## setting sample size parameters
+null <- 0 # null value
+pm <- 0.3 # analysis prior mean
+psd <- 1 # analysis prior sd
+k <- 1/10 # desired Bayes factor threshold (BF01 < k)
+type <- "two.sample" # two-sample z-test
+sd <- 1 # set sd = 1 to compute on standardized mean difference scale
+
+## compute sample size to achieve desired power
+pow <- 0.9
+(res1 <- powerbf01(k = k, power = pow, sd = sd, null = null, pm = pm, psd = psd,
+                   type = type))
+
+## compute power for a given sample size
+n <- 500
+(res2 <- powerbf01(k = k, n = n, sd = sd, null = null, pm = pm, psd = psd))
+@
+\end{spacing}
+
+Defining a Bayes factor below the threshold $k = 1/\Sexpr{1/k}$ as target for
+compelling evidence, we see that $n = \Sexpr{ceiling(res1[["n"]])}$ observations
+per group are required to obtain a power of $\Sexpr{round(pow*100, 1)}$\%, or
+that a power of $\Sexpr{round(res2[["power"]]*100, 1)}$\% is obtained for a
+sample size of $n = \Sexpr{n}$. Both function calls assume that the underlying
+parameter is sampled from the normal analysis prior under the alternative
+hypothesis, as specified with the arguments \texttt{pm} and \texttt{psd}. By
+additionally specifying the arguments \texttt{dpm} and \texttt{dpsd}, it is also
+possible to specify a normal `design prior` that differs from the analysis
+prior. For example, we may want to specify a design prior that encodes more
+optimistic assumptions about the parameter than the analysis prior, or we may
+want to set the design prior to the null hypothesis (\texttt{dpm = null} and
+\texttt{dpsd = 0}) to compute the probability of misleading evidence in favor of
+the alternative when the null is actually true. The latter is done automatically
+when plotting the resulting \texttt{power.bftest} object with the corresponding
+\texttt{plot} method, as shown below
+
+\begin{spacing}{1}
+<< "plot.powerbf01-illustration", echo = TRUE, fig.height = 6.5 >>=
+## plot power curves (also specifying sample size grid on x-axis)
+plot(res1, nlim = c(1, 3000), ngrid = 1000)
+@
+\end{spacing}
+
+The first plot highlights the sample size required to achieve the specified
+power, along with power values for other sample sizes. The second plot shows a
+power curve for obtaining a Bayes factor in favor of the null hypothesis (using
+the reciprocal of the specified threshold), it can be turned off with the
+argument \texttt{nullplot = FALSE}. Finally, the argument \texttt{plot = FALSE}
+can be used to compute only the data underlying the plot, but not to output it,
+e.g., if one wants to use an alternative plotting package.
 
 % References
 \bibliographystyle{apalike}
