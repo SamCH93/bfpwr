@@ -66,13 +66,20 @@ opts_chunk$set(fig.height = 4.5,
 
 \noindent The \textbf{bfpwr} package provides functions to compute commonly used
 Bayes factors and perform corresponding power and sample size calculations. The
-theoretical background of the package is described in \citet{Pawel2024}. This
-vignette illustrates how the package can be used in some typical situations --
-analysis and design based on the \textit{z}-test Bayes factor
-(Section~\ref{sec:ztest}), the \textit{t}-test Bayes factor
-(Section~\ref{sec:ttest}), and the normal moment prior Bayes factor
+theoretical background of the package is described in \citet{Pawel2024}.
+Calculations in \textbf{bfpwr} are performed analytically or with numerical
+(non-simulation based) methods. This differs from most other packages that use
+simulation methods for the same purposes \citep[e.g., the \textbf{BFDA} package
+from][]{Schoenbrodt2019}. This typically leads to faster computations without
+simulation error, but at the cost of being restricted to certain data
+distributions and analysis methods. This vignette illustrates how the package
+can be used in some typical situations -- analysis and design based on the
+\textit{z}-test Bayes factor (Section~\ref{sec:ztest}), the \textit{t}-test
+Bayes factor (Section~\ref{sec:ttest}), and the normal moment prior Bayes factor
 (Section~\ref{sec:nonlocal}). Table~\ref{tab:mainfunctions} summarizes the main
-functions.
+functions of the package. It is recommended to look at the function
+documentation (\texttt{?functionname}) before using them for the first time as
+this vignette provides only a broad overview of the package.
 
 \begingroup
 \renewcommand{\arraystretch}{1.3} % Default value: 1
@@ -94,19 +101,23 @@ functions.
 \end{table}
 \endgroup
 
-The package will be submitted to CRAN soon. For now, the package can be
-installed from GitHub by running
+The \textbf{bfpwr} package will be submitted to CRAN soon. For now, the package
+can be installed from GitHub by running
 
 << "installation", eval = FALSE >>=
 ## install.packages("remotes")
 remotes::install_github(repo = "SamCH93/bfpwr", subdir = "package")
 @
 
-\noindent and then loaded with
+\noindent followed by loading it with
 
 << "load" >>=
 library("bfpwr")
 @
+
+\noindent Development of \textbf{bfpwr} is being done on GitHub. Anyone with
+ideas for new features, bug reports, or other contributions to the package is
+invited to get in touch there (\url{https://github.com/SamCH93/bfpwr}).
 
 \section{\textit{z}-test Bayes factor}
 \label{sec:ztest}
@@ -120,17 +131,23 @@ takes a certain null value $H_{0} \colon \theta = \theta_{0}$ against the
 alternative hypothesis that it takes another value
 $H_{1} \colon \theta \neq \theta_{0}$, in light of the observed data and
 assuming a normal `analysis prior' for the parameter $\theta$ under the
-alternative $H_{1}$.
+alternative $H_{1}$. In all functions related to the \textit{z}-test Bayes
+factor, the normal analysis prior is specified by the prior mean (argument
+\texttt{pm}) and the prior standard deviation (argument \texttt{psd}). Setting
+the prior standard deviation to zero corresponds to a point prior and reduces
+the Bayes factor to a likelihood ratio. As such, the \textbf{bfpwr} package can
+also be used for `likelihoodist' analysis and design \citep[see e.g.,][for an
+overview of the likelihoodist paradigm]{Royall1997}.
 
 \subsection{Analysis with the \textit{z}-test Bayes factor}
 The \textit{z}-test Bayes factor can be calculated using the function
 \texttt{bf01}, see \texttt{?bf01} for a detailed description of its arguments.
-The following code demonstrates an application to an estimate of a regression
+The following code demonstrates application to an estimated regression
 coefficient from a logistic regression model
 
 \begin{spacing}{1}
 << "bf01-illustration", echo = TRUE >>=
-## logistic regression to predict Virginica species from sepal width in iris data
+## glm to quantify association between Virginica species and sepal width
 iris$virginica <- as.numeric(iris$Species == "virginica")
 irisglm <- glm(virginica ~ Petal.Width, data = iris, family = "binomial")
 estimate <- summary(irisglm)$coefficients[2,1] # logOR estimate
@@ -145,16 +162,17 @@ psd <- 2 # analysis prior sd
 bf01(estimate = estimate, se = se, null = null, pm = pm, psd = psd)
 @
 \end{spacing}
-\noindent We can see that the data provide strong evidence for the alternative
-of an association between sepal width and the species Virginica over to the null
-hypothesis of no association
-($\mathrm{BF}_{01} = 1/\Sexpr{round(1/bf01(estimate = estimate, se = se, null = null, pm = pm, psd = psd), 1)}$).
-Note that the Bayes factor from the function \texttt{bf01} and all other
-functions in \textbf{bfpwr} are oriented \emph{in favor of the null} hypothesis
-over the alternative, so $\mathrm{BF}_{01} > 1$ indicates evidence for the null
+\noindent We can see that the data provide strong evidence
+($\mathrm{BF}_{01} = 1/\Sexpr{round(1/bf01(estimate = estimate, se = se, null = null, pm = pm, psd = psd), 1)}$)
+for the alternative hypothesis of a log odds ratio unequal to zero (i.e., an
+association between the species Virginica and sepal width), over to the null
+hypothesis of a log odds ratio equal to zero (i.e., no association). Note that
+the Bayes factor from the function \texttt{bf01} and all other functions in
+\textbf{bfpwr} are oriented \emph{in favor of the null} hypothesis over the
+alternative, so $\mathrm{BF}_{01} > 1$ indicates evidence for the null
 hypothesis, whereas $\mathrm{BF}_{01} < 1$ indicates evidence for the
-alternative hypothesis. If a Bayes factor oriented in favor of the alternative
-over the null is desired instead, we can invert the Bayes factor by
+alternative hypothesis. If a Bayes factor orientation in favor of the
+alternative over the null is desired instead, one can invert the Bayes factor by
 $\mathrm{BF}_{10} = 1/\mathrm{BF}_{01}$.
 
 \subsection{Design with the \textit{z}-test Bayes factor}
@@ -162,48 +180,7 @@ Another reason we would want to use \textbf{bfpwr} is that we have no observed
 data yet, and we want to either (i) compute a sample size that will produce a
 compelling Bayes factor with a given probability, or (ii) compute the
 probability of obtaining a compelling Bayes factor for a given sample size (the
-`power'). To conduct sample size and power calculations, additional assumptions
-regarding the standard error and sample size are needed. All design functions in
-\textbf{bfpwr} assume that the standard error is of the form
-$\sigma_{\scriptscriptstyle \hat{\theta}}/\sqrt{n}$, where
-$\sigma_{\scriptscriptstyle \hat{\theta}}$ is the standard deviation of one
-effective observation and $n$ is the `effective sample size'.
-Table~\ref{tab:outcomes} lists how some typically used parameters can be cast
-into this framework.
-
-\begingroup
-\renewcommand{\arraystretch}{1.3} % Default value: 1
-\begin{table}[!h]
-  \centering
-  \caption{Different types of parameter estimates $\hat{\theta}$ with
-    approximate standard error
-    $\sigma_{\scriptscriptstyle \hat{\theta}}/\sqrt{n}$ and corresponding
-    interpretation of sample size $n$ and unit standard deviation
-    $\sigma_{\scriptscriptstyle \hat{\theta}}$ (adapted from Chapter 2.4 in
-    \citealp{Spiegelhalter2004} and Chapter 1 in \citealp{Grieve2022}). The
-    standard deviation of one continuous outcome observation is denoted by
-    $\sigma$. Parameter estimates based on two groups assume an equal number of
-    observations per group.}
-  \label{tab:outcomes}
-  \small
-  \rowcolors{1}{}{gray!15}
-  \begin{tabular}{l l l c}
-    \toprule
-    \textbf{Outcome} & \textbf{Parameter estimate} $\hat{\theta}$ & \textbf{Interpretation of} $n$ & \textbf{Unit standard deviation} $\sigma_{\scriptscriptstyle \hat{\theta}}$ \\
-    \midrule
-    Continuous & Mean & Sample size & $\sigma$ \\
-    Continuous & Mean difference & Sample size per group & $\sigma\sqrt{2}$ \\
-    Continuous & Standardized mean difference & Sample size per group & $\sqrt{2}$ \\
-    Continuous & $z$-transformed correlation & Sample size minus 3 & 1 \\
-    Binary & Log odds ratio & Total number of events & 2 \\
-    Binary & Arcsine square root difference & Sample size per group & $1/\sqrt{2}$ \\
-    Survival & Log hazard ratio & Total number of events & 2 \\
-    Count & Log rate ratio & Total count & 4 \\
-
-    \bottomrule
-    \end{tabular}
-\end{table}
-\endgroup
+`power').
 
 The function \texttt{powerbf01} can be used to compute power and sample size,
 assuming that the data are continuous and that the parameter of interest is
@@ -211,24 +188,19 @@ either a mean or a (standardized) mean difference. It is inspired by the
 \texttt{power.t.test} function from the \texttt{stats} package, with which many
 user will be familiar. One can either compute the power for a given sample size
 (by specifying the \texttt{n} argument) or compute the sample size for a given
-power (by specifying the \texttt{power} argument). The functions \texttt{pbf01}
-and \texttt{nbf01} are more general and can be used for any approximately
-normally distributed parameter estimate with approximate standard error
-$\sigma_{\scriptscriptstyle \hat{\theta}}/\sqrt{n}$, although users have to
-specify the unit standard deviation themselves as shown in
-Table~\ref{tab:outcomes}. The code below demonstrates usage of
-\texttt{powerbf01} for a two-sample test of a standardized mean difference
-parameter
+power (by specifying the \texttt{power} argument). The code below demonstrates
+usage of \texttt{powerbf01} for a two-sample test of a standardized mean
+difference parameter
 
 \begin{spacing}{1}
 << "powerbf01-illustration", echo = TRUE >>=
-## setting sample size parameters
+## Bayes factor and sample size parameters
 null <- 0 # null value
 pm <- 0.3 # analysis prior mean
 psd <- 1 # analysis prior sd
 k <- 1/10 # desired Bayes factor threshold (BF01 < k)
 type <- "two.sample" # two-sample z-test
-sd <- 1 # set sd = 1 to compute on standardized mean difference scale
+sd <- 1 # sd of one observation, set to 1 for standardized mean difference scale
 
 ## compute sample size to achieve desired power
 pow <- 0.9
@@ -237,7 +209,8 @@ pow <- 0.9
 
 ## compute power for a given sample size
 n <- 500
-(res2 <- powerbf01(k = k, n = n, sd = sd, null = null, pm = pm, psd = psd))
+(res2 <- powerbf01(k = k, n = n, sd = sd, null = null, pm = pm, psd = psd,
+                   type = type))
 @
 \end{spacing}
 
@@ -268,11 +241,59 @@ plot(res1, nlim = c(1, 3000), ngrid = 1000)
 The first plot highlights the sample size required to achieve the specified
 power, along with power values for other sample sizes. The second plot shows a
 power curve for obtaining a Bayes factor in favor of the null hypothesis (using
-the reciprocal of the specified threshold), it can be turned off with the
-argument \texttt{nullplot = FALSE}. Finally, the argument \texttt{plot = FALSE}
-can be specified to return only the data underlying the plot, for example, if
-one wants to use an alternative plotting package.
+the reciprocal of the specified threshold \texttt{k}), it can be turned off with
+the argument \texttt{nullplot = FALSE}. Finally, the argument \texttt{plot =
+  FALSE} can be specified to return only the data underlying the plot, for
+example, if one wants to use an alternative plotting package.
 
+
+To conduct such sample size and power calculations for other parameters than
+means and (standardized) mean differences, additional assumptions regarding the
+standard error and sample size are needed. The functions \texttt{pbf01} and
+\texttt{nbf01} can perform power and sample size calculations in more general
+cases than \texttt{powerbf01}. Both assume that the standard error is of the
+form $\sigma_{\scriptscriptstyle \hat{\theta}}/\sqrt{n}$, where
+$\sigma_{\scriptscriptstyle \hat{\theta}}$ is the standard deviation of one
+effective observation and $n$ is the `effective sample size'. In both function,
+users have to specify the unit standard deviation
+$\sigma_{\scriptscriptstyle \hat{\theta}}$ that determines the scale of the
+calculation. Table~\ref{tab:outcomes} lists how some typically used parameters
+can be cast into this framework. The documentation of both functions
+(\texttt{?pbf01} and \texttt{?nbf01}) provides more information and examples.
+
+\begingroup
+\renewcommand{\arraystretch}{1.3} % Default value: 1
+\begin{table}[!h]
+  \centering
+  \caption{Different types of parameter estimates $\hat{\theta}$ with
+    approximate standard error
+    $\sigma_{\scriptscriptstyle \hat{\theta}}/\sqrt{n}$ and corresponding
+    interpretation of sample size $n$ and unit standard deviation
+    $\sigma_{\scriptscriptstyle \hat{\theta}}$ (adapted from Chapter 2.4 in
+    \citealp{Spiegelhalter2004} and Chapter 1 in \citealp{Grieve2022}). The
+    standard deviation of one continuous outcome observation is denoted by
+    $\sigma$. Parameter estimates based on two groups assume an equal number of
+    observations per group.}
+  \label{tab:outcomes}
+  \small
+  \rowcolors{1}{}{gray!15}
+  \begin{tabular}{l l l c}
+    \toprule
+    \textbf{Outcome} & \textbf{Parameter estimate} $\hat{\theta}$ & \textbf{Interpretation of} $n$ & \textbf{Unit standard deviation} $\sigma_{\scriptscriptstyle \hat{\theta}}$ \\
+    \midrule
+    Continuous & Mean & Sample size & $\sigma$ \\
+    Continuous & Mean difference & Sample size per group & $\sigma\sqrt{2}$ \\
+    Continuous & Standardized mean difference & Sample size per group & $\sqrt{2}$ \\
+    Continuous & $z$-transformed correlation & Sample size minus 3 & 1 \\
+    Binary & Log odds ratio & Total number of events & 2 \\
+    Binary & Arcsine square root difference & Sample size per group & $1/\sqrt{2}$ \\
+    Survival & Log hazard ratio & Total number of events & 2 \\
+    Count & Log rate ratio & Total count & 2 \\
+
+    \bottomrule
+    \end{tabular}
+\end{table}
+\endgroup
 
 
 \section{\textit{t}-test Bayes factor}
@@ -289,7 +310,7 @@ hypothesis that it is not equal zero. Following \citet{Gronau2020}, the
 scale-location \textit{t} prior distribution (potentially truncated to only
 positive or only negative parameters) is assigned to the standardized mean
 (difference) under the alternative hypothesis. When centering the prior on zero
-and setting its degrees of freedom to one, the Bayes factor reduces then to the
+and setting its degrees of freedom to one, the Bayes factor reduces to the
 `Jeffreys-Zellner-Siow' (JZS) Bayes factor \citep{Jeffreys1961, Zellner1980},
 which is often used as a `default' Bayes factor in the social sciences
 \citep{Rouder2009}. Setting other values for these parameters allows data
@@ -298,7 +319,7 @@ potentially making the test more informative. Figure~\ref{fig:tprior} shows
 examples of differnet prior distributions along with their parameters.
 
 \begin{figure}[!htb]
-<< "prior-illustration", fig.height = 4, echo = FALSE >>=
+<< "prior-illustration", fig.height = 4.5, echo = FALSE >>=
 tprior <- function(d,
                    plocation = 0,
                    pscale = 1,
@@ -324,15 +345,17 @@ tprior <- function(d,
 }
 
 dseq <- seq(-3, 3, 0.01)
-pars <- data.frame(plocation = c(0, 0, 1), pscale = c(0.5, 0.5, 0.4), pdf = c(1, 1, 15),
+pars <- data.frame(plocation = c(0, 0, 1), pscale = c(0.7, 0.7, 0.3), pdf = c(1, 1, 30),
                    alternative = c("two.sided", "greater", "two.sided"))
 dens <- sapply(X = seq(1, nrow(pars)), FUN = function(i) {
     d <- tprior(d = dseq, plocation = pars$plocation[i], pscale = pars$pscale[i],
                 pdf = pars$pdf[i], alternative = pars$alternative[i])
 })
 cols <- palette.colors(n = 4, alpha = 0.8)[-1]
+par(mar = c(4, 5, 2, 2))
 matplot(dseq, dens, lty = 1, type = "l", lwd = 1.5, las = 1, col = cols,
         xlab = "Standardized mean difference", ylab = "Prior density",
+        panel.first = grid(lty = 3, col = adjustcolor(col = 1, alpha = 0.1)),
         ylim = c(0, 2))
 leg <- sapply(X = seq(1, nrow(pars)),
               FUN = function(i) paste(names(pars), pars[i,], sep =  " = ",
@@ -342,7 +365,10 @@ legend("topright", legend = leg, col = cols, lwd = 1.5, lty = 1, cex = 0.8)
 
 @
 \caption{Illustration of different (truncated) scale-location $t$ prior
-  distribution available for \textit{t}-test Bayes factor.}
+  distributions for the \textit{t}-test Bayes factor along with the arguments to
+  specify them. The yellow and blue priors represent `default' priors that are
+  undirectional and directional, respectively, the green prior represents an
+  informed prior.}
 \label{fig:tprior}
 \end{figure}
 
@@ -383,20 +409,21 @@ alternative of an effect.
 
 \subsection{Design with the \textit{t}-test Bayes factor}
 The \texttt{powertbf01} function can be used for both power and sample size
-calculations related to the \textit{t}-test Bayes factor. It has a similar
-specification as the \texttt{powertbf01} function related to the \textit{z}-test
-Bayes factor, differing only in the arguments of the analysis prior. The
+calculations assuming that the future data are analyzed with the \textit{t}-test
+Bayes factor, but still assuming known variances and a normal design prior for
+the design. As such, the function has a similar specification as
+\texttt{powerbf01}, differing only in the arguments of the analysis prior. The
 following code illustrates its usage
 
 \begin{spacing}{1}
-<< "powertbf01-illustration", echo = TRUE, fig.height = 6.5 >>=
+<< "powertbf01-illustration", echo = TRUE >>=
 ## determine sample size for a given power
 (tres <- powertbf01(k = 1/6, # Bayes factor threshold
                     power = 0.95, # target power
                     type = "two.sample", # two-sample test
                     ## normal design prior
                     dpm = 0.5, # design prior mean at d = 0.5
-                    dpsd = 0.1, # design prior standard deviation
+                    dpsd = 0, # point design prior (standard deviation is zero)
                     ## directional JSZ analysis prior
                     plocation = 0,
                     pscale = 1/sqrt(2),
@@ -405,17 +432,71 @@ following code illustrates its usage
 @
 \end{spacing}
 
-\noindent Again, the power curves corresponding to the design calculations can
-be plotted with
+\noindent In this example, taken from \citet[]{Schoenbrodt2017}, it is assumed
+that the future data that will be analyzed with a two-sample \textit{t}-test
+Bayes factor using a directional JSZ analysis prior with a scale of
+$1/\sqrt{2}$, and that a Bayes factor below \texttt{k = 1/6} is interpreted as
+compelling evidence. In addition, a standardized mean difference of
+\Sexpr{tres[["dpm"]]} was assumed for the underlying effect size, which
+corresponds to setting the design prior mean to \texttt{dpm =
+  \Sexpr{tres[["dpm"]]}} and its standard deviation to zero (\texttt{dpsd =
+  \Sexpr{tres[["dpsd"]]}}). If parameter uncertainty is to be accounted for, one
+could alternatively set a positive value for the design prior standard
+deviation. Taken together, the calculation results in a sample size of
+$n = \Sexpr{round(tres[["n"]], 2)}$, which means that at least
+\Sexpr{ceiling(tres[["n"]])} observations per group are required to obtain
+compelling evidence with a power of \Sexpr{round(100*tres[["power"]], 2)}\%. As
+with the \textit{z}-test Bayes factor, the power curves corresponding to these
+design calculations can be plotted with
 
 << "plot-powertbf01-illustration", fig.height = 6.5 >>=
 plot(tres)
 @
 
-\section{Nonlocal moment prior Bayes factor}
+\section{Normal moment prior Bayes factor}
 \label{sec:nonlocal}
+The normal moment prior Bayes factor is another analysis method that is
+applicable to data in the form of parameter estimates with standard errors. The
+difference between the two approaches is that the former uses a so-called
+`normal moment' prior distribution for the parameter under the alternative
+hypothesis. Normal moment priors are a type of `non-local' prior distribution
+which allow evidence for a point null hypothesis to accumulate more quickly if
+it is indeed true \citep{Johnson2010}. This is because normal moment priors have
+no density at the null value, see Figure~\ref{fig:nmprior} for an illustration.
+
+\begin{figure}[!htb]
+<< "nm-prior-illustration", fig.height = 4.5, echo = FALSE >>=
+dnmoment <- function(x, location = 0, spread = 1) {
+    stats::dnorm(x = x, mean = location, sd = spread)*(x - location)^2/spread^2
+}
+xseq <- seq(-4, 4, length.out = 500)
+taus <- c(0.5, 1, 2)
+null <- 0
+dens <- sapply(X = taus, FUN = function(tau) dnmoment(x = xseq, location = 0, spread = tau))
+cols <- hcl.colors(n = length(taus), alpha = 0.8)
+par(mar = c(4, 5, 2, 2))
+matplot(xseq, dens, type = "l", lty = 1, col = cols, lwd = 1.5,
+        xlab = bquote("Parameter" ~ theta), ylab = "Density", las = 1,
+        panel.first = grid(lty = 3, col = adjustcolor(col = 1, alpha = 0.1)))
+leg <- paste("null = 0, psd =", taus)
+legend("topright", legend = leg, col = cols, lty = 1, lwd = 1.5, cex = 0.8,
+       bg = "white")
+@
+\caption{Illustration of different normal moment prior distributions along with
+  the arguments to specify them.}
+\label{fig:nmprior}
+\end{figure}
+
+Analysis and design with the normal moment prior Bayes factor is very similar to
+analysis with the \textit{z}-test Bayes factor. There is again one analysis
+function (\texttt{nmbf01}), a design function for (standardized) mean
+(difference) parameters (\texttt{powernmbf01}), and two more general design
+functions that can accommodate also other parameter types (\texttt{pnmbf01} and
+\texttt{nnmbf01}). The documentation of these functions provides more
+information and examples.
 
 
+\newpage
 % References
 \bibliographystyle{apalike}
 \bibliography{bibliography}
