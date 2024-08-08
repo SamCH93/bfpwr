@@ -1,5 +1,5 @@
 ## ## do not run these tests for the moment, because they are there to verify
-## ## power with simulation
+## ## the power with simulation which takes a long time to run
 
 ## library(tinytest)
 ## library(bfpwr)

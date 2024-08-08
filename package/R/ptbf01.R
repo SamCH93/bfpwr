@@ -107,17 +107,11 @@ ptbf01. <- function(k = 1/10, n, n1 = n, n2 = n, null = 0, plocation = 0,
                 critz1 <- -sqrt(X) - M # limit 1 z-test BF
                 critz2 <- sqrt(X) - M # limit 2 z-test BF
             })
-
-            ## search for critical values
             meancritz <- (critz1 + critz2)/2
             if (critz1 < critz2) {
-                ## searchIntLow <- c(5*(critz1 - 0.01), meancritz)
-                ## searchIntUp <- c(meancritz, 5*(critz2 + 0.01))
                 searchIntLow <- c(critz1 - 0.01, meancritz)
                 searchIntUp <- c(meancritz, critz2 + 0.01)
             } else {
-                ## searchIntLow <- c(5*(critz2 - 0.01), meancritz)
-                ## searchIntUp <- c(meancritz, 5*(critz1 + 0.01))
                 searchIntLow <- c(critz2 - 0.01, meancritz)
                 searchIntUp <- c(meancritz, critz1 + 0.01)
             }
@@ -126,6 +120,7 @@ ptbf01. <- function(k = 1/10, n, n1 = n, n2 = n, null = 0, plocation = 0,
             searchIntLow <- c(drange[1], meant)
             searchIntUp <- c(meant, drange[2])
         }
+        ## search for critical values
         upper <- try(stats::uniroot(f = rootFun, interval = searchIntUp,
                                     extendInt = "yes", ... = ...)$root,
                      silent = TRUE)
@@ -158,7 +153,7 @@ ptbf01. <- function(k = 1/10, n, n1 = n, n2 = n, null = 0, plocation = 0,
         ## one-sided alternatives
         if (k > 1) {
             ## find maximum BF to see whether BF = k is possible
-            opt <- stats::optim(par = 0, fn = rootFun, control = list(fnscale = -1),
+            opt <- stats::optim(par = null, fn = rootFun, control = list(fnscale = -1),
                                 method = "BFGS")
             if (opt$convergence != 0) {
                 warning("numerical problems finding maximum BF")
@@ -177,7 +172,7 @@ ptbf01. <- function(k = 1/10, n, n1 = n, n2 = n, null = 0, plocation = 0,
 
         if (!is.numeric(drange) && drange == "adaptive") {
             ## extend the search range if critical value not contained
-            searchRange <- c(-0.1, 0.1)
+            searchRange <- c(null - 0.1, null + 0.1)
             crit <- try(stats::uniroot(f = rootFun, interval = searchRange,
                                        extendInt = "yes", ... = ...)$root,
                         silent = TRUE)

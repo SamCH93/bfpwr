@@ -5,3 +5,6 @@ Makefile
 out/
 power.png
 README.md
+^doc$
+^Meta$
+.auctex-auto

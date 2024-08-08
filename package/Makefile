@@ -47,4 +47,8 @@ cran: $(TAR)
 test:
 	R -e 'tinytest::build_install_test(pkgdir = ".")'
 
-.PHONY: all document manual build install check cran description test
+## build vignettes
+vignettes:
+	R -e 'devtools::build_vignettes(pkg = ".")'
+
+.PHONY: all document manual build install check cran description test vignettes

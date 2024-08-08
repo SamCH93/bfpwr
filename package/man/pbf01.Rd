@@ -57,6 +57,18 @@ plot(nseq, pbf01(k = 1/10, n = nseq, sd = 2, null = 0, pm = 0.3, psd = 0), type 
      xlab = "n", ylab = bquote("Pr(BF"["01"] <= 1/10 * ")"), ylim = c(0, 1),
      log = "x", las = 1)
 
+## standardized mean difference (unit sd = sqrt(2), effective sample size = per group size)
+n <- 30
+pbf01(k = 1/10, n = n, sd = sqrt(2), null = 0, pm = 0, psd = 1)
+
+## z-transformed correlation (unit sd = 1, effective sample size = n - 3)
+n <- 100
+pbf01(k = 1/10, n = n - 3, sd = 1, null = 0, pm = 0.2, psd = 0.5)
+
+## log hazard/odds ratio (unit sd = 2, effective sample size = total number of events)
+nevents <- 100
+pbf01(k = 1/10, n = nevents, sd = 2, null = 0, pm = 0, psd = sqrt(0.5))
+
 }
 \seealso{
 \link{nbf01}, \link{powerbf01}, \link{bf01}

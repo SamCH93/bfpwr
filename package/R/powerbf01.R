@@ -175,19 +175,19 @@ print.power.bftest <- function(x, digits = getOption("digits"), ...) {
     if (x$type == "paired") {
         note <- paste(note,
                       "n is number of *pairs*",
-                      "sd is standard deviation of *differences* between pairs",
+                      "sd is standard deviation of one *difference* within pairs",
                       sep = "\n      ")
         method <- paste("Paired", method)
     } else if (x$type == "one.sample") {
         note <- paste(note,
                       "n is number of *samples*",
-                      "sd is standard deviation of one sample",
+                      "sd is standard deviation of one observation",
                       sep = "\n      ")
         method <- paste("One-sample", method)
     } else {
         note <- paste(note,
                       "n is number of *samples per group*",
-                      "sd is standard deviation of one sample (assumed equal in both groups)",
+                      "sd is standard deviation of one observation (assumed equal in both groups)",
                       sep = "\n      ")
         method <- paste("Two-sample", method)
     }
