@@ -33,7 +33,8 @@ with unequal group sizes)}
 
 \item{pscale}{\eqn{t} prior scale. Defaults to \code{1/sqrt(2)}}
 
-\item{pdf}{\eqn{t} prior degrees of freedom. Defaults to \code{1}}
+\item{pdf}{\eqn{t} prior degrees of freedom. Defaults to \code{1} (a Cauchy
+prior)}
 
 \item{type}{Type of \eqn{t}-test associated with \eqn{t}-statistic. Can be
 \code{"two.sample"} (default), \code{"one.sample"}, or \code{"paired"}}
