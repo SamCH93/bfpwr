@@ -155,6 +155,19 @@ nbf01. <- function(k, power, sd, null = 0, pm, psd, dpm = pm, dpsd = psd,
 #' ## point alternative (analytical and numerical solution available)
 #' nbf01(k = 1/10, power = 0.9, sd = 1, null = 0, pm = 0.5, psd = 0,
 #'       analytical = c(TRUE, FALSE), integer = FALSE)
+#'
+#' ## standardized mean difference (unit sd = sqrt(2), effective sample size = per group size)
+#' nbf01(k = 1/10, power = 0.9, sd = sqrt(2), null = 0, pm = 0, psd = 1)
+#' ## this is the sample size per group (assuming equally sized groups)
+#'
+#' ## z-transformed correlation (unit sd = 1, effective sample size = n - 3)
+#' nbf01(k = 1/10, power = 0.9, sd = 1, null = 0, pm = 0.2, psd = 0.5)
+#' ## have to add 3 to obtain the actual sample size
+#'
+#' ## log hazard/odds ratio (unit sd = 2, effective sample size = total number of events)
+#' nbf01(k = 1/10, power = 0.9, sd = 2, null = 0, pm = 0, psd = sqrt(0.5))
+#' ## have to convert the number of events to a sample size
+#'
 #' @export
 nbf01 <- Vectorize(FUN = nbf01.,
                    vectorize.args = c("k", "power", "sd", "null", "pm", "psd",

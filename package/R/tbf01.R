@@ -130,7 +130,8 @@ tbf01. <- function(t, n, n1 = n, n2 = n, plocation = 0, pscale = 1/sqrt(2),
 #'     with unequal group sizes)
 #' @param plocation \eqn{t} prior location. Defaults to \code{0}
 #' @param pscale \eqn{t} prior scale. Defaults to \code{1/sqrt(2)}
-#' @param pdf \eqn{t} prior degrees of freedom. Defaults to \code{1}
+#' @param pdf \eqn{t} prior degrees of freedom. Defaults to \code{1} (a Cauchy
+#'     prior)
 #' @param type Type of \eqn{t}-test associated with \eqn{t}-statistic. Can be
 #'     \code{"two.sample"} (default), \code{"one.sample"}, or \code{"paired"}
 #' @param alternative Direction of the test. Can be either \code{"two.sided"}
