@@ -47,8 +47,9 @@
 
 \usepackage{fancyhdr}
 \pagestyle{fancy}
+\chead{}
 \lhead{\textit{Using the \textbf{bfpwr} package}}
-\rhead{S. Pawel}
+\rhead{}
 
 \begin{document}
 
@@ -73,11 +74,8 @@ simulation methods for the same purposes \citep[e.g., the \textbf{BFDA} package
 from][]{Schoenbrodt2019}. This typically leads to faster computations without
 simulation error, but at the cost of being restricted to certain data
 distributions and analysis methods. This vignette illustrates how the package
-can be used in some typical situations -- analysis and design based on the
-\textit{z}-test Bayes factor (Section~\ref{sec:ztest}), the \textit{t}-test
-Bayes factor (Section~\ref{sec:ttest}), and the normal moment prior Bayes factor
-(Section~\ref{sec:nonlocal}). Table~\ref{tab:mainfunctions} summarizes the main
-functions of the package. It is recommended to look at the function
+can be used in some typical situations. Table~\ref{tab:mainfunctions} summarizes
+the main functions of the package. It is recommended to look at the function
 documentation (\texttt{?functionname}) before using them for the first time as
 this vignette provides only a broad overview of the package.
 
@@ -91,11 +89,11 @@ this vignette provides only a broad overview of the package.
   \rowcolors{1}{}{gray!15}
   \begin{tabular}{l l l}
     \toprule
-    \textbf{Bayes factor} & \textbf{Analysis function} & \textbf{Design function} \\
+    \textbf{Bayes factor type} & \textbf{Analysis function} & \textbf{Design function} \\
     \midrule
-    \textit{z}-test & \texttt{bf01} & \texttt{powerbf01}\\
-    \textit{t}-test & \texttt{tbf01} & \texttt{powertbf01} \\
-    Normal moment & \texttt{nmbf01} & \texttt{powernmbf01} \\
+    \textit{z}-test Bayes factor (Section~\ref{sec:ztest}) & \texttt{bf01} & \texttt{powerbf01}\\
+    \textit{t}-test Bayes factor (Section~\ref{sec:ttest}) & \texttt{tbf01} & \texttt{powertbf01} \\
+    Normal moment Bayes factor (Section~\ref{sec:nonlocal}) & \texttt{nmbf01} & \texttt{powernmbf01} \\
     \bottomrule
   \end{tabular}
 \end{table}
@@ -142,8 +140,8 @@ overview of the likelihoodist paradigm]{Royall1997}.
 \subsection{Analysis with the \textit{z}-test Bayes factor}
 The \textit{z}-test Bayes factor can be calculated using the function
 \texttt{bf01}, see \texttt{?bf01} for a detailed description of its arguments.
-The following code demonstrates application to an estimated regression
-coefficient from a logistic regression model
+The following code demonstrates application to data in the form of an estimated
+regression coefficient from a logistic regression model and its standard error
 
 \begin{spacing}{1}
 << "bf01-illustration", echo = TRUE >>=
@@ -183,14 +181,14 @@ probability of obtaining a compelling Bayes factor for a given sample size (the
 `power').
 
 The function \texttt{powerbf01} can be used to compute power and sample size,
-assuming that the data are continuous and that the parameter of interest is
-either a mean or a (standardized) mean difference. It is inspired by the
-\texttt{power.t.test} function from the \texttt{stats} package, with which many
-user will be familiar. One can either compute the power for a given sample size
-(by specifying the \texttt{n} argument) or compute the sample size for a given
-power (by specifying the \texttt{power} argument). The code below demonstrates
-usage of \texttt{powerbf01} for a two-sample test of a standardized mean
-difference parameter
+assuming that the data are normally distributed and that the parameter of
+interest is either a mean or a (standardized) mean difference. It is inspired by
+the \texttt{power.t.test} function from the \texttt{stats} package, with which
+many user will be familiar. One can either compute the power for a given sample
+size (by specifying the \texttt{n} argument) or compute the sample size for a
+given power (by specifying the \texttt{power} argument). The code below
+demonstrates usage of \texttt{powerbf01} for a two-sample test of a standardized
+mean difference parameter
 
 \begin{spacing}{1}
 << "powerbf01-illustration", echo = TRUE >>=
@@ -216,18 +214,20 @@ n <- 500
 
 Defining a Bayes factor below the threshold $k = 1/\Sexpr{1/k}$ as target for
 compelling evidence, we see that $n = \Sexpr{ceiling(res1[["n"]])}$ observations
-per group are required to obtain a power of $\Sexpr{round(pow*100, 1)}$\%, or
-that a power of $\Sexpr{round(res2[["power"]]*100, 1)}$\% is obtained for a
-sample size of $n = \Sexpr{n}$. Both function calls assume that the underlying
-parameter is sampled from the normal analysis prior under the alternative
-hypothesis, as specified with the arguments \texttt{pm} and \texttt{psd}. By
-additionally specifying the arguments \texttt{dpm} and \texttt{dpsd}, it is also
-possible to specify a normal `design prior` that differs from the analysis
-prior. For example, we may want to specify a design prior that encodes more
-optimistic assumptions about the parameter than the analysis prior, or we may
-want to set the design prior to the null hypothesis (\texttt{dpm = null} and
-\texttt{dpsd = 0}) to compute the probability of misleading evidence in favor of
-the alternative when the null is actually true. The latter is done automatically
+per group (obtained from rounding the resulting sample size
+$n = \Sexpr{round(res1[["n"]], 2)}$ to the next larger integer) are required to
+obtain a power of $\Sexpr{round(pow*100, 1)}$\%, or that a power of
+$\Sexpr{round(res2[["power"]]*100, 1)}$\% is obtained for a sample size of
+$n = \Sexpr{n}$. Both function calls assume that the underlying parameter is
+sampled from the normal analysis prior under the alternative hypothesis, as
+specified with the arguments \texttt{pm} and \texttt{psd}. By additionally
+specifying the arguments \texttt{dpm} and \texttt{dpsd}, it is also possible to
+specify a normal `design prior` that differs from the analysis prior. For
+example, we may want to specify a design prior that encodes more optimistic
+assumptions about the parameter than the analysis prior, or we may want to set
+the design prior to the null hypothesis (\texttt{dpm = null} and \texttt{dpsd =
+  0}) to compute the probability of misleading evidence in favor of the
+alternative when the null is actually true. The latter is done automatically
 when plotting the resulting \texttt{power.bftest} object with the corresponding
 \texttt{plot} method, as shown below
 
@@ -247,9 +247,9 @@ the argument \texttt{nullplot = FALSE}. Finally, the argument \texttt{plot =
 example, if one wants to use an alternative plotting package.
 
 
-To conduct such sample size and power calculations for other parameters than
-means and (standardized) mean differences, additional assumptions regarding the
-standard error and sample size are needed. The functions \texttt{pbf01} and
+To conduct such sample size and power calculations for other parameters than a
+(standardized) mean (difference), additional assumptions regarding the standard
+error and sample size are needed. The functions \texttt{pbf01} and
 \texttt{nbf01} can perform power and sample size calculations in more general
 cases than \texttt{powerbf01}. Both assume that the standard error is of the
 form $\sigma_{\scriptscriptstyle \hat{\theta}}/\sqrt{n}$, where
@@ -300,26 +300,26 @@ can be cast into this framework. The documentation of both functions
 \label{sec:ttest}
 
 The \textit{t}-test Bayes factor is an analysis method specifically tailored to
-testing a mean or a (standardized) mean difference parameter $\theta$ based on
-normally distributed data with unknown variance (assumed equal across both
-groups if more than one). This Bayes factor quantifies the evidence that the
-data (in the form of a \textit{t}-statistic and sample sizes) provide for the
-null hypothesis that the parameter equals zero against the alternative
-hypothesis that it is not equal zero. Following \citet{Gronau2020}, the
-\textit{t}-test Bayes factor implemented in \textbf{bfpwr} assumes that a
-scale-location \textit{t} prior distribution (potentially truncated to only
-positive or only negative parameters) is assigned to the standardized mean
-(difference) under the alternative hypothesis. When centering the prior on zero
-and setting its degrees of freedom to one, the Bayes factor reduces to the
-`Jeffreys-Zellner-Siow' (JZS) Bayes factor \citep{Jeffreys1961, Zellner1980},
-which is often used as a `default' Bayes factor in the social sciences
-\citep{Rouder2009}. Setting other values for these parameters allows data
-analysts to incorporate directionality or prior knowledge about the parameter,
-potentially making the test more informative. Figure~\ref{fig:tprior} shows
-examples of differnet prior distributions along with their parameters.
+testing a (standardized) mean (difference) parameter $\theta$ based on normally
+distributed data with unknown variance (assumed equal across both groups if more
+than one). This Bayes factor quantifies the evidence that the data (in the form
+of a \textit{t}-statistic and sample sizes) provide for the null hypothesis that
+the parameter equals zero against the alternative hypothesis that it is not
+equal zero. Following \citet{Gronau2020}, the \textit{t}-test Bayes factor
+implemented in \textbf{bfpwr} assumes that a scale-location \textit{t} prior
+distribution (potentially truncated to only positive or only negative
+parameters) is assigned to the standardized mean (difference) under the
+alternative hypothesis. When centering the prior on zero and setting its degrees
+of freedom to one, the Bayes factor reduces to the `Jeffreys-Zellner-Siow' (JZS)
+Bayes factor \citep{Jeffreys1961, Zellner1980}, which is often used as a
+`default' Bayes factor in the social sciences \citep{Rouder2009}. Setting other
+values for these parameters allows data analysts to incorporate directionality
+or prior knowledge about the parameter, potentially making the test more
+informative. Figure~\ref{fig:tprior} shows examples of different prior
+distributions along with the arguments to specify them.
 
 \begin{figure}[!htb]
-<< "prior-illustration", fig.height = 4.5, echo = FALSE >>=
+<< "prior-illustration", fig.height = 4, echo = FALSE >>=
 tprior <- function(d,
                    plocation = 0,
                    pscale = 1,
@@ -433,18 +433,17 @@ following code illustrates its usage
 \end{spacing}
 
 \noindent In this example, taken from \citet[]{Schoenbrodt2017}, it is assumed
-that the future data that will be analyzed with a two-sample \textit{t}-test
-Bayes factor using a directional JSZ analysis prior with a scale of
-$1/\sqrt{2}$, and that a Bayes factor below \texttt{k = 1/6} is interpreted as
-compelling evidence. In addition, a standardized mean difference of
-\Sexpr{tres[["dpm"]]} was assumed for the underlying effect size, which
-corresponds to setting the design prior mean to \texttt{dpm =
-  \Sexpr{tres[["dpm"]]}} and its standard deviation to zero (\texttt{dpsd =
-  \Sexpr{tres[["dpsd"]]}}). If parameter uncertainty is to be accounted for, one
-could alternatively set a positive value for the design prior standard
-deviation. Taken together, the calculation results in a sample size of
-$n = \Sexpr{round(tres[["n"]], 2)}$, which means that at least
-\Sexpr{ceiling(tres[["n"]])} observations per group are required to obtain
+that the future data will be analyzed with a two-sample \textit{t}-test Bayes
+factor using a directional JSZ analysis prior with a scale of $1/\sqrt{2}$, and
+that a Bayes factor below \texttt{k = 1/6} is interpreted as compelling
+evidence. In addition, a standardized mean difference of \Sexpr{tres[["dpm"]]}
+was assumed for the underlying effect size, which corresponds to setting the
+design prior mean to \texttt{dpm = \Sexpr{tres[["dpm"]]}} and its standard
+deviation to zero (\texttt{dpsd = \Sexpr{tres[["dpsd"]]}}). If parameter
+uncertainty is to be accounted for, one could alternatively set a positive value
+for the design prior standard deviation. Taken together, the calculation results
+in a sample size of $n = \Sexpr{round(tres[["n"]], 2)}$, which means that at
+least \Sexpr{ceiling(tres[["n"]])} observations per group are required to obtain
 compelling evidence with a power of \Sexpr{round(100*tres[["power"]], 2)}\%. As
 with the \textit{z}-test Bayes factor, the power curves corresponding to these
 design calculations can be plotted with
@@ -456,16 +455,25 @@ plot(tres)
 \section{Normal moment prior Bayes factor}
 \label{sec:nonlocal}
 The normal moment prior Bayes factor is another analysis method that is
-applicable to data in the form of parameter estimates with standard errors. The
-difference between the two approaches is that the former uses a so-called
-`normal moment' prior distribution for the parameter under the alternative
-hypothesis. Normal moment priors are a type of `non-local' prior distribution
-which allow evidence for a point null hypothesis to accumulate more quickly if
-it is indeed true \citep{Johnson2010}. This is because normal moment priors have
-no density at the null value, see Figure~\ref{fig:nmprior} for an illustration.
+applicable to data in the form of a parameter estimate with standard error,
+similar to the \textit{z}-test Bayes factor. The difference between the two
+approaches is that the former uses a so-called `normal moment' prior
+distribution for the parameter under the alternative hypothesis while the
+\textit{z}-test Bayes factor uses just a normal prior distribution. Normal
+moment priors are a type of `non-local' prior distribution which allow evidence
+for a point null hypothesis to accumulate more quickly if it is indeed true
+\citep{Johnson2010}. This is because normal moment priors have no density at the
+null value, see Figure~\ref{fig:nmprior} for an illustration. In all functions
+related to the normal moment prior Bayes factor, the prior is specified by the
+point null hypothesis (argument \texttt{null}) and the prior spread (argument
+\texttt{psd}). The latter controls how much the prior is spread out, and
+determines the modes of the distribution which are located at
+$\pm \mathtt{psd} \sqrt{2}$. As such, the prior could be specified by setting
+the spread parameter so that the modes equal two parameter values deemed
+plausible or relevant under the alternative.
 
 \begin{figure}[!htb]
-<< "nm-prior-illustration", fig.height = 4.5, echo = FALSE >>=
+<< "nm-prior-illustration", fig.height = 4, echo = FALSE >>=
 dnmoment <- function(x, location = 0, spread = 1) {
     stats::dnorm(x = x, mean = location, sd = spread)*(x - location)^2/spread^2
 }
@@ -491,12 +499,11 @@ Analysis and design with the normal moment prior Bayes factor is very similar to
 analysis with the \textit{z}-test Bayes factor. There is again one analysis
 function (\texttt{nmbf01}), a design function for (standardized) mean
 (difference) parameters (\texttt{powernmbf01}), and two more general design
-functions that can accommodate also other parameter types (\texttt{pnmbf01} and
+functions that can also accommodate other parameter types (\texttt{pnmbf01} and
 \texttt{nnmbf01}). The documentation of these functions provides more
 information and examples.
 
 
-\newpage
 % References
 \bibliographystyle{apalike}
 \bibliography{bibliography}
