@@ -41,7 +41,7 @@ bf01. <- function(estimate, se, null = 0, pm, psd, log = FALSE) {
 #'     evidence that the data (in the form of an asympotically normally
 #'     distributed parameter estimate with standard error) provide for a point
 #'     null hypothesis with a normal prior assigned to the parameter under the
-#'     alternative. The standard error is assumed to be known
+#'     alternative. The standard error is assumed to be known.
 #'
 #' @param estimate Parameter estimate
 #' @param se Standard error of the parameter estimate

@@ -204,8 +204,8 @@ ptbf01. <- function(k = 1/10, n, n1 = n, n2 = n, null = 0, plocation = 0,
 #' @title Cumulative distribution function of the t-test Bayes factor
 #'
 #' @description This function computes the probability of obtaining a
-#'     \eqn{t}-test Bayes factor (\link{tbf01}) smaller (or larger) than a
-#'     threshold \code{k} with a specified sample size.
+#'     \eqn{t}-test Bayes factor (\link{tbf01}) more extreme than a threshold
+#'     \code{k} with a specified sample size.
 #'
 #' @param k Bayes factor threshold. Defaults to \code{1/10}, Jeffreys' threshold
 #'     for 'strong evidence' against the null hypothesis

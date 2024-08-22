@@ -74,8 +74,7 @@ Compute probability that \eqn{t}-test Bayes factor is smaller
 powertbf01(k = 1/6, n = 146, dpm = 0.5, dps = 0, alternative = "greater")
 
 ## determine sample size
-plot(powertbf01(k = 1/6, power = 0.95, dpm = 0.5, dps = 0, alternative = "greater"),
-     nlim = c(5, 300))
+powertbf01(k = 1/6, power = 0.95, dpm = 0.5, dps = 0, alternative = "greater")
 
 }
 \seealso{

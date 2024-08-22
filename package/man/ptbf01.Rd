@@ -76,8 +76,8 @@ The probability that the Bayes factor is less or greater (depending
 }
 \description{
 This function computes the probability of obtaining a
-    \eqn{t}-test Bayes factor (\link{tbf01}) smaller (or larger) than a
-    threshold \code{k} with a specified sample size.
+    \eqn{t}-test Bayes factor (\link{tbf01}) more extreme than a threshold
+    \code{k} with a specified sample size.
 }
 \examples{
 ## example from Schönbrodt and Wagenmakers (2018, p. 135)

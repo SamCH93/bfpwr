@@ -63,8 +63,8 @@ pnmbf01. <- function(k, n, sd, null = 0, psd, dpm, dpsd, lower.tail = TRUE) {
 #' @title Cumulative distribution function of the normal moment prior Bayes factor
 #'
 #' @description This function computes the probability of obtaining a normal
-#'     moment prior Bayes factor (\link{nmbf01}) smaller (or larger) than a
-#'     threshold \code{k} with a specified sample size.
+#'     moment prior Bayes factor (\link{nmbf01}) more extreme than a threshold
+#'     \code{k} with a specified sample size.
 #'
 #' @param k Bayes factor threshold
 #' @param n Sample size

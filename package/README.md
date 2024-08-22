@@ -1,7 +1,11 @@
 # bfpwr
 
-**bfpwr** is an R package for power and sample size calculations for planned
-Bayes factor analyses
+The **bfpwr** R package provides functions to compute commonly used Bayes
+factors and perform corresponding power and sample size calculations. The
+theoretical background of the package is described in 
+
+Pawel, S. and Held, L. (2024). Closed-form power and sample size calculations
+for Bayes factors. <https://doi.org/10.48550/arXiv.2406.19940>
 
 ## Installation
 
@@ -45,7 +49,7 @@ dpsd <- 0.1 # design prior sd to incorporate parameter uncertainty
 
 ## determine sample size to achieve 85% power
 k <- 1/6 # BF threshold
-power <- 0.85
+power <- 0.85 # target power
 ssd <- powerbf01(k = k, power = power, sd = sd, null = null, pm = pm, psd = psd,
                  dpm = dpm, dpsd = dpsd, type = type)
 ssd

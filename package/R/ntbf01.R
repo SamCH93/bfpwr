@@ -85,7 +85,7 @@ ntbf01. <- function(k = 1/10, power, null = 0, plocation = 0,
 #' @title Sample size calculations for \eqn{t}-test Bayes factor
 #'
 #' @description This function computes the required sample size to obtain a
-#'     \eqn{t}-test Bayes factor (\link{tbf01}) less or greater than a threshold
+#'     \eqn{t}-test Bayes factor (\link{tbf01}) more extreme than a threshold
 #'     \code{k} with a specified target power.
 #'
 #'

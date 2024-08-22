@@ -38,7 +38,7 @@ The probability that the Bayes factor is less or greater (depending
 }
 \description{
 This function computes the probability of obtaining a Bayes
-    factor (\link{bf01}) smaller (or larger) than a threshold \code{k} with a
+    factor (\link{bf01}) more extreme than a threshold \code{k} with a
     specified sample size.
 }
 \examples{

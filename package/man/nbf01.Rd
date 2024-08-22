@@ -64,8 +64,8 @@ The required sample size to achieve the specified power
 }
 \description{
 This function computes the required sample size to obtain a
-    Bayes factor (\link{bf01}) less or greater than a threshold \code{k} with
-    a specified target power.
+    Bayes factor (\link{bf01}) more extreme than a threshold \code{k} with a
+    specified target power.
 }
 \examples{
 ## point alternative (analytical and numerical solution available)
