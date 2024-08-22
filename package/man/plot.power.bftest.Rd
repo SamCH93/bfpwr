@@ -9,10 +9,11 @@
 \arguments{
 \item{x}{Object of class \code{"power.bftest"}}
 
-\item{nlim}{Range of samples sizes over which the power should be computed.
+\item{nlim}{Range of sample sizes over which the power should be computed.
 Defaults to \code{c(2, 500)}}
 
-\item{ngrid}{Number of grid point for which power should be computed. Defaults to 100}
+\item{ngrid}{Number of grid point for which power should be computed.
+Defaults to 100}
 
 \item{plot}{Logical indicating whether data should be plotted. If
 \code{FALSE} only the data used for plotting are returned.}

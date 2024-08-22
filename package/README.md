@@ -69,7 +69,7 @@ ssd
 #> 
 #> NOTE: BF oriented in favor of H0 (BF < 1 indicates evidence for H1 over H0)
 #>       n is number of *samples per group*
-#>       sd is standard deviation of one sample (assumed equal in both groups)
+#>       sd is standard deviation of one observation (assumed equal in both groups)
 
 
 ## plot power curve

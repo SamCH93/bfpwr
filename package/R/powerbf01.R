@@ -180,13 +180,13 @@ print.power.bftest <- function(x, digits = getOption("digits"), ...) {
         method <- paste("Paired", method)
     } else if (x$type == "one.sample") {
         note <- paste(note,
-                      "n is number of *samples*",
+                      "n is number of *observations*",
                       "sd is standard deviation of one observation",
                       sep = "\n      ")
         method <- paste("One-sample", method)
     } else {
         note <- paste(note,
-                      "n is number of *samples per group*",
+                      "n is number of *observations per group*",
                       "sd is standard deviation of one observation (assumed equal in both groups)",
                       sep = "\n      ")
         method <- paste("Two-sample", method)
@@ -228,9 +228,10 @@ print.power.bftest <- function(x, digits = getOption("digits"), ...) {
 #' @method plot power.bftest
 #'
 #' @param x Object of class \code{"power.bftest"}
-#' @param nlim Range of samples sizes over which the power should be computed.
+#' @param nlim Range of sample sizes over which the power should be computed.
 #'     Defaults to \code{c(2, 500)}
-#' @param ngrid Number of grid point for which power should be computed. Defaults to 100
+#' @param ngrid Number of grid point for which power should be computed.
+#'     Defaults to 100
 #' @param plot Logical indicating whether data should be plotted. If
 #'     \code{FALSE} only the data used for plotting are returned.
 #' @param nullplot Logcal indicating whether a second plot with the power in

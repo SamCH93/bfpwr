@@ -17,8 +17,8 @@ nmbf01(estimate, se, null = 0, psd, log = FALSE)
 the alternative. The modes of the prior are located at
 \eqn{\pm\sqrt{2}\,\code{psd}}{+-sqrt(2)*\code{psd}}}
 
-\item{log}{Logical indicating whether natural logarithm of the Bayes factor
-should be returned. Defaults to \code{FALSE}}
+\item{log}{Logical indicating whether the natural logarithm of the Bayes
+factor should be returned. Defaults to \code{FALSE}}
 }
 \value{
 Bayes factor in favor of the null hypothesis over the alternative (BF
@@ -27,7 +27,7 @@ Bayes factor in favor of the null hypothesis over the alternative (BF
 }
 \description{
 This function computes the Bayes factor that quantifies the
-    evidence that the data (in the form of an asympotically normally
+    evidence that the data (in the form of an asymptotically normally
     distributed parameter estimate with standard error) provide for a point
     null hypothesis with a normal moment prior assigned to the parameter
     under the alternative.

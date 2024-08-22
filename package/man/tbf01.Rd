@@ -42,8 +42,8 @@ prior)}
 \item{alternative}{Direction of the test. Can be either \code{"two.sided"}
 (default), \code{"less"}, or \code{"greater"}}
 
-\item{log}{Logical indicating whether natural logarithm of the Bayes factor
-should be returned. Defaults to \code{FALSE}}
+\item{log}{Logical indicating whether the natural logarithm of the Bayes
+factor should be returned. Defaults to \code{FALSE}}
 
 \item{...}{Additional arguments passed to \code{stats::integrate}}
 }

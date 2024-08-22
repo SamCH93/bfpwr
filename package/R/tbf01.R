@@ -136,8 +136,8 @@ tbf01. <- function(t, n, n1 = n, n2 = n, plocation = 0, pscale = 1/sqrt(2),
 #'     \code{"two.sample"} (default), \code{"one.sample"}, or \code{"paired"}
 #' @param alternative Direction of the test. Can be either \code{"two.sided"}
 #'     (default), \code{"less"}, or \code{"greater"}
-#' @param log Logical indicating whether natural logarithm of the Bayes factor
-#'     should be returned. Defaults to \code{FALSE}
+#' @param log Logical indicating whether the natural logarithm of the Bayes
+#'     factor should be returned. Defaults to \code{FALSE}
 #' @param ... Additional arguments passed to \code{stats::integrate}
 #'
 #' @return Bayes factor in favor of the null hypothesis over the alternative (BF

@@ -134,8 +134,9 @@ factor, the normal analysis prior is specified by the prior mean (argument
 \texttt{pm}) and the prior standard deviation (argument \texttt{psd}). Setting
 the prior standard deviation to zero corresponds to a point prior and reduces
 the Bayes factor to a likelihood ratio. As such, the \textbf{bfpwr} package can
-also be used for `likelihoodist' analysis and design \citep[see e.g.,][for an
-overview of the likelihoodist paradigm]{Royall1997}.
+also be used for `likelihoodist' (sometimes also known as `evidential') analysis
+and design \citep[see e.g.,][for an overview of the likelihoodist/evidential
+paradigm]{Royall1997}.
 
 \subsection{Analysis with the \textit{z}-test Bayes factor}
 The \textit{z}-test Bayes factor can be calculated using the function
@@ -163,11 +164,11 @@ bf01(estimate = estimate, se = se, null = null, pm = pm, psd = psd)
 \noindent We can see that the data provide strong evidence
 ($\mathrm{BF}_{01} = 1/\Sexpr{round(1/bf01(estimate = estimate, se = se, null = null, pm = pm, psd = psd), 1)}$)
 for the alternative hypothesis of a log odds ratio unequal to zero (i.e., an
-association between the species Virginica and sepal width), over to the null
+association between the species Virginica and sepal width), over the null
 hypothesis of a log odds ratio equal to zero (i.e., no association). Note that
-the Bayes factor from the function \texttt{bf01} and all other functions in
-\textbf{bfpwr} are oriented \emph{in favor of the null} hypothesis over the
-alternative, so $\mathrm{BF}_{01} > 1$ indicates evidence for the null
+the Bayes factor calculated using the \texttt{bf01} function and all other
+functions in \textbf{bfpwr} are oriented \emph{in favor of the null} hypothesis
+over the alternative, so $\mathrm{BF}_{01} > 1$ indicates evidence for the null
 hypothesis, whereas $\mathrm{BF}_{01} < 1$ indicates evidence for the
 alternative hypothesis. If a Bayes factor orientation in favor of the
 alternative over the null is desired instead, one can invert the Bayes factor by
@@ -184,7 +185,7 @@ The function \texttt{powerbf01} can be used to compute power and sample size,
 assuming that the data are normally distributed and that the parameter of
 interest is either a mean or a (standardized) mean difference. It is inspired by
 the \texttt{power.t.test} function from the \texttt{stats} package, with which
-many user will be familiar. One can either compute the power for a given sample
+many users will be familiar. One can either compute the power for a given sample
 size (by specifying the \texttt{n} argument) or compute the sample size for a
 given power (by specifying the \texttt{power} argument). The code below
 demonstrates usage of \texttt{powerbf01} for a two-sample test of a standardized

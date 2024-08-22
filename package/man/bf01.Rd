@@ -19,8 +19,8 @@ alternative}
 \item{psd}{Standard deviation of the normal prior assigned to the parameter
 under the alternative. Set to 0 to obtain a point prior at the prior mean}
 
-\item{log}{Logical indicating whether natural logarithm of the Bayes factor
-should be returned. Defaults to \code{FALSE}}
+\item{log}{Logical indicating whether the natural logarithm of the Bayes
+factor should be returned. Defaults to \code{FALSE}}
 }
 \value{
 Bayes factor in favor of the null hypothesis over the alternative (BF
@@ -29,7 +29,7 @@ Bayes factor in favor of the null hypothesis over the alternative (BF
 }
 \description{
 This function computes the Bayes factor that quantifies the
-    evidence that the data (in the form of an asympotically normally
+    evidence that the data (in the form of an asymptotically normally
     distributed parameter estimate with standard error) provide for a point
     null hypothesis with a normal prior assigned to the parameter under the
     alternative. The standard error is assumed to be known.
