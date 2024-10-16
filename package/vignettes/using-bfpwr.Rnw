@@ -255,7 +255,7 @@ error and sample size are needed. The functions \texttt{pbf01} and
 cases than \texttt{powerbf01}. Both assume that the standard error is of the
 form $\sigma_{\scriptscriptstyle \hat{\theta}}/\sqrt{n}$, where
 $\sigma_{\scriptscriptstyle \hat{\theta}}$ is the standard deviation of one
-effective observation and $n$ is the `effective sample size'. In both function,
+effective observation and $n$ is the `effective sample size'. In both functions,
 users have to specify the unit standard deviation
 $\sigma_{\scriptscriptstyle \hat{\theta}}$ that determines the scale of the
 calculation. Table~\ref{tab:outcomes} lists how some typically used parameters
@@ -463,17 +463,17 @@ distribution for the parameter under the alternative hypothesis while the
 \textit{z}-test Bayes factor uses just a normal prior distribution. Normal
 moment priors are a type of `non-local' prior distribution which allow evidence
 for a point null hypothesis to accumulate more quickly if it is indeed true
-\citep{Johnson2010}. This is because normal moment priors have no density at the
-null value, see Figure~\ref{fig:nmprior} for an illustration. In all functions
-related to the normal moment prior Bayes factor, the prior is specified by the
-point null hypothesis (argument \texttt{null}) and the prior spread (argument
-\texttt{psd}). The latter controls how much the prior is spread out, and
-determines the modes of the distribution which are located at
+\citep{Johnson2010}. This is because normal moment priors have zero density at
+the null value, see Figure~\ref{fig:nmprior} for an illustration. In all
+functions related to the normal moment prior Bayes factor, the prior is
+specified by the point null hypothesis (argument \texttt{null}) and the prior
+spread (argument \texttt{psd}). The latter controls how much the prior is spread
+out, and determines the modes of the distribution which are located at
 $\pm \mathtt{psd} \sqrt{2}$. As such, the prior could be specified by setting
 the spread parameter so that the modes equal two parameter values deemed
 plausible or relevant under the alternative.
 
-\begin{figure}[!htb]
+\begin{figure}[!tb]
 << "nm-prior-illustration", fig.height = 4, echo = FALSE >>=
 dnmoment <- function(x, location = 0, spread = 1) {
     stats::dnorm(x = x, mean = location, sd = spread)*(x - location)^2/spread^2
