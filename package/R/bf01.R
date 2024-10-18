@@ -45,11 +45,13 @@ bf01. <- function(estimate, se, null = 0, pm, psd, log = FALSE) {
 #'
 #' @param estimate Parameter estimate
 #' @param se Standard error of the parameter estimate
-#' @param null Parameter value under the point null hypothesis. Defaults to 0
+#' @param null Parameter value under the point null hypothesis. Defaults to
+#'     \code{0}
 #' @param pm Mean of the normal prior assigned to the parameter under the
 #'     alternative
 #' @param psd Standard deviation of the normal prior assigned to the parameter
-#'     under the alternative. Set to 0 to obtain a point prior at the prior mean
+#'     under the alternative. Set to \code{0} to obtain a point prior at the
+#'     prior mean
 #' @param log Logical indicating whether the natural logarithm of the Bayes
 #'     factor should be returned. Defaults to \code{FALSE}
 #'

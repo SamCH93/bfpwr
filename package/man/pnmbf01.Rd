@@ -4,16 +4,18 @@
 \alias{pnmbf01}
 \title{Cumulative distribution function of the normal moment prior Bayes factor}
 \usage{
-pnmbf01(k, n, sd, null = 0, psd, dpm, dpsd, lower.tail = TRUE)
+pnmbf01(k, n, usd, null = 0, psd, dpm, dpsd, lower.tail = TRUE)
 }
 \arguments{
 \item{k}{Bayes factor threshold}
 
 \item{n}{Sample size}
 
-\item{sd}{Standard deviation of one unit}
+\item{usd}{Unit standard deviation, the standard error of the parameter
+estimate based on \eqn{\code{n}=1}{n=1}, see details}
 
-\item{null}{Parameter value under the point null hypothesis. Defaults to 0}
+\item{null}{Parameter value under the point null hypothesis. Defaults to
+\code{0}}
 
 \item{psd}{Spread of the normal moment prior assigned to the parameter under
 the alternative in the analysis. The modes of the prior are located at
@@ -22,7 +24,7 @@ the alternative in the analysis. The modes of the prior are located at
 \item{dpm}{Mean of the normal design prior assigned to the parameter}
 
 \item{dpsd}{Standard deviation of the normal design prior assigned to the
-parameter. Set to 0 to obtain a point prior at the prior mean}
+parameter. Set to 0 to obtain a point prior at the design prior mean}
 
 \item{lower.tail}{Logical indicating whether Pr(BF \eqn{\leq} \code{k})
 (\code{TRUE}) or Pr(BF \eqn{>} \code{k}) (\code{FALSE}) should be
@@ -37,15 +39,26 @@ This function computes the probability of obtaining a normal
     moment prior Bayes factor (\link{nmbf01}) more extreme than a threshold
     \code{k} with a specified sample size.
 }
+\details{
+It is assumed that the standard error of the future parameter
+    estimate is of the form \eqn{\code{se} =\code{usd}/\sqrt{\code{n}}}{se =
+    usd/sqrt(n)}. For example, for normally distributed data with known
+    standard deviation \code{sd} and two equally sized groups of size
+    \code{n}, the standard error of an estimated standardized mean difference
+    is \eqn{\code{se} = \code{sd}\sqrt{2/n}}{se = sd*sqrt(2/n)}, so the
+    corresponding unit standard deviation is \eqn{\code{usd} =
+    \code{sd}\sqrt{2}}{usd = sd*sqrt(2)}. See the vignette for more
+    information.
+}
 \examples{
 ## point desing prior (psd = 0)
-pnmbf01(k = 1/10, n = 200, sd = 2, null = 0, psd = 0.5/sqrt(2), dpm = 0.5, dpsd = 0)
+pnmbf01(k = 1/10, n = 200, usd = 2, null = 0, psd = 0.5/sqrt(2), dpm = 0.5, dpsd = 0)
 
 ## normal design prior to incorporate parameter uncertainty (psd > 0)
-pnmbf01(k = 1/10, n = 200, sd = 2, null = 0, psd = 0.5/sqrt(2), dpm = 0.5, dpsd = 0.25)
+pnmbf01(k = 1/10, n = 200, usd = 2, null = 0, psd = 0.5/sqrt(2), dpm = 0.5, dpsd = 0.25)
 
 ## design prior is the null hypothesis (dpm = 0, dpsd = 0)
-pnmbf01(k = 10, n = 200, sd = 2, null = 0, psd = 0.5/sqrt(2), dpm = 0, dpsd = 0, lower.tail = FALSE)
+pnmbf01(k = 10, n = 200, usd = 2, null = 0, psd = 0.5/sqrt(2), dpm = 0, dpsd = 0, lower.tail = FALSE)
 
 }
 \seealso{

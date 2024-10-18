@@ -1,6 +1,5 @@
-ntbf01. <- function(k = 1/10, power, null = 0, plocation = 0,
-                    pscale = 1/sqrt(2), pdf = 1,
-                    type = c("two.sample", "one.sample", "paired"),
+ntbf01. <- function(k, power, null = 0, plocation = 0, pscale = 1/sqrt(2),
+                    pdf = 1, type = c("two.sample", "one.sample", "paired"),
                     alternative = c("two.sided", "less", "greater"),
                     dpm = plocation, dpsd = pscale, lower.tail = TRUE,
                     integer = TRUE, nrange = c(2, 10^4), ...) {
@@ -88,43 +87,12 @@ ntbf01. <- function(k = 1/10, power, null = 0, plocation = 0,
 #'     \eqn{t}-test Bayes factor (\link{tbf01}) more extreme than a threshold
 #'     \code{k} with a specified target power.
 #'
-#'
-#' @param k Bayes factor threshold. Defaults to \code{1/10}, Jeffreys' threshold
-#'     for 'strong evidence' against the null hypothesis
-#' @param power Target power
-#' @param null Standardized mean difference under the point null hypothesis.
-#'     Defaults to \code{0}
-#' @param plocation Analysis \eqn{t} prior location. Defaults to \code{0}
-#' @param pscale Analysis \eqn{t} prior scale. Defaults to \code{1/sqrt(2)}
-#' @param pdf Analysis \eqn{t} prior degrees of freedom. Defaults to \code{1} (a
-#'     Cauchy prior)
-#' @param type Type of \eqn{t}-test associated with \eqn{t}-statistic. Can be
-#'     \code{"two.sample"} (default), \code{"one.sample"}, or \code{"paired"}
-#' @param alternative Direction of the test. Can be either \code{"two.sided"}
-#'     (default), \code{"less"} , or \code{"greater"}. The latter two truncate
-#'     the analysis prior to negative and positive effects, respectively. If set
-#'     to \code{"less"} or \code{"greater"}, the power is only computed based on
-#'     data with effect estimates in the direction of the alternative
-#' @param dpm Mean of the normal design prior assigned to the standardized mean
-#'     difference. Defaults to the analysis prior location
-#' @param dpsd Standard deviation of the normal design prior assigned to the
-#'     standardized mean difference. Set to \code{0} to obtain a point prior at
-#'     the design prior mean. Defaults to the analysis prior scale
-#' @param type The type of test. One of \code{"two.sample"},
-#'     \code{"one.sample"}, \code{"paired"}. Defaults to \code{"two.sample"}
-#' @param lower.tail Logical indicating whether Pr(BF \eqn{\leq} \code{k})
-#'     (\code{TRUE}) or Pr(BF \eqn{>} \code{k}) (\code{FALSE}) should be
-#'     computed. Defaults to \code{TRUE}
-#' @param integer Logical indicating whether only integer valued sample sizes
-#'     should be returned. If \code{TRUE} the required sample size is rounded to
-#'     the next larger integer. Defaults to \code{TRUE}
+#' @inheritParams ptbf01
+#' @inheritParams nbf01
 #' @param nrange Sample size search range over which numerical search is
 #'     performed. Defaults to \code{c(2, 10^4)}
-#' @param ... Other arguments passed to \code{stats::uniroot}
 #'
-#' @return Object of class \code{"power.bftest"}, a list of the arguments
-#'     (including the computed one) augmented with \code{method} and \code{note}
-#'     elements
+#' @inherit nbf01 return
 #'
 #' @author Samuel Pawel
 #'

@@ -132,17 +132,16 @@ tbf01. <- function(t, n, n1 = n, n2 = n, plocation = 0, pscale = 1/sqrt(2),
 #' @param pscale \eqn{t} prior scale. Defaults to \code{1/sqrt(2)}
 #' @param pdf \eqn{t} prior degrees of freedom. Defaults to \code{1} (a Cauchy
 #'     prior)
-#' @param type Type of \eqn{t}-test associated with \eqn{t}-statistic. Can be
-#'     \code{"two.sample"} (default), \code{"one.sample"}, or \code{"paired"}
+#' @param type Type of \eqn{t}-test. Can be \code{"two.sample"} (default),
+#'     \code{"one.sample"}, or \code{"paired"}
 #' @param alternative Direction of the test. Can be either \code{"two.sided"}
-#'     (default), \code{"less"}, or \code{"greater"}
+#'     (default), \code{"less"}, or \code{"greater"}. The latter two truncate
+#'     the analysis prior to negative and positive effects, respectively.
 #' @param log Logical indicating whether the natural logarithm of the Bayes
 #'     factor should be returned. Defaults to \code{FALSE}
 #' @param ... Additional arguments passed to \code{stats::integrate}
 #'
-#' @return Bayes factor in favor of the null hypothesis over the alternative (BF
-#'     > 1 indicates evidence for the null hypothesis, whereas BF < 1 indicates
-#'     evidence for the alternative)
+#' @inherit bf01 return
 #'
 #' @author Samuel Pawel
 #'

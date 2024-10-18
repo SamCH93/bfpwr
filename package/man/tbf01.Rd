@@ -36,11 +36,12 @@ with unequal group sizes)}
 \item{pdf}{\eqn{t} prior degrees of freedom. Defaults to \code{1} (a Cauchy
 prior)}
 
-\item{type}{Type of \eqn{t}-test associated with \eqn{t}-statistic. Can be
-\code{"two.sample"} (default), \code{"one.sample"}, or \code{"paired"}}
+\item{type}{Type of \eqn{t}-test. Can be \code{"two.sample"} (default),
+\code{"one.sample"}, or \code{"paired"}}
 
 \item{alternative}{Direction of the test. Can be either \code{"two.sided"}
-(default), \code{"less"}, or \code{"greater"}}
+(default), \code{"less"}, or \code{"greater"}. The latter two truncate
+the analysis prior to negative and positive effects, respectively.}
 
 \item{log}{Logical indicating whether the natural logarithm of the Bayes
 factor should be returned. Defaults to \code{FALSE}}
@@ -49,8 +50,8 @@ factor should be returned. Defaults to \code{FALSE}}
 }
 \value{
 Bayes factor in favor of the null hypothesis over the alternative (BF
-> 1 indicates evidence for the null hypothesis, whereas BF < 1 indicates
-evidence for the alternative)
+    > 1 indicates evidence for the null hypothesis, whereas BF < 1 indicates
+    evidence for the alternative)
 }
 \description{
 This function computes the Bayes factor that forms the basis of

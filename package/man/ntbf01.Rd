@@ -5,7 +5,7 @@
 \title{Sample size calculations for \eqn{t}-test Bayes factor}
 \usage{
 ntbf01(
-  k = 1/10,
+  k,
   power,
   null = 0,
   plocation = 0,
@@ -22,26 +22,25 @@ ntbf01(
 )
 }
 \arguments{
-\item{k}{Bayes factor threshold. Defaults to \code{1/10}, Jeffreys' threshold
-for 'strong evidence' against the null hypothesis}
+\item{k}{Bayes factor threshold}
 
 \item{power}{Target power}
 
 \item{null}{Standardized mean difference under the point null hypothesis.
 Defaults to \code{0}}
 
-\item{plocation}{Analysis \eqn{t} prior location. Defaults to \code{0}}
+\item{plocation}{\eqn{t} prior location. Defaults to \code{0}}
 
-\item{pscale}{Analysis \eqn{t} prior scale. Defaults to \code{1/sqrt(2)}}
+\item{pscale}{\eqn{t} prior scale. Defaults to \code{1/sqrt(2)}}
 
-\item{pdf}{Analysis \eqn{t} prior degrees of freedom. Defaults to \code{1} (a
-Cauchy prior)}
+\item{pdf}{\eqn{t} prior degrees of freedom. Defaults to \code{1} (a Cauchy
+prior)}
 
-\item{type}{The type of test. One of \code{"two.sample"},
-\code{"one.sample"}, \code{"paired"}. Defaults to \code{"two.sample"}}
+\item{type}{Type of \eqn{t}-test. Can be \code{"two.sample"} (default),
+\code{"one.sample"}, or \code{"paired"}}
 
 \item{alternative}{Direction of the test. Can be either \code{"two.sided"}
-(default), \code{"less"} , or \code{"greater"}. The latter two truncate
+(default), \code{"less"}, or \code{"greater"}. The latter two truncate
 the analysis prior to negative and positive effects, respectively. If set
 to \code{"less"} or \code{"greater"}, the power is only computed based on
 data with effect estimates in the direction of the alternative}
@@ -67,9 +66,7 @@ performed. Defaults to \code{c(2, 10^4)}}
 \item{...}{Other arguments passed to \code{stats::uniroot}}
 }
 \value{
-Object of class \code{"power.bftest"}, a list of the arguments
-    (including the computed one) augmented with \code{method} and \code{note}
-    elements
+The required sample size to achieve the specified power
 }
 \description{
 This function computes the required sample size to obtain a

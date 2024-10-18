@@ -5,9 +5,9 @@
 \title{Power and sample size calculations for \eqn{t}-test Bayes factor}
 \usage{
 powertbf01(
-  k = 1/10,
   n = NULL,
   power = NULL,
+  k = 1/10,
   null = 0,
   plocation = 0,
   pscale = 1/sqrt(2),
@@ -20,30 +20,29 @@ powertbf01(
 )
 }
 \arguments{
-\item{k}{Bayes factor threshold. Defaults to \code{1/10}, Jeffreys' threshold
-for 'strong evidence' against the null hypothesis}
-
-\item{n}{Sample size (per group for two-sample tests). Has to be \code{NULL}
-if \code{power} is specified. Defaults to \code{NULL}}
+\item{n}{Sample size (per group)}
 
 \item{power}{Target power. Has to be \code{NULL} if \code{n} is specified.
 Defaults to \code{NULL}}
 
+\item{k}{Bayes factor threshold. Defaults to \code{1/10}, Jeffreys' threshold
+for 'strong evidence' against the null hypothesis}
+
 \item{null}{Standardized mean difference under the point null hypothesis.
 Defaults to \code{0}}
 
-\item{plocation}{Analysis \eqn{t} prior location. Defaults to \code{0}}
+\item{plocation}{\eqn{t} prior location. Defaults to \code{0}}
 
-\item{pscale}{Analysis \eqn{t} prior scale. Defaults to \code{1/sqrt(2)}}
+\item{pscale}{\eqn{t} prior scale. Defaults to \code{1/sqrt(2)}}
 
-\item{pdf}{Analysis \eqn{t} prior degrees of freedom. Defaults to \code{1} (a
-Cauchy prior)}
+\item{pdf}{\eqn{t} prior degrees of freedom. Defaults to \code{1} (a Cauchy
+prior)}
 
-\item{type}{The type of test. One of \code{"two.sample"},
-\code{"one.sample"}, \code{"paired"}. Defaults to \code{"two.sample"}}
+\item{type}{Type of \eqn{t}-test. Can be \code{"two.sample"} (default),
+\code{"one.sample"}, or \code{"paired"}}
 
 \item{alternative}{Direction of the test. Can be either \code{"two.sided"}
-(default), \code{"less"} , or \code{"greater"}. The latter two truncate
+(default), \code{"less"}, or \code{"greater"}. The latter two truncate
 the analysis prior to negative and positive effects, respectively. If set
 to \code{"less"} or \code{"greater"}, the power is only computed based on
 data with effect estimates in the direction of the alternative}
@@ -71,10 +70,10 @@ Compute probability that \eqn{t}-test Bayes factor is smaller
 }
 \examples{
 ## determine power
-powertbf01(k = 1/6, n = 146, dpm = 0.5, dps = 0, alternative = "greater")
+powertbf01(n = 146, k = 1/6, dpm = 0.5, dps = 0, alternative = "greater")
 
 ## determine sample size
-powertbf01(k = 1/6, power = 0.95, dpm = 0.5, dps = 0, alternative = "greater")
+powertbf01(power = 0.95, k = 1/6, dpm = 0.5, dps = 0, alternative = "greater")
 
 }
 \seealso{

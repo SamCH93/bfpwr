@@ -7,7 +7,7 @@
 nnmbf01(
   k,
   power,
-  sd,
+  usd,
   null = 0,
   psd,
   dpm,
@@ -23,9 +23,11 @@ nnmbf01(
 
 \item{power}{Target power}
 
-\item{sd}{Standard deviation of one unit}
+\item{usd}{Unit standard deviation, the standard error of the parameter
+estimate based on \eqn{\code{n}=1}{n=1}, see details}
 
-\item{null}{Parameter value under the point null hypothesis. Defaults to 0}
+\item{null}{Parameter value under the point null hypothesis. Defaults to
+\code{0}}
 
 \item{psd}{Spread of the normal moment prior assigned to the parameter under
 the alternative in the analysis. The modes of the prior are located at
@@ -34,7 +36,7 @@ the alternative in the analysis. The modes of the prior are located at
 \item{dpm}{Mean of the normal design prior assigned to the parameter}
 
 \item{dpsd}{Standard deviation of the normal design prior assigned to the
-parameter. Set to 0 to obtain a point prior at the prior mean}
+parameter. Set to 0 to obtain a point prior at the design prior mean}
 
 \item{nrange}{Sample size search range over which numerical search is
 performed. Defaults to \code{c(1, 10^5)}}
@@ -57,8 +59,19 @@ This function computes the required sample size to obtain a
     normal moment prior Bayes factor (\link{nbf01}) more extreme than a
     threshold \code{k} with a specified target power.
 }
+\details{
+It is assumed that the standard error of the future parameter
+    estimate is of the form \eqn{\code{se} =\code{usd}/\sqrt{\code{n}}}{se =
+    usd/sqrt(n)}. For example, for normally distributed data with known
+    standard deviation \code{sd} and two equally sized groups of size
+    \code{n}, the standard error of an estimated standardized mean difference
+    is \eqn{\code{se} = \code{sd}\sqrt{2/n}}{se = sd*sqrt(2/n)}, so the
+    corresponding unit standard deviation is \eqn{\code{usd} =
+    \code{sd}\sqrt{2}}{usd = sd*sqrt(2)}. See the vignette for more
+    information.
+}
 \examples{
-nnmbf01(k = 1/10, power = 0.9, sd = 1, null = 0, psd = 0.5/sqrt(2), dpm = 0.5, dpsd = 0)
+nnmbf01(k = 1/10, power = 0.9, usd = 1, null = 0, psd = 0.5/sqrt(2), dpm = 0.5, dpsd = 0)
 }
 \seealso{
 \link{nmbf01}, \link{pnmbf01}, \link{powernmbf01}

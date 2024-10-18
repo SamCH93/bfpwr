@@ -5,7 +5,7 @@
 \title{Cumulative distribution function of the t-test Bayes factor}
 \usage{
 ptbf01(
-  k = 1/10,
+  k,
   n,
   n1 = n,
   n2 = n,
@@ -23,8 +23,7 @@ ptbf01(
 )
 }
 \arguments{
-\item{k}{Bayes factor threshold. Defaults to \code{1/10}, Jeffreys' threshold
-for 'strong evidence' against the null hypothesis}
+\item{k}{Bayes factor threshold}
 
 \item{n}{Sample size (per group)}
 
@@ -37,11 +36,12 @@ with unequal group sizes)}
 \item{null}{Standardized mean difference under the point null hypothesis.
 Defaults to \code{0}}
 
-\item{plocation}{Analysis \eqn{t} prior location. Defaults to \code{0}}
+\item{plocation}{\eqn{t} prior location. Defaults to \code{0}}
 
-\item{pscale}{Analysis \eqn{t} prior scale. Defaults to \code{1/sqrt(2)}}
+\item{pscale}{\eqn{t} prior scale. Defaults to \code{1/sqrt(2)}}
 
-\item{pdf}{Analysis \eqn{t} prior degrees of freedom. Defaults to \code{1}}
+\item{pdf}{\eqn{t} prior degrees of freedom. Defaults to \code{1} (a Cauchy
+prior)}
 
 \item{dpm}{Mean of the normal design prior assigned to the standardized mean
 difference. Defaults to the analysis prior location}
@@ -50,8 +50,8 @@ difference. Defaults to the analysis prior location}
 standardized mean difference. Set to \code{0} to obtain a point prior at
 the design prior mean. Defaults to the analysis prior scale}
 
-\item{type}{The type of test. One of \code{"two.sample"},
-\code{"one.sample"}, \code{"paired"}. Defaults to \code{"two.sample"}}
+\item{type}{Type of \eqn{t}-test. Can be \code{"two.sample"} (default),
+\code{"one.sample"}, or \code{"paired"}}
 
 \item{alternative}{Direction of the test. Can be either \code{"two.sided"}
 (default), \code{"less"}, or \code{"greater"}. The latter two truncate

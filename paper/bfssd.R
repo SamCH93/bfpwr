@@ -38,7 +38,7 @@ xlabs <- as.expression(c(bquote(1), bquote(10),
                          sapply(seq(2, 5), FUN = function(x) bquote(10^.(x)))))
 cols <- adjustcolor(col = c(2, 4), alpha = 0.8)
 ## point prior under the alternative
-plot(nseq, pbf01(k = k, n = nseq, sd = sd, null = null, pm = pm, psd = psd1,
+plot(nseq, pbf01(k = k, n = nseq, usd = sd, null = null, pm = pm, psd = psd1,
                  dpm = dpm, dpsd = dpsd1)*100,
      xlab = bquote("Sample size per group" ~ italic(n)),
      ylab = bquote({"Pr(BF"["01"] <= 1/.(1/k)} ~ "|" ~ tau == 0 *")"),
@@ -48,7 +48,7 @@ plot(nseq, pbf01(k = k, n = nseq, sd = sd, null = null, pm = pm, psd = psd1,
 axis(side = 1, at = xticks, labels = xlabs)
 axis(side = 2, at = yticks, labels = paste0(yticks, "%"), las = 1)
 lines(nseq,
-      pbf01(k = k, n = nseq, sd = sd, null = null, pm = pm, psd = psd1,
+      pbf01(k = k, n = nseq, usd = sd, null = null, pm = pm, psd = psd1,
             dpm = dpm, dpsd = dpsd2)*100,
       lwd = lwd, col = cols[2])
 zlim <- (null - pm)/(2*dpsd2)
@@ -62,7 +62,7 @@ legend("bottomright", bg = "white", title = "Design prior",
        lwd = lwd, lty = 1, col = cols, cex = 0.7)
 
 ## normal prior under the alternative
-plot(nseq, pbf01(k = k, n = nseq, sd = sd, null = null, pm = pm, psd = psd2,
+plot(nseq, pbf01(k = k, n = nseq, usd = sd, null = null, pm = pm, psd = psd2,
                  dpm = dpm, dpsd = dpsd1)*100,
      xlab = bquote("Sample size per group" ~ italic(n)),
      ylab = bquote({"Pr(BF"["01"] <= 1/.(1/k)} ~ "|" ~ tau == .(psd2) *")"),
@@ -72,7 +72,7 @@ plot(nseq, pbf01(k = k, n = nseq, sd = sd, null = null, pm = pm, psd = psd2,
 axis(side = 1, at = xticks, labels = xlabs)
 axis(side = 2, at = yticks, labels = paste0(yticks, "%"), las = 1)
 lines(nseq,
-      pbf01(k = k, n = nseq, sd = sd, null = null, pm = pm, psd = psd2,
+      pbf01(k = k, n = nseq, usd = sd, null = null, pm = pm, psd = psd2,
             dpm = dpm, dpsd = dpsd2)*100, lwd = lwd,
       col = cols[2])
 abline(h = 100, lty = 2, col = adjustcolor(col = 1, alpha = 0.6))
@@ -94,18 +94,18 @@ abline(h = 100, lty = 2, col = adjustcolor(col = 1, alpha = 0.6))
 ## ## zb <- qnorm(p = power)
 ## 
 ## ## ## formula (9)
-## ## nbf01(k = k, power = power, sd = sd, null = null, pm = pm, psd = 0, dpm = pm,
+## ## nbf01(k = k, power = power, usd = sd, null = null, pm = pm, psd = 0, dpm = pm,
 ## ##       dpsd = 0, analytical = c(FALSE, TRUE), integer = FALSE)
 ## ## sd^2*(zb + sqrt(zb^2 - log(k^2)))^2/(pm - null)^2
 ## 
 ## ## ## formula (8)
-## ## nbf01(k = k, power = power, sd = sd, null = null, pm = pm, psd = 0, dpm = dpm2,
+## ## nbf01(k = k, power = power, usd = sd, null = null, pm = pm, psd = 0, dpm = dpm2,
 ## ##       dpsd = 0, analytical = c(FALSE, TRUE), integer = FALSE)
 ## ## sd^2*(zb + sqrt(zb^2 - log(k^2)*(null + pm - 2*dpm2)/(null - pm)))^2/(null + pm - 2*dpm2)^2
 ## 
 ## ## ## formula (7)
 ## ## dpsd2 <- 0.1
-## ## nbf01(k = k, power = power, sd = sd, null = null, pm = pm, psd = 0, dpm = dpm2,
+## ## nbf01(k = k, power = power, usd = sd, null = null, pm = pm, psd = 0, dpm = dpm2,
 ## ##       dpsd = dpsd2, analytical = c(FALSE, TRUE), integer = FALSE)
 ## ## A <- sqrt(zb^2 - (2*dpm2 - null - pm)/(pm- null)*log(k^2) + (dpsd2*log(k^2)/(pm - null))^2)
 ## ## ((zb + A)^2 - (dpsd2*log(k^2)/(pm - null))^2)/(((2*dpm2- pm - null)^2 - 4*zb^2*dpsd2^2)/sd^2)
@@ -155,7 +155,7 @@ ylabs <- as.expression(c(bquote(1), bquote(10),
 cols <- adjustcolor(col = c(2, 4), alpha = 0.8)
 ## point prior under the alternative
 plot(powseq*100,
-     nbf01(k = k, power = powseq, sd = sd, null = null, pm = pm, psd = psd1,
+     nbf01(k = k, power = powseq, usd = sd, null = null, pm = pm, psd = psd1,
            dpm = dpm, dpsd = dpsd1, analytical = TRUE, integer = TRUE),
      xlab = "Target power", ylab = bquote("Sample size per group" ~ italic(n)),
      type = "s", xaxt = "n", yaxt = "n", ylim = c(1, 10^4), col = cols[1],
@@ -164,7 +164,7 @@ plot(powseq*100,
 axis(side = 1, at = xticks, labels = paste0(xticks, "%"))
 axis(side = 2, at = yticks, labels = ylabs, las = 1)
 lines(powseq*100,
-      nbf01(k = k, power = powseq, sd = sd, null = null, pm = pm, psd = psd1,
+      nbf01(k = k, power = powseq, usd = sd, null = null, pm = pm, psd = psd1,
            dpm = dpm, dpsd = dpsd2, analytical = TRUE, integer = TRUE),
       col = cols[2], type = "s")
 zlim <- (null - pm)/(2*dpsd2)
@@ -249,7 +249,7 @@ dpsd1 <- 0
 dpsd2 <- 1/4
 
 ## compute required sample size to achieve 80% power for LR
-nnum <- nbf01(k = k, power = power, sd = sd, null = null, pm = pm, psd = psd,
+nnum <- nbf01(k = k, power = power, usd = sd, null = null, pm = pm, psd = psd,
               dpm = dpm, dpsd = dpsd1)
 zb <- qnorm(p = power)
 nanalyt <- ceiling((zb + sqrt(zb^2 - log(k^2)*(pm + null - 2*dpm)/(null - pm)))^2/
@@ -261,7 +261,7 @@ nanalyt2 <- ceiling((-b + sqrt(b^2 - 4*a*c))/(2*a))
 
 
 ## ## sample size to achieve 80% power under the null
-## nbf01(k = 1/k, power = power, sd = sd, null = null, pm = pm, psd = psd,
+## nbf01(k = 1/k, power = power, usd = sd, null = null, pm = pm, psd = psd,
 ##       dpm = null, dpsd = 0, lower.tail = FALSE, analytical = FALSE)
 
 ## plot power curves
@@ -269,11 +269,11 @@ par(mfrow = c(2, 1), mar = c(2.5, 5, 2.5, 2.5))
 cols <- rev(palette.colors(n = 4, alpha = 0.95)[2:4])
 transpblack <- adjustcolor(col = 1, alpha = 0.2)
 nseq <- seq(from = 5, to = 550, by = 1)
-pow <- pbf01(k = k, n = nseq, sd = sd, null = null, pm = pm, psd = psd,
+pow <- pbf01(k = k, n = nseq, usd = sd, null = null, pm = pm, psd = psd,
              dpm = dpm, dpsd = dpsd1)
-pow2 <- pbf01(k = k, n = nseq, sd = sd, null = null, pm = pm, psd = psd,
+pow2 <- pbf01(k = k, n = nseq, usd = sd, null = null, pm = pm, psd = psd,
               dpm = dpm, dpsd = dpsd2)
-powNull <- pbf01(k = k, n = nseq, sd = sd, null = null, pm = pm, psd = psd,
+powNull <- pbf01(k = k, n = nseq, usd = sd, null = null, pm = pm, psd = psd,
                  dpm = null, dpsd = 0)
 plot(nseq, pow*100, xlab = "",
      ylab = bquote("Pr(BF"["01"] < 1/.(1/k) * " )"), type = "l",
@@ -296,11 +296,11 @@ legend("right", title = "Design prior",
                          * tau[italic("d")] == 0 * ")")),
        lty = 1, lwd = 1.5, col = cols, bg = "white", cex = 0.7)
 par(mar = c(4, 5, 1, 2.5))
-powH0 <- pbf01(k = 1/k, n = nseq, sd = sd, null = null, pm = pm, psd = psd,
+powH0 <- pbf01(k = 1/k, n = nseq, usd = sd, null = null, pm = pm, psd = psd,
                dpm = dpm, dpsd = dpsd1, lower.tail = FALSE)
-pow2H0 <- pbf01(k = 1/k, n = nseq, sd = sd, null = null, pm = pm, psd = psd,
+pow2H0 <- pbf01(k = 1/k, n = nseq, usd = sd, null = null, pm = pm, psd = psd,
                 dpm = dpm, dpsd = dpsd2, lower.tail = FALSE)
-powNullH0 <- pbf01(k = 1/k, n = nseq, sd = sd, null = null, pm = pm, psd = psd,
+powNullH0 <- pbf01(k = 1/k, n = nseq, usd = sd, null = null, pm = pm, psd = psd,
                    dpm = null, dpsd = 0, lower.tail = FALSE)
 plot(nseq, powH0*100, xlab = bquote("Sample size per group" ~ italic(n)),
      ylab = bquote("Pr(BF"["01"] > .(1/k) * " )"), type = "l",
@@ -344,30 +344,30 @@ dpsd <- 0
 dpsd2 <- 0.1
 
 ## compute required sample size to achieve target power
-n <- nbf01(k = k, power = power, sd = sd, null = null, pm = pm, psd = psd,
+n <- nbf01(k = k, power = power, usd = sd, null = null, pm = pm, psd = psd,
            dpm = dpm, dpsd = dpsd)
-n2 <- nbf01(k = k, power = power, sd = sd, null = null, pm = pm, psd = psd,
+n2 <- nbf01(k = k, power = power, usd = sd, null = null, pm = pm, psd = psd,
             dpm = dpm, dpsd = dpsd2)
-nH0 <- nbf01(k = 1/k, power = power, sd = sd, null = null, pm = pm, psd = psd,
+nH0 <- nbf01(k = 1/k, power = power, usd = sd, null = null, pm = pm, psd = psd,
              dpm = null, dpsd = 0, lower.tail = FALSE)
 
 ## ## under the null
-## nbf01(k = 1/k, power = power, sd = sd, null = null, pm = pm, psd = psd, dpm = null,
+## nbf01(k = 1/k, power = power, usd = sd, null = null, pm = pm, psd = psd, dpm = null,
 ##       dpsd = 0, lower.tail = FALSE)
 
 ## compute power curve
 nseq <- seq(from = 2, to = 800, by = 1)
-pow <- pbf01(k = k, n = nseq, sd = sd, null = null, pm = pm, psd = psd,
+pow <- pbf01(k = k, n = nseq, usd = sd, null = null, pm = pm, psd = psd,
              dpm = dpm, dpsd = dpsd)
-powH0 <- pbf01(k = 1/k, n = nseq, sd = sd, null = null, pm = pm, psd = psd,
+powH0 <- pbf01(k = 1/k, n = nseq, usd = sd, null = null, pm = pm, psd = psd,
                dpm = dpm, dpsd = dpsd, lower.tail = FALSE)
-powNull <- pbf01(k = k, n = nseq, sd = sd, null = null, pm = pm, psd = psd,
+powNull <- pbf01(k = k, n = nseq, usd = sd, null = null, pm = pm, psd = psd,
                  dpm = null, dpsd = 0)
-powNullH0 <- pbf01(k = 1/k, n = nseq, sd = sd, null = null, pm = pm, psd = psd,
+powNullH0 <- pbf01(k = 1/k, n = nseq, usd = sd, null = null, pm = pm, psd = psd,
                    dpm = null, dpsd = 0, lower.tail = FALSE)
-pow2 <- pbf01(k = k, n = nseq, sd = sd, null = null, pm = pm, psd = psd,
+pow2 <- pbf01(k = k, n = nseq, usd = sd, null = null, pm = pm, psd = psd,
               dpm = dpm, dpsd = dpsd2)
-pow2H0 <- pbf01(k = 1/k, n = nseq, sd = sd, null = null, pm = pm, psd = psd,
+pow2H0 <- pbf01(k = 1/k, n = nseq, usd = sd, null = null, pm = pm, psd = psd,
                 dpm = dpm, dpsd = dpsd2, lower.tail = FALSE)
 
 ## compute power curve with BFDA simulation package
@@ -548,19 +548,19 @@ psd <- 0.5/sqrt(2) # mode at 0.5
 dpriors <- cbind(dpm = c(0.5, 0.5, 0), dpsd = c(0, 0.1, 0))
 power <- 0.95
 powH1 <- sapply(X = seq(1, nrow(dpriors)), FUN = function(i) {
-    pnmbf01(k = k, n = nseq, sd = sd, null = null, psd = psd, dpm = dpriors[i,1],
+    pnmbf01(k = k, n = nseq, usd = sd, null = null, psd = psd, dpm = dpriors[i,1],
             dpsd = dpriors[i,2])
 })
 powH0 <- sapply(X = seq(1, nrow(dpriors)), FUN = function(i) {
-    pnmbf01(k = 1/k, n = nseq, sd = sd, null = null, psd = psd,
+    pnmbf01(k = 1/k, n = nseq, usd = sd, null = null, psd = psd,
             dpm = dpriors[i,1], dpsd = dpriors[i,2], lower.tail = FALSE)
 })
 nH1 <- ceiling(sapply(X = c(1, 2), FUN = function(i) {
-    nnmbf01(k = k, power = power,, sd = sd, null = null, psd = psd,
+    nnmbf01(k = k, power = power,, usd = sd, null = null, psd = psd,
             dpm = dpriors[i,1], dpsd = dpriors[i,2])
 }))
 nH0 <- ceiling(sapply(X = 3, FUN = function(i) {
-    nnmbf01(k = 1/k, power = power, sd = sd, null = null, psd = psd,
+    nnmbf01(k = 1/k, power = power, usd = sd, null = null, psd = psd,
             dpm = dpriors[i,1], dpsd = dpriors[i,2], lower.tail = FALSE)
 }))
 
@@ -598,7 +598,7 @@ abline(v = nH0, col = transpblack)
 abline(h = power*100, col = transpblack)
 
 ## nH0 for normal analysis prior for comparison
-nH0normal <- nbf01(k = 6, power = 0.95, sd = sqrt(2), null = 0, pm = 0,
+nH0normal <- nbf01(k = 6, power = 0.95, usd = sqrt(2), null = 0, pm = 0,
                    psd = 1/sqrt(2), dpm = 0, dpsd = 0, lower.tail = FALSE)
 
 

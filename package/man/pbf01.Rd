@@ -4,23 +4,25 @@
 \alias{pbf01}
 \title{Cumulative distribution function of the z-test Bayes factor}
 \usage{
-pbf01(k, n, sd, null = 0, pm, psd, dpm = pm, dpsd = psd, lower.tail = TRUE)
+pbf01(k, n, usd, null = 0, pm, psd, dpm = pm, dpsd = psd, lower.tail = TRUE)
 }
 \arguments{
 \item{k}{Bayes factor threshold}
 
 \item{n}{Sample size}
 
-\item{sd}{Standard deviation of one unit}
+\item{usd}{Unit standard deviation, the standard error of the parameter
+estimate based on \eqn{\code{n}=1}{n=1}, see details}
 
-\item{null}{Parameter value under the point null hypothesis. Defaults to 0}
+\item{null}{Parameter value under the point null hypothesis. Defaults to
+\code{0}}
 
 \item{pm}{Mean of the normal prior assigned to the parameter under the
 alternative in the analysis}
 
 \item{psd}{Standard deviation of the normal prior assigned to the parameter
-under the alternative in the analysis. Set to 0 to obtain a point prior
-at the prior mean}
+under the alternative in the analysis. Set to \code{0} to obtain a point
+prior at the prior mean}
 
 \item{dpm}{Mean of the normal design prior assigned to the parameter.
 Defaults to the same value as the analysis prior \code{pm}}
@@ -41,33 +43,44 @@ This function computes the probability of obtaining a Bayes
     factor (\link{bf01}) more extreme than a threshold \code{k} with a
     specified sample size.
 }
+\details{
+It is assumed that the standard error of the future parameter
+    estimate is of the form \eqn{\code{se} =\code{usd}/\sqrt{\code{n}}}{se =
+    usd/sqrt(n)}. For example, for normally distributed data with known
+    standard deviation \code{sd} and two equally sized groups of size
+    \code{n}, the standard error of an estimated standardized mean difference
+    is \eqn{\code{se} = \code{sd}\sqrt{2/n}}{se = sd*sqrt(2/n)}, so the
+    corresponding unit standard deviation is \eqn{\code{usd} =
+    \code{sd}\sqrt{2}}{usd = sd*sqrt(2)}. See the vignette for more
+    information.
+}
 \examples{
 ## point alternative (psd = 0)
-pbf01(k = 1/10, n = 200, sd = 2, null = 0, pm = 0.5, psd = 0)
+pbf01(k = 1/10, n = 200, usd = 2, null = 0, pm = 0.5, psd = 0)
 
 ## normal alternative (psd > 0)
-pbf01(k = 1/10, n = 100, sd = 2, null = 0, pm = 0.5, psd = 2)
+pbf01(k = 1/10, n = 100, usd = 2, null = 0, pm = 0.5, psd = 2)
 
 ## design prior is the null hypothesis (dpm = 0, dpsd = 0)
-pbf01(k = 10, n = 1000, sd = 2, null = 0, pm = 0.3, psd = 2, dpm = 0, dpsd = 0, lower.tail = FALSE)
+pbf01(k = 10, n = 1000, usd = 2, null = 0, pm = 0.3, psd = 2, dpm = 0, dpsd = 0, lower.tail = FALSE)
 
 ## draw a power curve
 nseq <- round(exp(seq(log(10), log(10000), length.out = 100)))
-plot(nseq, pbf01(k = 1/10, n = nseq, sd = 2, null = 0, pm = 0.3, psd = 0), type = "l",
+plot(nseq, pbf01(k = 1/10, n = nseq, usd = 2, null = 0, pm = 0.3, psd = 0), type = "l",
      xlab = "n", ylab = bquote("Pr(BF"["01"] <= 1/10 * ")"), ylim = c(0, 1),
      log = "x", las = 1)
 
-## standardized mean difference (unit sd = sqrt(2), effective sample size = per group size)
+## standardized mean difference (usd = sqrt(2), effective sample size = per group size)
 n <- 30
-pbf01(k = 1/10, n = n, sd = sqrt(2), null = 0, pm = 0, psd = 1)
+pbf01(k = 1/10, n = n, usd = sqrt(2), null = 0, pm = 0, psd = 1)
 
-## z-transformed correlation (unit sd = 1, effective sample size = n - 3)
+## z-transformed correlation (usd = 1, effective sample size = n - 3)
 n <- 100
-pbf01(k = 1/10, n = n - 3, sd = 1, null = 0, pm = 0.2, psd = 0.5)
+pbf01(k = 1/10, n = n - 3, usd = 1, null = 0, pm = 0.2, psd = 0.5)
 
-## log hazard/odds ratio (unit sd = 2, effective sample size = total number of events)
+## log hazard/odds ratio (usd = 2, effective sample size = total number of events)
 nevents <- 100
-pbf01(k = 1/10, n = nevents, sd = 2, null = 0, pm = 0, psd = sqrt(0.5))
+pbf01(k = 1/10, n = nevents, usd = 2, null = 0, pm = 0, psd = sqrt(0.5))
 
 }
 \seealso{

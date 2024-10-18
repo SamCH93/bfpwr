@@ -47,18 +47,12 @@ nmbf01. <- function(estimate, se, null = 0, psd, log = FALSE) {
 #'     \eqn{N(x \mid m, v)}{N(x|m,v)} the normal density with mean \eqn{m} and
 #'     variance \eqn{v} evaluated at \eqn{x}.
 #'
-#' @param estimate Parameter estimate
-#' @param se Standard error of the parameter estimate
-#' @param null Parameter value under the point null hypothesis. Defaults to 0
+#' @inheritParams bf01
 #' @param psd Spread of the normal moment prior assigned to the parameter under
 #'     the alternative. The modes of the prior are located at
 #'     \eqn{\pm\sqrt{2}\,\code{psd}}{+-sqrt(2)*\code{psd}}
-#' @param log Logical indicating whether the natural logarithm of the Bayes
-#'     factor should be returned. Defaults to \code{FALSE}
 #'
-#' @return Bayes factor in favor of the null hypothesis over the alternative (BF
-#'     > 1 indicates evidence for the null hypothesis, whereas BF < 1 indicates
-#'     evidence for the alternative)
+#' @inherit bf01 return
 #'
 #' @author Samuel Pawel
 #'

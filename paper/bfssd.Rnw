@@ -166,7 +166,7 @@ popular being the approach centered around the \emph{Bayes factor}, which is the
 data-based updating factor of the prior to posterior odds of two competing
 hypotheses. Bayes factor approaches were pioneered by \citet{Jeffreys1939} and
 are now in use in various scientific domains such as medicine
-\citep{Goodman1999}, psychology \citep{Wagenmakers2007}, or physics
+\citep{Goodman1999}, psychology \citep{Morey2016, Heck2023}, or physics
 \citep{Trotta2008}. Bayes factor tests are conceptually different from
 frequentist tests in several ways. For example, they can quantify evidence in
 favor of a null hypothesis or they can incorporate external information via a
@@ -205,7 +205,7 @@ Based on the point/normal prior distinction, we find that closed-form sample
 sizes are available for Bayes factors with point analysis priors (i.e.,
 likelihood ratios) along with point or normal design priors, and for Bayes
 factors with local normal analysis and design priors (i.e., normal priors
-centered on the null value), see Table~\ref{tab:summary} for an overview of our
+centered on the null value). Table~\ref{tab:summary} provides an overview of our
 results. In addition to our novel formulas, we summarize sample size
 determination for Bayes factors with normal priors based on numerical
 root-finding \citep[which has done before, e.g., in][]{Weiss1997, Pawel2023e},
@@ -252,7 +252,7 @@ by deriving its distribution when new data are generated under various design
 priors (Section~\ref{sec:distBF}). Combining these results, we derive several
 formulas for the sample size under different constellations of design and
 analysis priors (Section~\ref{sec:ssd}). Examples from medicine and psychology
-then illustrates how our formulas can be used by researchers in practice
+then illustrate how our formulas can be used by researchers in practice
 (Section~\ref{sec:application}). Section~\ref{sec:extensions} illustrates
 possible extensions of our framework to other popular types of analysis priors,
 such as informed $t$ priors \citep{Gronau2020} and nonlocal normal moment priors
@@ -517,7 +517,7 @@ xlabs <- as.expression(c(bquote(1), bquote(10),
                          sapply(seq(2, 5), FUN = function(x) bquote(10^.(x)))))
 cols <- adjustcolor(col = c(2, 4), alpha = 0.8)
 ## point prior under the alternative
-plot(nseq, pbf01(k = k, n = nseq, sd = sd, null = null, pm = pm, psd = psd1,
+plot(nseq, pbf01(k = k, n = nseq, usd = sd, null = null, pm = pm, psd = psd1,
                  dpm = dpm, dpsd = dpsd1)*100,
      xlab = bquote("Sample size per group" ~ italic(n)),
      ylab = bquote({"Pr(BF"["01"] <= 1/.(1/k)} ~ "|" ~ tau == 0 *")"),
@@ -527,7 +527,7 @@ plot(nseq, pbf01(k = k, n = nseq, sd = sd, null = null, pm = pm, psd = psd1,
 axis(side = 1, at = xticks, labels = xlabs)
 axis(side = 2, at = yticks, labels = paste0(yticks, "%"), las = 1)
 lines(nseq,
-      pbf01(k = k, n = nseq, sd = sd, null = null, pm = pm, psd = psd1,
+      pbf01(k = k, n = nseq, usd = sd, null = null, pm = pm, psd = psd1,
             dpm = dpm, dpsd = dpsd2)*100,
       lwd = lwd, col = cols[2])
 zlim <- (null - pm)/(2*dpsd2)
@@ -541,7 +541,7 @@ legend("bottomright", bg = "white", title = "Design prior",
        lwd = lwd, lty = 1, col = cols, cex = 0.7)
 
 ## normal prior under the alternative
-plot(nseq, pbf01(k = k, n = nseq, sd = sd, null = null, pm = pm, psd = psd2,
+plot(nseq, pbf01(k = k, n = nseq, usd = sd, null = null, pm = pm, psd = psd2,
                  dpm = dpm, dpsd = dpsd1)*100,
      xlab = bquote("Sample size per group" ~ italic(n)),
      ylab = bquote({"Pr(BF"["01"] <= 1/.(1/k)} ~ "|" ~ tau == .(psd2) *")"),
@@ -551,7 +551,7 @@ plot(nseq, pbf01(k = k, n = nseq, sd = sd, null = null, pm = pm, psd = psd2,
 axis(side = 1, at = xticks, labels = xlabs)
 axis(side = 2, at = yticks, labels = paste0(yticks, "%"), las = 1)
 lines(nseq,
-      pbf01(k = k, n = nseq, sd = sd, null = null, pm = pm, psd = psd2,
+      pbf01(k = k, n = nseq, usd = sd, null = null, pm = pm, psd = psd2,
             dpm = dpm, dpsd = dpsd2)*100, lwd = lwd,
       col = cols[2])
 abline(h = 100, lty = 2, col = adjustcolor(col = 1, alpha = 0.6))
@@ -652,7 +652,7 @@ We will now investigate situations where the sample size can be obtained in
 closed-form. As for the distribution of the Bayes factor in the previous
 section, there is again a distinction between sample size determination for
 Bayes factors with point analysis priors ($\tau = 0$) and normal analysis priors
-($\tau > 0$), we start again with the former.
+($\tau > 0$). We start again with the former.
 
 \subsection{Bayes factor with point analysis prior}
 Assuming that the alternative $\mu$ is larger than the null $\theta_{0}$ and
@@ -703,18 +703,18 @@ participants, animals, etc.).
 ## zb <- qnorm(p = power)
 
 ## ## formula (9)
-## nbf01(k = k, power = power, sd = sd, null = null, pm = pm, psd = 0, dpm = pm,
+## nbf01(k = k, power = power, usd = sd, null = null, pm = pm, psd = 0, dpm = pm,
 ##       dpsd = 0, analytical = c(FALSE, TRUE), integer = FALSE)
 ## sd^2*(zb + sqrt(zb^2 - log(k^2)))^2/(pm - null)^2
 
 ## ## formula (8)
-## nbf01(k = k, power = power, sd = sd, null = null, pm = pm, psd = 0, dpm = dpm2,
+## nbf01(k = k, power = power, usd = sd, null = null, pm = pm, psd = 0, dpm = dpm2,
 ##       dpsd = 0, analytical = c(FALSE, TRUE), integer = FALSE)
 ## sd^2*(zb + sqrt(zb^2 - log(k^2)*(null + pm - 2*dpm2)/(null - pm)))^2/(null + pm - 2*dpm2)^2
 
 ## ## formula (7)
 ## dpsd2 <- 0.1
-## nbf01(k = k, power = power, sd = sd, null = null, pm = pm, psd = 0, dpm = dpm2,
+## nbf01(k = k, power = power, usd = sd, null = null, pm = pm, psd = 0, dpm = dpm2,
 ##       dpsd = dpsd2, analytical = c(FALSE, TRUE), integer = FALSE)
 ## A <- sqrt(zb^2 - (2*dpm2 - null - pm)/(pm- null)*log(k^2) + (dpsd2*log(k^2)/(pm - null))^2)
 ## ((zb + A)^2 - (dpsd2*log(k^2)/(pm - null))^2)/(((2*dpm2- pm - null)^2 - 4*zb^2*dpsd2^2)/sd^2)
@@ -801,19 +801,19 @@ print(xtab, booktabs = TRUE, floating = FALSE,
 \end{table}
 
 To illustrate formula~\eqref{eq:nLR3}, we now assume that $\hat{\theta}$ is a
-standardized mean difference with unit variance
-$\sigma^2_{\scriptscriptstyle \hat{\theta}} = 2$ so that $n$ can be interpreted
-as the sample size per group (see the third row in Table~\ref{tab:outcomes}).
+standardized mean difference so that the unit variance is
+$\sigma^2_{\scriptscriptstyle \hat{\theta}} = 2$ and $n$ can be interpreted as
+the sample size per group (see the third row in Table~\ref{tab:outcomes}).
 Table~\ref{tab:smdn} shows the sample size~\eqref{eq:nLR3} based on an assumed
 effect size of one ($\Delta_{\mu} = 1$). We see, for instance, that a sample
 size of
-$n = \Sexpr{nbf01(k = 1/10, power = 0.8, sd = sqrt(2), pm = 1, psd = 0, integer = TRUE)}$
+$n = \Sexpr{nbf01(k = 1/10, power = 0.8, usd = sqrt(2), pm = 1, psd = 0, integer = TRUE)}$
 per group is required to achieve $1 - \beta = 80\%$ power for a Bayes factor
 threshold $k = 1/10$. If the assumed effect size was smaller, the required
 sample size would become larger. For example, for a half as large effect size,
 the sample sizes from Table~\ref{tab:smdn} quadruple, e.g., requiring a sample
 size of
-$n = \Sexpr{nbf01(k = 1/10, power = 0.8, sd = sqrt(2), pm = 0.5, psd = 0, integer = TRUE)}$
+$n = \Sexpr{nbf01(k = 1/10, power = 0.8, usd = sqrt(2), pm = 0.5, psd = 0, integer = TRUE)}$
 per group to have $1 - \beta = 80\%$ power for a Bayes factor threshold of
 $k = 1/10$.
 
@@ -839,7 +839,7 @@ ylabs <- as.expression(c(bquote(1), bquote(10),
 cols <- adjustcolor(col = c(2, 4), alpha = 0.8)
 ## point prior under the alternative
 plot(powseq*100,
-     nbf01(k = k, power = powseq, sd = sd, null = null, pm = pm, psd = psd1,
+     nbf01(k = k, power = powseq, usd = sd, null = null, pm = pm, psd = psd1,
            dpm = dpm, dpsd = dpsd1, analytical = TRUE, integer = TRUE),
      xlab = "Target power", ylab = bquote("Sample size per group" ~ italic(n)),
      type = "s", xaxt = "n", yaxt = "n", ylim = c(1, 10^4), col = cols[1],
@@ -848,7 +848,7 @@ plot(powseq*100,
 axis(side = 1, at = xticks, labels = paste0(xticks, "%"))
 axis(side = 2, at = yticks, labels = ylabs, las = 1)
 lines(powseq*100,
-      nbf01(k = k, power = powseq, sd = sd, null = null, pm = pm, psd = psd1,
+      nbf01(k = k, power = powseq, usd = sd, null = null, pm = pm, psd = psd1,
            dpm = dpm, dpsd = dpsd2, analytical = TRUE, integer = TRUE),
       col = cols[2], type = "s")
 zlim <- (null - pm)/(2*dpsd2)
@@ -1104,7 +1104,7 @@ dpsd1 <- 0
 dpsd2 <- 1/4
 
 ## compute required sample size to achieve 80% power for LR
-nnum <- nbf01(k = k, power = power, sd = sd, null = null, pm = pm, psd = psd,
+nnum <- nbf01(k = k, power = power, usd = sd, null = null, pm = pm, psd = psd,
               dpm = dpm, dpsd = dpsd1)
 zb <- qnorm(p = power)
 nanalyt <- ceiling((zb + sqrt(zb^2 - log(k^2)*(pm + null - 2*dpm)/(null - pm)))^2/
@@ -1116,7 +1116,7 @@ nanalyt2 <- ceiling((-b + sqrt(b^2 - 4*a*c))/(2*a))
 
 
 ## ## sample size to achieve 80% power under the null
-## nbf01(k = 1/k, power = power, sd = sd, null = null, pm = pm, psd = psd,
+## nbf01(k = 1/k, power = power, usd = sd, null = null, pm = pm, psd = psd,
 ##       dpm = null, dpsd = 0, lower.tail = FALSE, analytical = FALSE)
 
 ## plot power curves
@@ -1124,11 +1124,11 @@ par(mfrow = c(2, 1), mar = c(2.5, 5, 2.5, 2.5))
 cols <- rev(palette.colors(n = 4, alpha = 0.95)[2:4])
 transpblack <- adjustcolor(col = 1, alpha = 0.2)
 nseq <- seq(from = 5, to = 550, by = 1)
-pow <- pbf01(k = k, n = nseq, sd = sd, null = null, pm = pm, psd = psd,
+pow <- pbf01(k = k, n = nseq, usd = sd, null = null, pm = pm, psd = psd,
              dpm = dpm, dpsd = dpsd1)
-pow2 <- pbf01(k = k, n = nseq, sd = sd, null = null, pm = pm, psd = psd,
+pow2 <- pbf01(k = k, n = nseq, usd = sd, null = null, pm = pm, psd = psd,
               dpm = dpm, dpsd = dpsd2)
-powNull <- pbf01(k = k, n = nseq, sd = sd, null = null, pm = pm, psd = psd,
+powNull <- pbf01(k = k, n = nseq, usd = sd, null = null, pm = pm, psd = psd,
                  dpm = null, dpsd = 0)
 plot(nseq, pow*100, xlab = "",
      ylab = bquote("Pr(BF"["01"] < 1/.(1/k) * " )"), type = "l",
@@ -1151,11 +1151,11 @@ legend("right", title = "Design prior",
                          * tau[italic("d")] == 0 * ")")),
        lty = 1, lwd = 1.5, col = cols, bg = "white", cex = 0.7)
 par(mar = c(4, 5, 1, 2.5))
-powH0 <- pbf01(k = 1/k, n = nseq, sd = sd, null = null, pm = pm, psd = psd,
+powH0 <- pbf01(k = 1/k, n = nseq, usd = sd, null = null, pm = pm, psd = psd,
                dpm = dpm, dpsd = dpsd1, lower.tail = FALSE)
-pow2H0 <- pbf01(k = 1/k, n = nseq, sd = sd, null = null, pm = pm, psd = psd,
+pow2H0 <- pbf01(k = 1/k, n = nseq, usd = sd, null = null, pm = pm, psd = psd,
                 dpm = dpm, dpsd = dpsd2, lower.tail = FALSE)
-powNullH0 <- pbf01(k = 1/k, n = nseq, sd = sd, null = null, pm = pm, psd = psd,
+powNullH0 <- pbf01(k = 1/k, n = nseq, usd = sd, null = null, pm = pm, psd = psd,
                    dpm = null, dpsd = 0, lower.tail = FALSE)
 plot(nseq, powH0*100, xlab = bquote("Sample size per group" ~ italic(n)),
      ylab = bquote("Pr(BF"["01"] > .(1/k) * " )"), type = "l",
@@ -1259,30 +1259,30 @@ dpsd <- 0
 dpsd2 <- 0.1
 
 ## compute required sample size to achieve target power
-n <- nbf01(k = k, power = power, sd = sd, null = null, pm = pm, psd = psd,
+n <- nbf01(k = k, power = power, usd = sd, null = null, pm = pm, psd = psd,
            dpm = dpm, dpsd = dpsd)
-n2 <- nbf01(k = k, power = power, sd = sd, null = null, pm = pm, psd = psd,
+n2 <- nbf01(k = k, power = power, usd = sd, null = null, pm = pm, psd = psd,
             dpm = dpm, dpsd = dpsd2)
-nH0 <- nbf01(k = 1/k, power = power, sd = sd, null = null, pm = pm, psd = psd,
+nH0 <- nbf01(k = 1/k, power = power, usd = sd, null = null, pm = pm, psd = psd,
              dpm = null, dpsd = 0, lower.tail = FALSE)
 
 ## ## under the null
-## nbf01(k = 1/k, power = power, sd = sd, null = null, pm = pm, psd = psd, dpm = null,
+## nbf01(k = 1/k, power = power, usd = sd, null = null, pm = pm, psd = psd, dpm = null,
 ##       dpsd = 0, lower.tail = FALSE)
 
 ## compute power curve
 nseq <- seq(from = 2, to = 800, by = 1)
-pow <- pbf01(k = k, n = nseq, sd = sd, null = null, pm = pm, psd = psd,
+pow <- pbf01(k = k, n = nseq, usd = sd, null = null, pm = pm, psd = psd,
              dpm = dpm, dpsd = dpsd)
-powH0 <- pbf01(k = 1/k, n = nseq, sd = sd, null = null, pm = pm, psd = psd,
+powH0 <- pbf01(k = 1/k, n = nseq, usd = sd, null = null, pm = pm, psd = psd,
                dpm = dpm, dpsd = dpsd, lower.tail = FALSE)
-powNull <- pbf01(k = k, n = nseq, sd = sd, null = null, pm = pm, psd = psd,
+powNull <- pbf01(k = k, n = nseq, usd = sd, null = null, pm = pm, psd = psd,
                  dpm = null, dpsd = 0)
-powNullH0 <- pbf01(k = 1/k, n = nseq, sd = sd, null = null, pm = pm, psd = psd,
+powNullH0 <- pbf01(k = 1/k, n = nseq, usd = sd, null = null, pm = pm, psd = psd,
                    dpm = null, dpsd = 0, lower.tail = FALSE)
-pow2 <- pbf01(k = k, n = nseq, sd = sd, null = null, pm = pm, psd = psd,
+pow2 <- pbf01(k = k, n = nseq, usd = sd, null = null, pm = pm, psd = psd,
               dpm = dpm, dpsd = dpsd2)
-pow2H0 <- pbf01(k = 1/k, n = nseq, sd = sd, null = null, pm = pm, psd = psd,
+pow2H0 <- pbf01(k = 1/k, n = nseq, usd = sd, null = null, pm = pm, psd = psd,
                 dpm = dpm, dpsd = dpsd2, lower.tail = FALSE)
 
 ## compute power curve with BFDA simulation package
@@ -1404,7 +1404,7 @@ curve took about 10 minutes to compute when parallelized across 10 cores on a
 modern laptop (Lenovo X1 Gen 8 with Intel i7-1355U CPU and 32GB RAM).
 
 We see that closed-form and simulation curves closely align in all cases,
-although the former shows Monte Carlo error. Looking at the green curves in the
+although the latter shows Monte Carlo error. Looking at the green curves in the
 top plot, we see that a sample size of $n = \Sexpr{n}$ per group is sufficient
 to achieve a target power of $\Sexpr{100*power}\%$ with a Bayes factor threshold
 of $k = 1/\Sexpr{1/k}$ under the point design prior. This sample size is
@@ -1434,6 +1434,13 @@ models or prior distributions in the analysis. In the following, we outline two
 extensions that modify the Bayes factor used for the analysis, while still
 retaining the normal likelihood and point/normal design prior used for the
 design.
+
+Of note, after publishing an initial version of this article on the arXiv
+preprint server, \citet{Wong2024} have already built on our results and extended
+the approach described in this section to use more flexible design prior
+distributions for the $t$-test setting, and implemented it in an online
+application. We refer to their article for more information.
+
 
 \subsection{Informed Bayesian \textit{t}-test}
 
@@ -1679,19 +1686,19 @@ psd <- 0.5/sqrt(2) # mode at 0.5
 dpriors <- cbind(dpm = c(0.5, 0.5, 0), dpsd = c(0, 0.1, 0))
 power <- 0.95
 powH1 <- sapply(X = seq(1, nrow(dpriors)), FUN = function(i) {
-    pnmbf01(k = k, n = nseq, sd = sd, null = null, psd = psd, dpm = dpriors[i,1],
+    pnmbf01(k = k, n = nseq, usd = sd, null = null, psd = psd, dpm = dpriors[i,1],
             dpsd = dpriors[i,2])
 })
 powH0 <- sapply(X = seq(1, nrow(dpriors)), FUN = function(i) {
-    pnmbf01(k = 1/k, n = nseq, sd = sd, null = null, psd = psd,
+    pnmbf01(k = 1/k, n = nseq, usd = sd, null = null, psd = psd,
             dpm = dpriors[i,1], dpsd = dpriors[i,2], lower.tail = FALSE)
 })
 nH1 <- ceiling(sapply(X = c(1, 2), FUN = function(i) {
-    nnmbf01(k = k, power = power,, sd = sd, null = null, psd = psd,
+    nnmbf01(k = k, power = power,, usd = sd, null = null, psd = psd,
             dpm = dpriors[i,1], dpsd = dpriors[i,2])
 }))
 nH0 <- ceiling(sapply(X = 3, FUN = function(i) {
-    nnmbf01(k = 1/k, power = power, sd = sd, null = null, psd = psd,
+    nnmbf01(k = 1/k, power = power, usd = sd, null = null, psd = psd,
             dpm = dpriors[i,1], dpsd = dpriors[i,2], lower.tail = FALSE)
 }))
 
@@ -1729,7 +1736,7 @@ abline(v = nH0, col = transpblack)
 abline(h = power*100, col = transpblack)
 
 ## nH0 for normal analysis prior for comparison
-nH0normal <- nbf01(k = 6, power = 0.95, sd = sqrt(2), null = 0, pm = 0,
+nH0normal <- nbf01(k = 6, power = 0.95, usd = sqrt(2), null = 0, pm = 0,
                    psd = 1/sqrt(2), dpm = 0, dpsd = 0, lower.tail = FALSE)
 @
 \caption{Power and sample size calculations for standardized mean difference
@@ -1791,24 +1798,28 @@ calculation than no calculation at all. One avenue for future work might be to
 extend closed-form power and sample size calculations to more specific settings
 not considered here, such as, binary outcomes. Another limitation is the types
 of Bayes factors that we considered for the analysis, which is limited to
-univariate parameters with normal, normal moment, $t$, or point priors under the
-alternative. Our work could be extended to ANOVA or regression settings with
-multivariate parameters and/or to other prior distributions. We also did not
-consider `open-ended' sequential designs, where data are collected continuously
-until compelling evidence for one of the competing hypotheses is found
-\citep{Wald1947}. The sequential approach is particularly attractive for Bayes
-factor inference as design and analysis prior distributions can be updated based
-on the accumulating data. Researchers can then make informed decisions about
-whether or not it is worthwhile to continue collecting data or to stop
-\citep{Stefan2022}. For these purposes, it would be interesting to consider the
-Bayes factor indexed by the sample size as a stochastic process, and study its
-properties. Finally, in situations where researchers have only a fixed sample
-size at their disposal, it may be interesting to use a `reverse-Bayes' approach
-\citep{Held2021b}. That is, one may `go backwards' and determine the design
-prior required to achieve a desired target power. Researchers can then reason
-whether or not this `reverse Bayes design prior' is scientifically plausible,
-and whether or not they should undertake the study based on their limited
-resources.
+univariate parameters. Our work could be extended to ANOVA or regression
+settings with multivariate parameters. We also did not consider `open-ended'
+sequential designs, where data are collected continuously until compelling
+evidence for one of the competing hypotheses is found \citep{Wald1947}. The
+sequential approach is particularly attractive for Bayes factor inference as
+design and analysis prior distributions can be updated based on the accumulating
+data. Researchers can then make informed decisions about whether or not it is
+worthwhile to continue collecting data or to stop \citep{Stefan2022}. For these
+purposes, it would be interesting to consider the Bayes factor indexed by the
+sample size as a stochastic process, and study its properties. Finally, in
+situations where researchers have only a fixed sample size at their disposal, it
+may be interesting to use a `reverse-Bayes' approach \citep{Held2021b}. That is,
+one may `go backwards' and determine the design prior required to achieve a
+desired target power. Researchers can then reason whether or not this `reverse
+Bayes design prior' is scientifically plausible, and whether or not they should
+undertake the study based on their limited resources. This is similar to
+classical power analysis, where one can determine how large the true parameter
+needs to be to achieve a given power for a given sample size, and then reason
+about whether or not this true parameter is realistic. In both cases, however,
+it is important that the focus is on reasoning about the plausibility of the
+design prior/parameter, and researchers should be careful not to give the
+impression that this choice was made at the outset.
 
 
 \section*{Acknowledgments}

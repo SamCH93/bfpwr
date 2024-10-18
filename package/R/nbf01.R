@@ -1,4 +1,4 @@
-nbf01. <- function(k, power, sd, null = 0, pm, psd, dpm = pm, dpsd = psd,
+nbf01. <- function(k, power, usd, null = 0, pm, psd, dpm = pm, dpsd = psd,
                    nrange = c(1, 10^5), lower.tail = TRUE, integer = TRUE,
                    analytical = TRUE, ...) {
     ## input checks
@@ -13,10 +13,10 @@ nbf01. <- function(k, power, sd, null = 0, pm, psd, dpm = pm, dpsd = psd,
         is.finite(power),
         0 < power, power < 1,
 
-        length(sd) == 1,
-        is.numeric(sd),
-        is.finite(sd),
-        0 < sd,
+        length(usd) == 1,
+        is.numeric(usd),
+        is.finite(usd),
+        0 < usd,
 
         length(null) == 1,
         is.numeric(null),
@@ -81,8 +81,8 @@ nbf01. <- function(k, power, sd, null = 0, pm, psd, dpm = pm, dpsd = psd,
             } else {
                 zb <- stats::qnorm(p = power)
                 a <- ((null + pm)*0.5 - dpm)^2 - zb^2*dpsd^2
-                b <- sd^2*((null + pm - 2*dpm)*log(k)/(null - pm) - zb^2)
-                c <- (sd^2*log(k)/(null - pm))^2
+                b <- usd^2*((null + pm - 2*dpm)*log(k)/(null - pm) - zb^2)
+                c <- (usd^2*log(k)/(null - pm))^2
                 if (power >= 0.5) n <- (-b + sqrt(b^2 - 4*a*c))/(2*a)
                 else n <- (-b - sqrt(b^2 - 4*a*c))/(2*a)
             }
@@ -93,7 +93,7 @@ nbf01. <- function(k, power, sd, null = 0, pm, psd, dpm = pm, dpsd = psd,
         ## else if (null == pm && pm == dpm && psd == dpsd) {
         ##     ## this is only a (quite accurate) approximation, so let's rather
         ##     ## use the more exact numerical procedure (also safes the lamW dependency!)
-        ##     n <- sd^2/psd^2*k^2*exp(-lamW::lambertWm1(-k^2*stats::qnorm(p = 0.5*power)^2))
+        ##     n <- usd^2/psd^2*k^2*exp(-lamW::lambertWm1(-k^2*stats::qnorm(p = 0.5*power)^2))
         ## }
 
     }
@@ -102,7 +102,7 @@ nbf01. <- function(k, power, sd, null = 0, pm, psd, dpm = pm, dpsd = psd,
     if (analytical == FALSE || available == FALSE) {
         ## define function for numerical root-finding
         rootFun <- function(n) {
-            pbf01(k = k, n = n, sd = sd, null = null, pm = pm, psd = psd, dpm = dpm,
+            pbf01(k = k, n = n, usd = usd, null = null, pm = pm, psd = psd, dpm = dpm,
                   dpsd = dpsd, lower.tail = lower.tail) - power
         }
 
@@ -119,31 +119,18 @@ nbf01. <- function(k, power, sd, null = 0, pm, psd, dpm = pm, dpsd = psd,
 #'     Bayes factor (\link{bf01}) more extreme than a threshold \code{k} with a
 #'     specified target power.
 #'
-#' @param k Bayes factor threshold
+#' @inheritParams pbf01
 #' @param power Target power
-#' @param sd Standard deviation of one unit
-#' @param null Parameter value under the point null hypothesis. Defaults to 0
-#' @param pm Mean of the normal prior assigned to the parameter under the
-#'     alternative in the analysis
-#' @param psd Standard deviation of the normal prior assigned to the parameter
-#'     under the alternative in the analysis. Set to 0 to obtain a point prior
-#'     at the prior mean
-#' @param dpm Mean of the normal design prior assigned to the parameter.
-#'     Defaults to the same value as specified for the analysis prior \code{pm}
-#' @param dpsd Standard deviation of the normal design prior assigned to the
-#'     parameter. Set to 0 to obtain a point prior at the prior mean. Defaults
-#'     to the same value as specified for the analysis prior \code{psd}
 #' @param nrange Sample size search range over which numerical search is
 #'     performed. Defaults to \code{c(1, 10^5)}
-#' @param lower.tail Logical indicating whether Pr(BF \eqn{\leq} \code{k})
-#'     (\code{TRUE}) or Pr(BF \eqn{>} \code{k}) (\code{FALSE}) should be
-#'     computed. Defaults to \code{TRUE}
 #' @param integer Logical indicating whether only integer valued sample sizes
 #'     should be returned. If \code{TRUE} the required sample size is rounded to
 #'     the next larger integer. Defaults to \code{TRUE}
 #' @param analytical Logical indicating whether analytical (if available) or
 #'     numerical method should be used. Defaults to \code{TRUE}
 #' @param ... Other arguments passed to \code{stats::uniroot}
+#'
+#' @inherit pbf01 details
 #'
 #' @return The required sample size to achieve the specified power
 #'
@@ -153,31 +140,31 @@ nbf01. <- function(k, power, sd, null = 0, pm, psd, dpm = pm, dpsd = psd,
 #'
 #' @examples
 #' ## point alternative (analytical and numerical solution available)
-#' nbf01(k = 1/10, power = 0.9, sd = 1, null = 0, pm = 0.5, psd = 0,
+#' nbf01(k = 1/10, power = 0.9, usd = 1, null = 0, pm = 0.5, psd = 0,
 #'       analytical = c(TRUE, FALSE), integer = FALSE)
 #'
-#' ## standardized mean difference (unit sd = sqrt(2), effective sample size = per group size)
-#' nbf01(k = 1/10, power = 0.9, sd = sqrt(2), null = 0, pm = 0, psd = 1)
+#' ## standardized mean difference (usd = sqrt(2), effective sample size = per group size)
+#' nbf01(k = 1/10, power = 0.9, usd = sqrt(2), null = 0, pm = 0, psd = 1)
 #' ## this is the sample size per group (assuming equally sized groups)
 #'
-#' ## z-transformed correlation (unit sd = 1, effective sample size = n - 3)
-#' nbf01(k = 1/10, power = 0.9, sd = 1, null = 0, pm = 0.2, psd = 0.5)
+#' ## z-transformed correlation (usd = 1, effective sample size = n - 3)
+#' nbf01(k = 1/10, power = 0.9, usd = 1, null = 0, pm = 0.2, psd = 0.5)
 #' ## have to add 3 to obtain the actual sample size
 #'
-#' ## log hazard/odds ratio (unit sd = 2, effective sample size = total number of events)
-#' nbf01(k = 1/10, power = 0.9, sd = 2, null = 0, pm = 0, psd = sqrt(0.5))
+#' ## log hazard/odds ratio (usd = 2, effective sample size = total number of events)
+#' nbf01(k = 1/10, power = 0.9, usd = 2, null = 0, pm = 0, psd = sqrt(0.5))
 #' ## have to convert the number of events to a sample size
 #'
 #' @export
 nbf01 <- Vectorize(FUN = nbf01.,
-                   vectorize.args = c("k", "power", "sd", "null", "pm", "psd",
+                   vectorize.args = c("k", "power", "usd", "null", "pm", "psd",
                                       "dpm", "dpsd", "integer", "analytical"))
 
 
 
 ## ## should give the same as closed-form solutions
 ## ## - for point alternatives and design priors (should be exact)
-## sd <- 2
+## usd <- 2
 ## pm <- 1
 ## psd <- 0
 ## dpm <- 2
@@ -186,18 +173,18 @@ nbf01 <- Vectorize(FUN = nbf01.,
 ## beta <- 0.2
 ## k <- 1/10
 ## zb <- stats::qnorm(p = 1 - beta)
-## (zb + sqrt(zb^2 - log(k^2)*(null + pm - 2*dpm)/(null - pm)))^2/(null + pm - 2*dpm)^2*sd^2
-## nbf01(k = k, power = 1 - beta, sd = sd, null = null, pm = pm, psd = psd, dpm = dpm,
+## (zb + sqrt(zb^2 - log(k^2)*(null + pm - 2*dpm)/(null - pm)))^2/(null + pm - 2*dpm)^2*usd^2
+## nbf01(k = k, power = 1 - beta, usd = usd, null = null, pm = pm, psd = psd, dpm = dpm,
 ##       dpsd = dpsd, integer = FALSE)
 ## ## - for local alternatives and design priors (this is an approximation)
 ## psd <- dpsd <- 1
 ## pm <- dpm <- null
-## sd^2/psd^2*k^2*exp(-lamW::lambertWm1(x = -stats::qnorm(p = (1 + beta)/2)^2*k^2))
-## nbf01(k = k, power = 1 - beta, sd = sd, null = null, pm = pm, psd = psd, dpm = dpm,
+## usd^2/psd^2*k^2*exp(-lamW::lambertWm1(x = -stats::qnorm(p = (1 + beta)/2)^2*k^2))
+## nbf01(k = k, power = 1 - beta, usd = usd, null = null, pm = pm, psd = psd, dpm = dpm,
 ##       dpsd = dpsd, integer = FALSE)
 
 ## ## - for point alternatives and normal design priors (should be exact)
-## sd <- 2
+## usd <- 2
 ## pm <- 1
 ## psd <- 0
 ## dpm <- 0.8
@@ -206,25 +193,25 @@ nbf01 <- Vectorize(FUN = nbf01.,
 ## beta <- 0.2
 ## k <- 1/10
 ## zb <- stats::qnorm(p = 1 - beta)
-## (n1 <- nbf01(k = k, power = 1 - beta, sd = sd, null = null, pm = pm, psd = psd,
+## (n1 <- nbf01(k = k, power = 1 - beta, usd = usd, null = null, pm = pm, psd = psd,
 ##              dpm = dpm, dpsd = dpsd, integer = FALSE))
-## pbf01(k = k, n = n1, sd = sd, null = null, pm = pm, psd = psd, dpm = dpm,
+## pbf01(k = k, n = n1, usd = usd, null = null, pm = pm, psd = psd, dpm = dpm,
 ##       dpsd = dpsd)
 
 ## A <- zb^2*dpsd^2 - ((null + pm)/2 - dpm)^2
-## B <- zb^2*sd^2 - (null + pm - 2*dpm)*sd^2*log(k)/(null - pm)
-## C <- -(sd^2*log(k)/(null - pm))^2
+## B <- zb^2*usd^2 - (null + pm - 2*dpm)*usd^2*log(k)/(null - pm)
+## C <- -(usd^2*log(k)/(null - pm))^2
 ## (n2 <- (-B + c(-1, 1)*sqrt(B^2 - 4*A*C))/(2*A))
-## pbf01(k = k, n = n2[1], sd = sd, null = null, pm = pm, psd = psd, dpm = dpm,
+## pbf01(k = k, n = n2[1], usd = usd, null = null, pm = pm, psd = psd, dpm = dpm,
 ##       dpsd = dpsd)
 
 ## ## - for local alternatives and design priors (this is an approximation)
 ## psd <- dpsd <- 1
 ## pm <- dpm <- null
-## (n2 <- sd^2/psd^2*k^2*exp(-lamW::lambertWm1(x = -stats::qnorm(p = (1 + beta)/2)^2*k^2)))
-## n2b <- nbf01(k = k, power = 1 - beta, sd = sd, null = null, pm = pm, psd = psd, dpm = dpm,
+## (n2 <- usd^2/psd^2*k^2*exp(-lamW::lambertWm1(x = -stats::qnorm(p = (1 + beta)/2)^2*k^2)))
+## n2b <- nbf01(k = k, power = 1 - beta, usd = usd, null = null, pm = pm, psd = psd, dpm = dpm,
 ##       dpsd = dpsd, integer = FALSE, analytical = FALSE)
-## pbf01(k = k, n = n2, sd = sd, null = null, pm = pm, psd = psd, dpm = dpm,
+## pbf01(k = k, n = n2, usd = usd, null = null, pm = pm, psd = psd, dpm = dpm,
 ##       dpsd = dpsd)
 
 ## ## produce some tables

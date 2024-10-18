@@ -11,13 +11,15 @@ bf01(estimate, se, null = 0, pm, psd, log = FALSE)
 
 \item{se}{Standard error of the parameter estimate}
 
-\item{null}{Parameter value under the point null hypothesis. Defaults to 0}
+\item{null}{Parameter value under the point null hypothesis. Defaults to
+\code{0}}
 
 \item{pm}{Mean of the normal prior assigned to the parameter under the
 alternative}
 
 \item{psd}{Standard deviation of the normal prior assigned to the parameter
-under the alternative. Set to 0 to obtain a point prior at the prior mean}
+under the alternative. Set to \code{0} to obtain a point prior at the
+prior mean}
 
 \item{log}{Logical indicating whether the natural logarithm of the Bayes
 factor should be returned. Defaults to \code{FALSE}}

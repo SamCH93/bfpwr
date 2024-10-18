@@ -9,8 +9,8 @@
 #'
 #' @param k Bayes factor threshold. Defaults to \code{1/10}, Jeffreys' threshold
 #'     for 'strong evidence' against the null hypothesis
-#' @param n Sample size. Has to be \code{NULL} if \code{power} is specified.
-#'     Defaults to \code{NULL}
+#' @param n Sample size (per group for two-sample tests). Has to be \code{NULL}
+#'     if \code{power} is specified. Defaults to \code{NULL}
 #' @param power Target power. Has to be \code{NULL} if \code{n} is specified.
 #'     Defaults to \code{NULL}
 #' @param sd Standard deviation of one observation (for \code{type =
@@ -122,12 +122,12 @@ powerbf01 <- function(n = NULL, power = NULL, k = 1/10, sd = 1, null = 0, pm,
 
     ## determine sample size
     if (is.null(n)) {
-        n <- nbf01(k = k, power = power, sd = sqrt(uv), null = null, pm = pm,
+        n <- nbf01(k = k, power = power, usd = sqrt(uv), null = null, pm = pm,
                    psd = psd, dpm = dpm, dpsd = dpsd, nrange = nrange,
                    integer = FALSE, analytical = TRUE)
     } else {
         ## determine power
-        power <- pbf01(k = k, n = n, sd = sqrt(uv), null = null, pm = pm,
+        power <- pbf01(k = k, n = n, usd = sqrt(uv), null = null, pm = pm,
                        psd = psd, dpm = dpm, dpsd = dpsd, lower.tail = TRUE)
     }
 
@@ -287,15 +287,15 @@ plot.power.bftest <- function(x, nlim = c(2, 500), ngrid = 100, plot = TRUE,
             usd <- x$sd
         }
         powFun <- function(k, n, lower.tail = TRUE) {
-            pbf01(k = k, n = n, sd = usd, null = x$null, pm = x$pm,
+            pbf01(k = k, n = n, usd = usd, null = x$null, pm = x$pm,
                   psd = x$psd, dpm = x$dpm, dpsd = x$dpsd,
                   lower.tail = lower.tail)
         }
         powNullFun <- function(k, n, lower.tail = TRUE) {
-            pbf01(k = k, n = n, sd = usd, null = x$null, pm = x$pm, psd = x$psd,
+            pbf01(k = k, n = n, usd = usd, null = x$null, pm = x$pm, psd = x$psd,
                   dpm = x$null, dpsd = 0, lower.tail = lower.tail)
         }
-        nH0 <- nbf01(k = 1/x$k, power = x$power, sd = usd, null = x$null,
+        nH0 <- nbf01(k = 1/x$k, power = x$power, usd = usd, null = x$null,
                      pm = x$pm, psd = x$psd, dpm = x$null, dpsd = x$null,
                      lower.tail = FALSE)
     } else if (x$test == "nm") {
@@ -306,14 +306,14 @@ plot.power.bftest <- function(x, nlim = c(2, 500), ngrid = 100, plot = TRUE,
             usd <- x$sd
         }
         powFun <- function(k, n, lower.tail = TRUE) {
-            pnmbf01(k = k, n = n, sd = usd, null = x$null, psd = x$psd,
+            pnmbf01(k = k, n = n, usd = usd, null = x$null, psd = x$psd,
                     dpm = x$dpm, dpsd = x$dpsd, lower.tail = lower.tail)
         }
         powNullFun <- function(k, n, lower.tail = TRUE) {
-            pnmbf01(k = k, n = n, sd = usd, null = x$null, psd = x$psd,
+            pnmbf01(k = k, n = n, usd = usd, null = x$null, psd = x$psd,
                     dpm = x$null, dpsd = 0, lower.tail = lower.tail)
         }
-        nH0 <- nnmbf01(k = 1/x$k, power = x$power, sd = usd, null = x$null,
+        nH0 <- nnmbf01(k = 1/x$k, power = x$power, usd = usd, null = x$null,
                        psd = x$psd, dpm = x$null, dpsd = x$null,
                        lower.tail = FALSE)
     } else {

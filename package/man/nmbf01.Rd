@@ -11,7 +11,8 @@ nmbf01(estimate, se, null = 0, psd, log = FALSE)
 
 \item{se}{Standard error of the parameter estimate}
 
-\item{null}{Parameter value under the point null hypothesis. Defaults to 0}
+\item{null}{Parameter value under the point null hypothesis. Defaults to
+\code{0}}
 
 \item{psd}{Spread of the normal moment prior assigned to the parameter under
 the alternative. The modes of the prior are located at

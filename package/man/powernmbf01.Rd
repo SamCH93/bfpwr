@@ -19,8 +19,8 @@ powernmbf01(
 )
 }
 \arguments{
-\item{n}{Sample size. Has to be \code{NULL} if \code{power} is specified.
-Defaults to \code{NULL}}
+\item{n}{Sample size (per group for two-sample tests). Has to be \code{NULL}
+if \code{power} is specified. Defaults to \code{NULL}}
 
 \item{power}{Target power. Has to be \code{NULL} if \code{n} is specified.
 Defaults to \code{NULL}}
@@ -33,7 +33,7 @@ for 'strong evidence' against the null hypothesis}
 a pair of observations (\code{type = "paired"}). Is assumed to be known.
 Defaults to \code{1}}
 
-\item{null}{Mean difference under the point null hypothesis. Defaults to
+\item{null}{Parameter value under the point null hypothesis. Defaults to
 \code{0}}
 
 \item{psd}{Spread of the normal moment prior assigned to the parameter under
@@ -46,7 +46,7 @@ the alternative in the analysis. The modes of the prior are located at
 \item{dpm}{Mean of the normal design prior assigned to the parameter}
 
 \item{dpsd}{Standard deviation of the normal design prior assigned to the
-parameter. Set to 0 to obtain a point prior at the prior mean}
+parameter. Set to 0 to obtain a point prior at the design prior mean}
 
 \item{nrange}{Sample size search range over which numerical search is
 performed (only taken into account when \code{n} is \code{NULL}).

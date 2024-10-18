@@ -1,4 +1,4 @@
-pnmbf01. <- function(k, n, sd, null = 0, psd, dpm, dpsd, lower.tail = TRUE) {
+pnmbf01. <- function(k, n, usd, null = 0, psd, dpm, dpsd, lower.tail = TRUE) {
     ## input checks
     stopifnot(
         length(k) == 1,
@@ -11,10 +11,10 @@ pnmbf01. <- function(k, n, sd, null = 0, psd, dpm, dpsd, lower.tail = TRUE) {
         is.finite(n),
         0 < n,
 
-        length(sd) == 1,
-        is.numeric(sd),
-        is.finite(sd),
-        0 < sd,
+        length(usd) == 1,
+        is.numeric(usd),
+        is.finite(usd),
+        0 < usd,
 
         length(null) == 1,
         is.numeric(null),
@@ -40,11 +40,11 @@ pnmbf01. <- function(k, n, sd, null = 0, psd, dpm, dpsd, lower.tail = TRUE) {
     )
 
     ## variance of the data based on the design prior
-    v <- sd^2/n + dpsd^2
+    v <- usd^2/n + dpsd^2
 
     ## compute power with closed-form formula
-    Y <- (2*lamW::lambertW0(x = (1 + n*psd^2/sd^2)^1.5*sqrt(exp(1))/2/k) - 1)*
-        (1 + sd^2/(n*psd^2))/(1 + n*dpsd^2/sd^2)
+    Y <- (2*lamW::lambertW0(x = (1 + n*psd^2/usd^2)^1.5*sqrt(exp(1))/2/k) - 1)*
+        (1 + usd^2/(n*psd^2))/(1 + n*dpsd^2/usd^2)
     A <- (dpm - null)/sqrt(v)
     if (Y < 0) {
         pow <- 1
@@ -66,22 +66,17 @@ pnmbf01. <- function(k, n, sd, null = 0, psd, dpm, dpsd, lower.tail = TRUE) {
 #'     moment prior Bayes factor (\link{nmbf01}) more extreme than a threshold
 #'     \code{k} with a specified sample size.
 #'
-#' @param k Bayes factor threshold
-#' @param n Sample size
-#' @param sd Standard deviation of one unit
-#' @param null Parameter value under the point null hypothesis. Defaults to 0
+#' @inheritParams pbf01
 #' @param psd Spread of the normal moment prior assigned to the parameter under
 #'     the alternative in the analysis. The modes of the prior are located at
 #'     \eqn{\pm\sqrt{2}\,\code{psd}}{+-sqrt(2)*\code{psd}}
 #' @param dpm Mean of the normal design prior assigned to the parameter
 #' @param dpsd Standard deviation of the normal design prior assigned to the
-#'     parameter. Set to 0 to obtain a point prior at the prior mean
-#' @param lower.tail Logical indicating whether Pr(BF \eqn{\leq} \code{k})
-#'     (\code{TRUE}) or Pr(BF \eqn{>} \code{k}) (\code{FALSE}) should be
-#'     computed. Defaults to \code{TRUE}
+#'     parameter. Set to 0 to obtain a point prior at the design prior mean
 #'
-#' @return The probability that the Bayes factor is less or greater (depending
-#'     on the specified \code{lower.tail}) than the specified threshold \code{k}
+#' @inherit pbf01 details
+#'
+#' @inherit pbf01 return
 #'
 #' @author Samuel Pawel
 #'
@@ -89,13 +84,13 @@ pnmbf01. <- function(k, n, sd, null = 0, psd, dpm, dpsd, lower.tail = TRUE) {
 #'
 #' @examples
 #' ## point desing prior (psd = 0)
-#' pnmbf01(k = 1/10, n = 200, sd = 2, null = 0, psd = 0.5/sqrt(2), dpm = 0.5, dpsd = 0)
+#' pnmbf01(k = 1/10, n = 200, usd = 2, null = 0, psd = 0.5/sqrt(2), dpm = 0.5, dpsd = 0)
 #'
 #' ## normal design prior to incorporate parameter uncertainty (psd > 0)
-#' pnmbf01(k = 1/10, n = 200, sd = 2, null = 0, psd = 0.5/sqrt(2), dpm = 0.5, dpsd = 0.25)
+#' pnmbf01(k = 1/10, n = 200, usd = 2, null = 0, psd = 0.5/sqrt(2), dpm = 0.5, dpsd = 0.25)
 #'
 #' ## design prior is the null hypothesis (dpm = 0, dpsd = 0)
-#' pnmbf01(k = 10, n = 200, sd = 2, null = 0, psd = 0.5/sqrt(2), dpm = 0, dpsd = 0, lower.tail = FALSE)
+#' pnmbf01(k = 10, n = 200, usd = 2, null = 0, psd = 0.5/sqrt(2), dpm = 0, dpsd = 0, lower.tail = FALSE)
 #'
 #' @export
 pnmbf01 <- Vectorize(FUN = pnmbf01.)
@@ -108,14 +103,14 @@ pnmbf01 <- Vectorize(FUN = pnmbf01.)
 ## dpm <- 1 # assume that design prior is centered around 1
 ## dpv <- 0.5 # assume that design prior variance is 1/2
 ## nseq <- seq(1, 100, 1)
-## sd <- 2
+## usd <- 2
 ## power <- t(sapply(X = nseq, FUN = function(n) {
-##     se <- sd/sqrt(n) # standard error with unit variance 4
+##     se <- usd/sqrt(n) # standard error with unit variance 4
 ##     v <- se^2 + dpv # marginal variance of y under design prior
-##     ysim <- rnorm(n = nsim, mean = dpm, sd = sqrt(v)) # simulate for comparison
+##     ysim <- rnorm(n = nsim, mean = dpm, usd = sqrt(v)) # simulate for comparison
 ##     bf01sim <- nmbf01(estimate = ysim, se = se, psd = psd)
 ##     powsim <- mean(bf01sim < k)
-##     pow <- pnmbf01(k = k, n = n, sd = sd, psd = psd, dpm = dpm, dpsd = sqrt(dpv)) # exact
+##     pow <- pnmbf01(k = k, n = n, usd = usd, psd = psd, dpm = dpm, dpsd = sqrt(dpv)) # exact
 ##     c("exact" = pow, "simulation" = powsim)
 ## }))
 

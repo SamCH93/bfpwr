@@ -1,4 +1,4 @@
-ptbf01. <- function(k = 1/10, n, n1 = n, n2 = n, null = 0, plocation = 0,
+ptbf01. <- function(k, n, n1 = n, n2 = n, null = 0, plocation = 0,
                     pscale = 1/sqrt(2), pdf = 1, dpm = plocation, dpsd = pscale,
                     type = c("two.sample", "one.sample", "paired"),
                     alternative = c("two.sided", "less", "greater"),
@@ -207,20 +207,10 @@ ptbf01. <- function(k = 1/10, n, n1 = n, n2 = n, null = 0, plocation = 0,
 #'     \eqn{t}-test Bayes factor (\link{tbf01}) more extreme than a threshold
 #'     \code{k} with a specified sample size.
 #'
-#' @param k Bayes factor threshold. Defaults to \code{1/10}, Jeffreys' threshold
-#'     for 'strong evidence' against the null hypothesis
-#' @param n Sample size (per group)
-#' @param n1 Sample size in group 1 (only required for two-sample \eqn{t}-test
-#'     with unequal group sizes)
-#' @param n2 Sample size in group 2 (only required for two-sample \eqn{t}-test
-#'     with unequal group sizes)
+#' @inheritParams tbf01
+#' @inheritParams pbf01
 #' @param null Standardized mean difference under the point null hypothesis.
 #'     Defaults to \code{0}
-#' @param plocation Analysis \eqn{t} prior location. Defaults to \code{0}
-#' @param pscale Analysis \eqn{t} prior scale. Defaults to \code{1/sqrt(2)}
-#' @param pdf Analysis \eqn{t} prior degrees of freedom. Defaults to \code{1}
-#' @param type Type of \eqn{t}-test associated with \eqn{t}-statistic. Can be
-#'     \code{"two.sample"} (default), \code{"one.sample"}, or \code{"paired"}
 #' @param alternative Direction of the test. Can be either \code{"two.sided"}
 #'     (default), \code{"less"}, or \code{"greater"}. The latter two truncate
 #'     the analysis prior to negative and positive effects, respectively. If set
@@ -231,19 +221,13 @@ ptbf01. <- function(k = 1/10, n, n1 = n, n2 = n, null = 0, plocation = 0,
 #' @param dpsd Standard deviation of the normal design prior assigned to the
 #'     standardized mean difference. Set to \code{0} to obtain a point prior at
 #'     the design prior mean. Defaults to the analysis prior scale
-#' @param type The type of test. One of \code{"two.sample"},
-#'     \code{"one.sample"}, \code{"paired"}. Defaults to \code{"two.sample"}
-#' @param lower.tail Logical indicating whether Pr(BF \eqn{\leq} \code{k})
-#'     (\code{TRUE}) or Pr(BF \eqn{>} \code{k}) (\code{FALSE}) should be
-#'     computed. Defaults to \code{TRUE}
 #' @param drange Standardized mean difference search range over which the
 #'     critical values are searched for. Can be either set to a numerical range
 #'     or to \code{"adaptive"} (default) which determines the range in an
 #'     adaptive way from the other input parameters
 #' @param ... Other arguments passed to \code{stats::uniroot}
 #'
-#' @return The probability that the Bayes factor is less or greater (depending
-#'     on the specified \code{lower.tail}) than the specified threshold \code{k}
+#' @inherit pbf01 return
 #'
 #' @author Samuel Pawel
 #'

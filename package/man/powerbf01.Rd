@@ -19,8 +19,8 @@ powerbf01(
 )
 }
 \arguments{
-\item{n}{Sample size. Has to be \code{NULL} if \code{power} is specified.
-Defaults to \code{NULL}}
+\item{n}{Sample size (per group for two-sample tests). Has to be \code{NULL}
+if \code{power} is specified. Defaults to \code{NULL}}
 
 \item{power}{Target power. Has to be \code{NULL} if \code{n} is specified.
 Defaults to \code{NULL}}

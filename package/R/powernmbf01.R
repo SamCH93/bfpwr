@@ -5,33 +5,14 @@
 #'     smaller than a specified threshold (the power), or determine sample size
 #'     to obtain a target power
 #'
+#' @inheritParams pnmbf01
+#' @inheritParams powerbf01
 #' @param k Bayes factor threshold. Defaults to \code{1/10}, Jeffreys' threshold
 #'     for 'strong evidence' against the null hypothesis
-#' @param n Sample size. Has to be \code{NULL} if \code{power} is specified.
-#'     Defaults to \code{NULL}
-#' @param power Target power. Has to be \code{NULL} if \code{n} is specified.
-#'     Defaults to \code{NULL}
-#' @param sd Standard deviation of one observation (for \code{type =
-#'     "two.sample"} or \code{type = "one.sample"}) or of one difference within
-#'     a pair of observations (\code{type = "paired"}). Is assumed to be known.
-#'     Defaults to \code{1}
-#' @param null Mean difference under the point null hypothesis. Defaults to
-#'     \code{0}
-#' @param psd Spread of the normal moment prior assigned to the parameter under
-#'     the alternative in the analysis. The modes of the prior are located at
-#'     \eqn{\pm\sqrt{2}\,\code{psd}}{+-sqrt(2)*\code{psd}}
-#' @param type The type of test. One of \code{"two.sample"},
-#'     \code{"one.sample"}, \code{"paired"}. Defaults to \code{"two.sample"}
-#' @param dpm Mean of the normal design prior assigned to the parameter
-#' @param dpsd Standard deviation of the normal design prior assigned to the
-#'     parameter. Set to 0 to obtain a point prior at the prior mean
-#' @param nrange Sample size search range over which numerical search is
-#'     performed (only taken into account when \code{n} is \code{NULL}).
-#'     Defaults to \code{c(1, 10^5)}
+#' @param n Sample size (per group for two-sample tests). Has to be \code{NULL}
+#'     if \code{power} is specified. Defaults to \code{NULL}
 #'
-#' @return Object of class \code{"power.bftest"}, a list of the arguments
-#'     (including the computed one) augmented with \code{method} and \code{note}
-#'     elements
+#' @inherit powerbf01 return
 #'
 #' @author Samuel Pawel
 #'
@@ -112,12 +93,12 @@ powernmbf01 <- function(n = NULL, power = NULL, k = 1/10, sd = 1, null = 0, psd,
 
     ## determine sample size
     if (is.null(n)) {
-        n <- nnmbf01(k = k, power = power, sd = sqrt(uv), null = null,
+        n <- nnmbf01(k = k, power = power, usd = sqrt(uv), null = null,
                      psd = psd, dpm = dpm, dpsd = dpsd, nrange = nrange,
                      integer = FALSE)
     } else {
         ## determine power
-        power <- pnmbf01(k = k, n = n, sd = sqrt(uv), null = null, psd = psd,
+        power <- pnmbf01(k = k, n = n, usd = sqrt(uv), null = null, psd = psd,
                          dpm = dpm, dpsd = dpsd, lower.tail = TRUE)
     }
 
