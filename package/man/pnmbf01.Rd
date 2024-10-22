@@ -58,7 +58,8 @@ pnmbf01(k = 1/10, n = 200, usd = 2, null = 0, psd = 0.5/sqrt(2), dpm = 0.5, dpsd
 pnmbf01(k = 1/10, n = 200, usd = 2, null = 0, psd = 0.5/sqrt(2), dpm = 0.5, dpsd = 0.25)
 
 ## design prior is the null hypothesis (dpm = 0, dpsd = 0)
-pnmbf01(k = 10, n = 200, usd = 2, null = 0, psd = 0.5/sqrt(2), dpm = 0, dpsd = 0, lower.tail = FALSE)
+pnmbf01(k = 10, n = 200, usd = 2, null = 0, psd = 0.5/sqrt(2), dpm = 0, dpsd = 0,
+        lower.tail = FALSE)
 
 }
 \seealso{

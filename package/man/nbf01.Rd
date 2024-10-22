@@ -79,6 +79,10 @@ It is assumed that the standard error of the future parameter
     \code{sd}\sqrt{2}}{usd = sd*sqrt(2)}. See the vignette for more
     information.
 }
+\note{
+A warning message will be displayed in case that the specified target
+    power is not achievable under the specified analysis and design priors.
+}
 \examples{
 ## point alternative (analytical and numerical solution available)
 nbf01(k = 1/10, power = 0.9, usd = 1, null = 0, pm = 0.5, psd = 0,

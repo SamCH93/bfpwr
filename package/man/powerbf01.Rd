@@ -65,10 +65,19 @@ Object of class \code{"power.bftest"}, a list of the arguments
 \description{
 Compute probability that z-test Bayes factor is smaller than a
     specified threshold (the power), or determine sample size to obtain a
-    target power
+    target power.
+}
+\details{
+This function provides a similar interface as
+    \code{stats::power.t.test}. It also assumes that the data are continuous
+    and that the parameter of interest is either a mean or a (standardized)
+    mean difference. For some users, the low-level functions \link{nbf01} (to
+    directly compute the sample size for a fixed power) and \link{pbf01} (to
+    directly compute the power for a fixed sample size) may also be useful
+    because they can be used for other data and parameter types.
 }
 \note{
-An error message will be displayed in case that the specified target
+A warning message will be displayed in case that the specified target
     power is not achievable under the specified analysis and design priors.
 }
 \examples{

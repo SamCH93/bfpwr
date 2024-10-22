@@ -60,7 +60,17 @@ Object of class \code{"power.bftest"}, a list of the arguments
 \description{
 Compute probability that normal moment prior Bayes factor is
     smaller than a specified threshold (the power), or determine sample size
-    to obtain a target power
+    to obtain a target power.
+}
+\details{
+This function provides a similar interface as
+    \code{stats::power.t.test}. It also assumes that the data are continuous
+    and that the parameter of interest is either a mean or a (standardized)
+    mean difference. For some users, the low-level functions \link{nnmbf01}
+    (to directly compute the sample size for a fixed power) and
+    \link{pnmbf01} (to directly compute the power for a fixed sample size)
+    may also be useful because they can be used for other data and parameter
+    types.
 }
 \examples{
 ## determine power

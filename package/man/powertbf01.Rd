@@ -66,7 +66,14 @@ Object of class \code{"power.bftest"}, a list of the arguments
 \description{
 Compute probability that \eqn{t}-test Bayes factor is smaller
     than a specified threshold (the power), or determine sample size to
-    obtain a target power
+    obtain a target power.
+}
+\details{
+This function provides a similar interface as
+    \code{stats::power.t.test}. For some users, the low-level functions
+    \link{ntbf01} (to directly compute the sample size for a fixed power) and
+    \link{ptbf01} (to directly compute the power for a fixed sample size) may
+    also be useful.
 }
 \examples{
 ## determine power

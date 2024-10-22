@@ -132,6 +132,9 @@ nbf01. <- function(k, power, usd, null = 0, pm, psd, dpm = pm, dpsd = psd,
 #'
 #' @inherit pbf01 details
 #'
+#' @note A warning message will be displayed in case that the specified target
+#'     power is not achievable under the specified analysis and design priors.
+#'
 #' @return The required sample size to achieve the specified power
 #'
 #' @author Samuel Pawel
