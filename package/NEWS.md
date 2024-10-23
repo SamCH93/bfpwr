@@ -1,3 +1,10 @@
+# bfpwr 0.1.2
+
+- polished documentation based on feedback from Wong Tsz Keung (thanks!)
+- changed name of `sd` argument to `usd` in `nbf01`, `nnmbf01`, `pbf01`, `pbf01`
+  to more clearly differentiate between the standard deviation of the data and
+  the unit standard deviation related to a parameter estimate
+
 # bfpwr 0.1
 
 - vignette `Using the bfpwr package` created

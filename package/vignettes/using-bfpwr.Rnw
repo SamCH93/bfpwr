@@ -3,22 +3,16 @@
 % \VignetteIndexEntry{Using the bfpwr package}
 % \VignetteDepends{knitr}
 \documentclass[a4paper, 11pt]{article}
-\usepackage{amsmath, amssymb} % math
 \usepackage[round]{natbib} % references
-\usepackage{orcidlink} % for ORCID symbol with link
 \usepackage{helvet} % helvetica sans serif font
-\usepackage{sectsty} % use different fonts for different sections
-\allsectionsfont{\sffamily} % for sections use sans serif
-\usepackage[labelfont={bf,sf},font=small]{caption} % customize captions
 \usepackage[onehalfspacing]{setspace} % more space
-\usepackage[dvipsnames,table]{xcolor}
+\usepackage[dvipsnames,table]{xcolor} % colors
 \usepackage{booktabs} % nicer tables
 
 % margins
 \usepackage{geometry}
 \geometry{
   a4paper,
-  total={170mm,257mm},
   left=20mm,
   right=20mm,
   top=30mm,
@@ -27,7 +21,10 @@
 
 % title, author, date, etc.
 \title{\textsf{\textbf{Using the bfpwr package}}}
-\author{\textbf{Samuel Pawel} \orcidlink{0000-0003-2779-320X} \\ University of Zurich}
+\author{
+  \textbf{Samuel Pawel} \\
+  \url{https://orcid.org/0000-0003-2779-320X}
+}
 \date{Package version \Sexpr{packageVersion(pkg = "bfpwr")} \\ \today}
 
 % hyperref options
@@ -35,7 +32,7 @@
 \hypersetup{
   bookmarksopen=true,
   breaklinks=true,
-  pdftitle={},
+  pdftitle={Using the bfpwr package},
   pdfsubject={},
   pdfkeywords={},
   colorlinks=true,
@@ -99,13 +96,18 @@ this vignette provides only a broad overview of the package.
 \end{table}
 \endgroup
 
-The \textbf{bfpwr} package will be submitted to CRAN soon. For now, the package
-can be installed from GitHub by running
+The \textbf{bfpwr} package can be installed from CRAN by running
 
 << "installation", eval = FALSE >>=
-## install.packages("remotes")
-remotes::install_github(repo = "SamCH93/bfpwr", subdir = "package")
+install.packages("bfpwr")
 @
+
+% The development version of the package can be installed by running
+
+% << "installation", eval = FALSE >>=
+% ## install.packages("remotes")
+% remotes::install_github(repo = "SamCH93/bfpwr", subdir = "package")
+% @
 
 \noindent followed by loading it with
 
@@ -233,7 +235,7 @@ when plotting the resulting \texttt{power.bftest} object with the corresponding
 \texttt{plot} method, as shown below
 
 \begin{spacing}{1}
-<< "plot.powerbf01-illustration", echo = TRUE, fig.height = 6.5 >>=
+<< "plot.powerbf01-illustration", echo = TRUE, fig.height = 6 >>=
 ## plot power curves (also tweaking the limits and resolution of the x-axis)
 plot(res1, nlim = c(1, 3000), ngrid = 1000)
 @
@@ -320,7 +322,7 @@ informative. Figure~\ref{fig:tprior} shows examples of different prior
 distributions along with the arguments to specify them.
 
 \begin{figure}[!htb]
-<< "prior-illustration", fig.height = 4, echo = FALSE >>=
+<< "prior-illustration", fig.height = 3.5, echo = FALSE >>=
 tprior <- function(d,
                    plocation = 0,
                    pscale = 1,
@@ -449,7 +451,7 @@ compelling evidence with a power of \Sexpr{round(100*tres[["power"]], 2)}\%. As
 with the \textit{z}-test Bayes factor, the power curves corresponding to these
 design calculations can be plotted with
 
-<< "plot-powertbf01-illustration", fig.height = 6.5 >>=
+<< "plot-powertbf01-illustration", fig.height = 6 >>=
 plot(tres)
 @
 

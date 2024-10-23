@@ -1065,17 +1065,25 @@ defined as no difference in efficacy of the treatment
 ($H_{0} \colon \theta = 0$), whereas the alternative hypothesis was defined as a
 clinically relevant difference of one day ($H_{1} \colon \theta = 1$). For
 sample size calculations, the investigators used a standard deviation of
-$\sigma = 2.75$ estimated from a previous study.
+$\sigma = 2.75$ estimated from a previous study. With a target power of
+$1 - \beta = 90\%$ and a two-sided level of $\alpha = 0.05$, the frequentist
+formula~\eqref{eq:freqsamplesize} produces a sample size
+$n = \Sexpr{ceiling(2*2.75^2*(qnorm(0.9) + qnorm(0.975))^2)}$, which the
+investigators adjusted further upwards to account for potential dropout and the
+non-parametric test used in the analysis. In the end, the trial indicated
+evidence for a beneficial effect of Zanamivir compared to placebo
+(intention-to-treat analysis difference in median number of days to alleviation
+of symptoms of 1.5 with 95\% confidence interval from 0.5 to 2.25).
 
-While this study was analyzed using frequentist methodology, we will now examine
-what the power and sample size calculations might look like if the planned
-analysis were performed using Bayes factors. For doing so, we assume a point
-analysis prior for the Bayes factor that equals the alternative hypothesis
-specified by the trial investigators ($\mu = 1$ and $\tau = 0$), so that the
-Bayes factor corresponds with a likelihood ratio. Hence, we can use the power
-function~\eqref{eq:prLR} and sample size formula~\eqref{eq:nLR} to compute power
-and sample size under point and normal design priors, which we illustrate in the
-following.
+While this study was designed and analyzed using frequentist methodology, we
+will now examine what the power and sample size calculations might look like if
+the planned analysis were performed using Bayes factors. For doing so, we assume
+a point analysis prior for the Bayes factor that equals the alternative
+hypothesis specified by the trial investigators ($\mu = 1$ and $\tau = 0$), so
+that the Bayes factor corresponds with a likelihood ratio. Hence, we can use the
+power function~\eqref{eq:prLR} and sample size formula~\eqref{eq:nLR} to compute
+power and sample size under point and normal design priors, which we illustrate
+in the following.
 
 \begin{figure}[!tb]
 << fig.height = 6 >>=
@@ -1403,27 +1411,29 @@ closed-form power curves were computed instantly while each simulated power
 curve took about 10 minutes to compute when parallelized across 10 cores on a
 modern laptop (Lenovo X1 Gen 8 with Intel i7-1355U CPU and 32GB RAM).
 
-We see that closed-form and simulation curves closely align in all cases,
-although the latter shows Monte Carlo error. Looking at the green curves in the
-top plot, we see that a sample size of $n = \Sexpr{n}$ per group is sufficient
-to achieve a target power of $\Sexpr{100*power}\%$ with a Bayes factor threshold
-of $k = 1/\Sexpr{1/k}$ under the point design prior. This sample size is
-slightly larger than the $n = 146$ that \citet{Schoenbrodt2017} obtained in
-their calculations, which instead assumed a Cauchy analysis prior. As in the
-previous example, incorporating parameter uncertainty via a normal design prior
-increases the required sample size, in this case to $n = \Sexpr{n2}$. Looking at
-the orange curve in the bottom plot, we see that these sample sizes only have
-modest power of around $20\%$ and $50\%$, respectively, for obtaining evidence
-in favor of the true null hypothesis (at a threshold of $k = 6$). To obtain a
-power of $\Sexpr{100*power}\%$, a sample size of $n = \Sexpr{nH0}$ per group
-would be required (not shown in Figure~\ref{fig:comparisonBFDA}). This
-illustrates the well-known fact that evidence accumulates slower for the null
-than the alternative when the Bayes factor involves testing a point null against
-a composite alternative with normal analysis prior \citep{Johnson2010}. Finally,
-looking at the orange curve in the top plot and the green/blue curves in the
-bottom plot, we see that the probability of misleading evidence in favor of the
-incorrect hypothesis appears to be adequately controlled, as these curves are
-virtually zero over the entire range of sample sizes.
+We see that closed-form and simulation curves closely align in all cases. The
+latter shows a maximum Monte Carlo error of \Sexpr{round(sqrt(0.5*(1 -
+  0.5)/nMC), 3)}, which seems negligible for practical purposes. Looking at the
+green curves in the top plot, we see that a sample size of $n = \Sexpr{n}$ per
+group is sufficient to achieve a target power of $\Sexpr{100*power}\%$ with a
+Bayes factor threshold of $k = 1/\Sexpr{1/k}$ under the point design prior. This
+sample size is slightly larger than the $n = 146$ that \citet{Schoenbrodt2017}
+obtained in their calculations, which instead assumed a Cauchy analysis prior.
+As in the previous example, incorporating parameter uncertainty via a normal
+design prior increases the required sample size, in this case to
+$n = \Sexpr{n2}$. Looking at the orange curve in the bottom plot, we see that
+these sample sizes only have modest power of around $20\%$ and $50\%$,
+respectively, for obtaining evidence in favor of the true null hypothesis (at a
+threshold of $k = 6$). To obtain a power of $\Sexpr{100*power}\%$, a sample size
+of $n = \Sexpr{nH0}$ per group would be required (not shown in
+Figure~\ref{fig:comparisonBFDA}). This illustrates the well-known fact that
+evidence accumulates slower for the null than the alternative when the Bayes
+factor involves testing a point null against a composite alternative with normal
+analysis prior \citep{Johnson2010}. Finally, looking at the orange curve in the
+top plot and the green/blue curves in the bottom plot, we see that the
+probability of misleading evidence in favor of the incorrect hypothesis appears
+to be adequately controlled, as these curves are virtually zero over the entire
+range of sample sizes.
 
 \section{Extensions}
 \label{sec:extensions}
@@ -1434,12 +1444,6 @@ models or prior distributions in the analysis. In the following, we outline two
 extensions that modify the Bayes factor used for the analysis, while still
 retaining the normal likelihood and point/normal design prior used for the
 design.
-
-Of note, after publishing an initial version of this article on the arXiv
-preprint server, \citet{Wong2024} have already built on our results and extended
-the approach described in this section to use more flexible design prior
-distributions for the $t$-test setting, and implemented it in an online
-application. We refer to their article for more information.
 
 
 \subsection{Informed Bayesian \textit{t}-test}
@@ -1787,6 +1791,21 @@ parameters to be specified. Therefore, we believe that the availability of such
 methods addresses an important practical need and can help researchers design
 efficient studies with minimal effort.
 
+% choice of the prior
+An important issue in any Bayesian design and analysis is the choice of prior
+distributions. While there are differences between point and normal priors in
+terms of the closed-form availability of sample sizes (see
+Table~\ref{tab:summary}), we believe that the choice between them should be
+guided only by prior knowledge and the questions researchers wish to answer,
+rather than by mathematical convenience. Point priors seem more appropriate when
+researchers have precise hypotheses to test, and they are also easier to
+communicate to non-statistical audiences. In contrast, normal priors can
+incorporate uncertainty and may therefore be more appropriate for exploratory
+settings where little is known about the phenomenon under
+investigation.
+% In any case, it is important that researchers are transparent about their
+% choices and motivations as
+
 A clear limitation of our methodology is the asymptotic normality assumption.
 This assumption may be inappropriate for certain data or parameter types, and
 may lead to an underappreciation of uncertainty and consequently an
@@ -1796,30 +1815,40 @@ method. Nevertheless, simulation methods may be intimidating or too advanced for
 research workers, in which case we believe it is better to do an approximate
 calculation than no calculation at all. One avenue for future work might be to
 extend closed-form power and sample size calculations to more specific settings
-not considered here, such as, binary outcomes. Another limitation is the types
-of Bayes factors that we considered for the analysis, which is limited to
-univariate parameters. Our work could be extended to ANOVA or regression
-settings with multivariate parameters. We also did not consider `open-ended'
-sequential designs, where data are collected continuously until compelling
-evidence for one of the competing hypotheses is found \citep{Wald1947}. The
-sequential approach is particularly attractive for Bayes factor inference as
-design and analysis prior distributions can be updated based on the accumulating
-data. Researchers can then make informed decisions about whether or not it is
-worthwhile to continue collecting data or to stop \citep{Stefan2022}. For these
-purposes, it would be interesting to consider the Bayes factor indexed by the
-sample size as a stochastic process, and study its properties. Finally, in
-situations where researchers have only a fixed sample size at their disposal, it
-may be interesting to use a `reverse-Bayes' approach \citep{Held2021b}. That is,
-one may `go backwards' and determine the design prior required to achieve a
-desired target power. Researchers can then reason whether or not this `reverse
-Bayes design prior' is scientifically plausible, and whether or not they should
-undertake the study based on their limited resources. This is similar to
-classical power analysis, where one can determine how large the true parameter
-needs to be to achieve a given power for a given sample size, and then reason
-about whether or not this true parameter is realistic. In both cases, however,
-it is important that the focus is on reasoning about the plausibility of the
-design prior/parameter, and researchers should be careful not to give the
-impression that this choice was made at the outset.
+not considered here, such as, binary outcomes.
+
+Another limitation is the types of Bayes factors that we considered for the
+analysis, which is limited to univariate parameters with normal, normal moment,
+$t$, or point priors under the alternative. However, after publishing an initial
+version of this article on the arXiv preprint server, \citet{Wong2024} have
+built on our results and extended the root-finding approach from
+Section~\ref{sec:extensions} to more flexible design prior distributions.
+Nevertheless, our work could still be further extended to ANOVA or regression
+settings with multivariate parameters.
+
+We also did not consider `open-ended' sequential designs, where data are
+collected continuously until compelling evidence for one of the competing
+hypotheses is found \citep{Wald1947}. The sequential approach is particularly
+attractive for Bayes factor inference as design and analysis prior distributions
+can be updated based on the accumulating data. Researchers can then make
+informed decisions about whether or not it is worthwhile to continue collecting
+data or to stop \citep{Stefan2022}. For these purposes, it would be interesting
+to consider the Bayes factor indexed by the sample size as a stochastic process,
+and study its properties.
+
+Finally, in situations where researchers have only a fixed sample size at their
+disposal, it may be interesting to use a `reverse-Bayes' approach
+\citep{Held2021b}. That is, one may `go backwards' and determine the design
+prior required to achieve a desired target power. Researchers can then reason
+whether or not this `reverse Bayes design prior' is scientifically plausible,
+and whether or not they should undertake the study based on their limited
+resources. This is similar to classical power analysis, where one can determine
+how large the true parameter needs to be to achieve a given power for a given
+sample size, and then reason about whether or not this true parameter is
+realistic. In both cases, however, it is important that the focus is on
+reasoning about the plausibility of the design prior/parameter, and researchers
+should be careful not to give the impression that this choice was made at the
+outset.
 
 
 \section*{Acknowledgments}
