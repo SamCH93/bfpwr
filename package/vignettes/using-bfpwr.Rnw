@@ -96,7 +96,7 @@ this vignette provides only a broad overview of the package.
 \end{table}
 \endgroup
 
-The \textbf{bfpwr} package can be installed from CRAN by running
+\noindent The \textbf{bfpwr} package can be installed from CRAN by running
 
 << "installation", eval = FALSE >>=
 install.packages("bfpwr")

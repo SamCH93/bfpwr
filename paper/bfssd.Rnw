@@ -361,28 +361,31 @@ odds of $H_0$ versus $H_1$, i.e.,
     = \frac{\Pr(H_0 \mid \hat{\theta})}{\Pr(H_1 \mid \hat{\theta})} \bigg/ \, \frac{\Pr(H_0)}{\Pr(H_1)}
     = \sqrt{1 + \frac{n \tau^2}{\sigma^2_{\scriptscriptstyle \hat{\theta}}}} \exp\left[-\frac{1}{2} \left\{\frac{(\hat{\theta} - \theta_0)^2}{\sigma^2_{\scriptscriptstyle \hat{\theta}}/n} - \frac{(\hat{\theta} - \mu)^2}{\tau^2 + \sigma^2_{\scriptscriptstyle \hat{\theta}}/n}\right\}\right].
 \end{align}
-A Bayes factor smaller than one ($\text{BF}_{01} < 1$) indicates evidence for
-the alternative hypothesis $H_{1}$, while a Bayes factor greater than one
+A Bayes factor less than one ($\text{BF}_{01} < 1$) indicates evidence for the
+alternative hypothesis $H_{1}$, while a Bayes factor greater than one
 ($\text{BF}_{01} > 1$) indicates evidence for the null hypothesis $H_{0}$. The
 larger the deviation of the Bayes factor from one, the stronger the evidence.
+Conventional thresholds for substantial and strong evidence for the alternative
+(null) hypothesis are $1/3$ and $1/10$ ($3$ and $10$), respectively. A Bayes
+factor $1/3 < \text{BF}_{01} < 3$ is typically interpreted as absence of
+evidence for either hypothesis, calling for more data to discern the more
+appropriate hypothesis \citep{Jeffreys1961, Held2018}.
+
 The Bayes factor~\eqref{eq:BF01} is implemented in our package in the function
-\texttt{bf01}.
-
-
-The Bayes factor~\eqref{eq:BF01} has already appeared in the literature in one
-form or another \citep[e.g., in][]{Weiss1997, DeSantis2004, Spiegelhalter2004,
-  Dienes2014, Bartos2023b}, with perhaps the first proposal of a Bayes factor
-based on an approximately normally distributed parameter estimate and its
-standard error dating back to \citet{Jeffreys1936}, see also
-\citet{Wagenmakers2022} for some historical notes on Jeffreys' approach. The
-Bayes factor~\eqref{eq:BF01} may be thought of as a `Bayesian \mbox{$z$-test}',
-that is, a test of a normal mean based on an asymptotically normal statistic
-assuming that the variance of the statistic is known. Of course, the latter
-assumption is not true in most applications, but it makes the test widely
-applicable and is, for practical purposes, often close enough to Bayes factors
-based on the exact distribution of the data, which may or may not be available.
-Finally, the Bayes factor~\eqref{eq:BF01} can also be used with parameter
-estimates where a standard error is available but not of the form
+\texttt{bf01}. It has already appeared in the literature in one form or another
+\citep[e.g., in][]{Weiss1997, DeSantis2004, Spiegelhalter2004, Dienes2014,
+  Bartos2023b}, with perhaps the first proposal of a Bayes factor based on an
+approximately normally distributed parameter estimate and its standard error
+dating back to \citet{Jeffreys1936}, see also \citet{Wagenmakers2022} for some
+historical notes on Jeffreys' approach. The Bayes factor~\eqref{eq:BF01} may be
+thought of as a `Bayesian \mbox{$z$-test}', that is, a test of a normal mean
+based on an asymptotically normal statistic assuming that the variance of the
+statistic is known. Of course, the latter assumption is not true in most
+applications, but it makes the test widely applicable and is, for practical
+purposes, often close enough to Bayes factors based on the exact distribution of
+the data, which may or may not be available. Finally, the Bayes
+factor~\eqref{eq:BF01} can also be used with parameter estimates where a
+standard error is available but not of the form
 $\sigma_{\scriptscriptstyle \hat{\theta}}/\sqrt{n}$, e.g., a parameter estimate
 from a generalized linear model where the estimate is adjusted for covariates
 and the standard error is obtained numerically. In this case,
@@ -395,12 +398,15 @@ assumptions.
 
 \section{Distribution and power function of the Bayes factor}
 \label{sec:distBF}
-Suppose now that we are interested in finding compelling evidence in favor of
-the alternative $H_{1}$ over the null hypothesis $H_{0}$ with a Bayes
-factor~\eqref{eq:BF01} smaller than some threshold $k < 1$. For example, the
-evidence thresholds could be $k = 1/3$ or $k = 1/10$, the levels from
-\citet{Jeffreys1939} for `substantial' and `strong' evidence, respectively. To
-determine a sample size that ensures compelling evidence with a desired
+Suppose now that we are interested in finding compelling evidence -- either in
+favor of the alternative $H_{1}$ over the null hypothesis $H_{0}$ with a Bayes
+factor~\eqref{eq:BF01} smaller than some threshold $k < 1$ (e.g., $k = 1/3$ or
+$k = 1/10$) or in favor of $H_{0}$ over $H_{1}$ with a Bayes factor greater than
+$k > 1$ (e.g., $k = 3$ or $k = 10$).
+% For example, the evidence thresholds could be $k = 1/3$ or $k = 1/10$, the
+% levels from \citet{Jeffreys1939} for `substantial' and `strong' evidence,
+% respectively.
+To determine a sample size that ensures compelling evidence with a desired
 probability we need to know the distribution of the Bayes factor~\eqref{eq:BF01}
 for a given sample size.
 
@@ -432,7 +438,15 @@ mathematically convenient for obtaining closed-form solutions for power and, in
 some cases, sample size. Point priors, and as such classical sample size
 determination with an `assumed parameter', then represent a special case of the
 normal prior where the standard deviation becomes infinitesimally small
-($\tau_{d} = 0$).
+($\tau_{d} = 0$). In addition, specifying a point design prior at the null value
+($\mu_{d} = 0$ and $\tau_{d} = 0$) allows us to compute the probability of
+finding compelling evidence for the true null hypothesis, as well as the
+probability of finding misleading evidence for the alternative when the null
+hypothesis is true (the `type I error rate'). Presenting the latter calculation
+can be useful in convincing skeptical parties (e.g., regulators, research
+funders, frequentist statisticians) that the chosen design and analysis are
+appropriately 'calibrated' \citep{Dawid1982, Rubin1984, Little2006, Grieve2016}.
+
 
 Such a normal design prior induces a predictive distribution
 $\hat{\theta} \mid n, \mu_{d} , \tau_{d} \sim \mathrm{N}(\mu_{d}, \tau^{2}_{d} + \sigma^{2}_{\scriptscriptstyle \hat{\theta}}/n)$
@@ -1413,27 +1427,39 @@ modern laptop (Lenovo X1 Gen 8 with Intel i7-1355U CPU and 32GB RAM).
 
 We see that closed-form and simulation curves closely align in all cases. The
 latter shows a maximum Monte Carlo error of \Sexpr{round(sqrt(0.5*(1 -
-  0.5)/nMC), 3)}, which seems negligible for practical purposes. Looking at the
-green curves in the top plot, we see that a sample size of $n = \Sexpr{n}$ per
-group is sufficient to achieve a target power of $\Sexpr{100*power}\%$ with a
-Bayes factor threshold of $k = 1/\Sexpr{1/k}$ under the point design prior. This
-sample size is slightly larger than the $n = 146$ that \citet{Schoenbrodt2017}
-obtained in their calculations, which instead assumed a Cauchy analysis prior.
-As in the previous example, incorporating parameter uncertainty via a normal
-design prior increases the required sample size, in this case to
-$n = \Sexpr{n2}$. Looking at the orange curve in the bottom plot, we see that
-these sample sizes only have modest power of around $20\%$ and $50\%$,
-respectively, for obtaining evidence in favor of the true null hypothesis (at a
-threshold of $k = 6$). To obtain a power of $\Sexpr{100*power}\%$, a sample size
-of $n = \Sexpr{nH0}$ per group would be required (not shown in
-Figure~\ref{fig:comparisonBFDA}). This illustrates the well-known fact that
-evidence accumulates slower for the null than the alternative when the Bayes
-factor involves testing a point null against a composite alternative with normal
-analysis prior \citep{Johnson2010}. Finally, looking at the orange curve in the
-top plot and the green/blue curves in the bottom plot, we see that the
-probability of misleading evidence in favor of the incorrect hypothesis appears
-to be adequately controlled, as these curves are virtually zero over the entire
-range of sample sizes.
+  0.5)/nMC), 3)}. Depending on the ethical and financial stakes, this may or may
+not be negligible for practical purposes, as the required sample size may be
+slightly over- or underestimated. For example, in animal studies, under- or
+overestimating the sample size by even one animal can be highly problematic and
+a higher number of simulations should be performed.
+
+Looking at the green curves in the top plot, we see that a sample size of
+$n = \Sexpr{n}$ per group is sufficient to achieve a target power of
+$\Sexpr{100*power}\%$ with a Bayes factor threshold of $k = 1/\Sexpr{1/k}$ under
+the point design prior. This sample size is slightly larger than the $n = 146$
+that \citet{Schoenbrodt2017} obtained in their calculations, which instead
+assumed a Cauchy analysis prior. As in the previous example, incorporating
+parameter uncertainty via a normal design prior increases the required sample
+size, in this case to $n = \Sexpr{n2}$. Looking at the orange curve in the
+bottom plot, we see that these sample sizes only have modest power of around
+$20\%$ and $50\%$, respectively, for obtaining evidence in favor of the true
+null hypothesis (at a threshold of $k = 6$). To obtain a power of
+$\Sexpr{100*power}\%$, a sample size of $n = \Sexpr{nH0}$ per group would be
+required (not shown in Figure~\ref{fig:comparisonBFDA}). This illustrates the
+well-known fact that evidence accumulates slower for the null than the
+alternative when the Bayes factor involves testing a point null against a
+composite alternative with normal analysis prior \citep{Johnson2010}. Finally,
+looking at the orange curve in the top plot and the green/blue curves in the
+bottom plot, we see that the probability of misleading evidence in favor of the
+incorrect hypothesis appears to be adequately controlled, as these curves are
+virtually zero over the entire range of sample sizes.
+
+Appendix~\ref{app:simeval} shows a more systematic comparison of the closed-form
+and root-finding methods with Monte Carlo simulation-based methods, including
+many other design and analysis priors. In summary, across the full range of
+conditions studied, the sample sizes calculated by the closed-form and
+root-finding methods produce the desired target power (estimated with
+simulation) when the data were simulated with that sample size.
 
 \section{Extensions}
 \label{sec:extensions}
@@ -1793,16 +1819,23 @@ efficient studies with minimal effort.
 
 % choice of the prior
 An important issue in any Bayesian design and analysis is the choice of prior
-distributions. While there are differences between point and normal priors in
-terms of the closed-form availability of sample sizes (see
+distributions. While there are differences between point and normal analysis
+priors in terms of the closed-form availability of sample sizes (see
 Table~\ref{tab:summary}), we believe that the choice between them should be
 guided only by prior knowledge and the questions researchers wish to answer,
-rather than by mathematical convenience. Point priors seem more appropriate when
-researchers have precise hypotheses to test, and they are also easier to
-communicate to non-statistical audiences. In contrast, normal priors can
-incorporate uncertainty and may therefore be more appropriate for exploratory
-settings where little is known about the phenomenon under
-investigation.
+rather than by mathematical convenience. Point analysis priors seem more
+appropriate when researchers have precise hypotheses to test, they can also be
+motivated from a non-Bayesian likelihoodist perspective, and they are easier to
+communicate to non-statistical audiences. In contrast, normal analysis priors
+can incorporate uncertainty and may therefore be more appropriate for
+exploratory settings where little is known about the phenomenon under
+investigation \citep{Held2018}. Similar considerations apply to the choice of
+the design prior. For example, a point design prior may be specified at a
+minimally relevant parameter value if such a value can be formulated. On the
+other hand, if such a value is difficult to formulate but data from a previous
+study are available, a normal design prior that takes the previous estimate and
+its standard error as the mean and standard deviation may be a reasonable way to
+incorporate prior knowledge and uncertainty.
 % In any case, it is important that researchers are transparent about their
 % choices and motivations as
 
@@ -1843,18 +1876,21 @@ prior required to achieve a desired target power. Researchers can then reason
 whether or not this `reverse Bayes design prior' is scientifically plausible,
 and whether or not they should undertake the study based on their limited
 resources. This is similar to classical power analysis, where one can determine
-how large the true parameter needs to be to achieve a given power for a given
+the value of the true parameter needed to achieve a given power for a given
 sample size, and then reason about whether or not this true parameter is
 realistic. In both cases, however, it is important that the focus is on
 reasoning about the plausibility of the design prior/parameter, and researchers
-should be careful not to give the impression that this choice was made at the
-outset.
+should be careful not to give the impression that this choice has been made at a
+priori.
 
 
 \section*{Acknowledgments}
 We thank \anonymize{Angelika Stefan} and \anonymize{František Bartoš} for
-valuable comments on drafts of the manuscript. The acknowledgment of these
-individuals does not imply their endorsement of the paper.
+valuable comments on a first draft of the manuscript. We thank \anonymize{Tsz
+  Keung Wong} for helpful suggestions related to our R package. We thank two
+anonymous reviewers and an associate editor for constructive comments. The
+acknowledgment of these individuals does not imply their endorsement of the
+paper.
 
 \section*{Conflict of interest}
 We declare no conflict of interest.
@@ -1875,17 +1911,13 @@ analyses \citep{R} along with the \texttt{BFDA} \citep{Schoenbrodt2019},
 
 \section{The bfpwr R package}
 \label{app:pkg}
-Our R package
-% can be installed by running \texttt{install.packages("bfpwr")} in an R
-% session, the development version
-can be installed from GitHub with the R command
-\texttt{remotes::install\_github(repo = \anonymize{"SamCH93/bfpwr", subdir =
-    "package"})} (requires the \texttt{remotes} package). We plan to submit the
-package to CRAN in the near future. The workhorse function of our R package is
-\texttt{powerbf01}. It is inspired by the \texttt{power.t.test} function from
-the \texttt{stats} package, with which many user will be familiar. As
-\texttt{power.t.test}, the function \texttt{powerbf01} assumes that the data are
-continuous and that the parameter of interest is either a mean or a
+Our R package can be installed by running \texttt{install.packages("bfpwr")} in
+an R session, the development version can be found on GitHub
+(\anonymize{\url{https://github.com/SamCH93/bfpwr}}). The workhorse function of
+our R package is \texttt{powerbf01}. It is inspired by the \texttt{power.t.test}
+function from the \texttt{stats} package, with which many user will be familiar.
+As \texttt{power.t.test}, the function \texttt{powerbf01} assumes that the data
+are continuous and that the parameter of interest is either a mean or a
 (standardized) mean difference. The functions \texttt{pbf01} and \texttt{nbf01}
 are more general and can be used for any approximately normally distributed
 parameter estimate with approximate variance
@@ -2015,6 +2047,142 @@ $\mathrm{W}_{-1}(\cdot)$ which satisfies $\mathrm{W}(x) < -1$ for
 $y \in (-1/e, 0)$ \citep{Corless1996}. This is because this branch always leads
 to larger sample sizes than the other and guarantees that unit information
 sample sizes are always larger than one.
+
+
+<< "sim-evaluation-params" >>=
+pow <- 0.8
+k <- 1/10
+usd <- sqrt(2)
+null <- 0
+nsim <- 50000
+pargrid <- expand.grid(k = k,
+                       power = pow,
+                       usd = usd,
+                       null = null,
+                       pm = c(0, 0.2, 0.5, 0.8),
+                       psd = c(0, 0.5, 1, 2),
+                       dpm = c(0, 0.2, 0.5, 0.8),
+                       dpsd = c(0, 0.5, 1))
+@
+
+\section{Simulation-based evaluation of the bfpwr package}
+\label{app:simeval}
+Figure~\ref{fig:simeval} shows a simulation-based evaluation of the power and
+sample size calculation methods for the Bayesian $z$-test as implemented in our
+\texttt{bfpwr} R package. Values of the design and analysis prior means were
+chosen to represent conventions for no (0), small (0.2), medium (0.5), and large
+(0.8) standardized mean differences \citep{Cohen1992}. The null and alternative
+hypotheses were defined as $H_{0}\colon \theta = 0$ against
+$H_{1} \colon \theta \neq 0$. The standard deviations were chosen to include
+point and normal priors. For each combination of analysis/design prior
+mean/standard deviation, the sample size to obtain a Bayes factor equal or below
+$k = 1/\Sexpr{1/k}$ with a target power of \Sexpr{round(100*pow, 2)}\% was
+computed (shown at the top of each plot). This sample size was subsequently used
+to simulate \Sexpr{format(nsim, big.mark = "'")} standardized mean difference
+parameter estimates based on which \Sexpr{format(nsim, big.mark = "'")} Bayes
+factor were computed. The power was then estimated from the proportion of Bayes
+factors equal or below the level $k = 1/\Sexpr{1/k}$. Note that for certain
+design/analysis prior combinations, it is impossible to achieve the target power
+with a finite sample size. In this case an ``x'' is shown in the plot.
+
+\begin{figure}[!htb]
+<< "additional-simulations1", cache = TRUE >>=
+library(bfpwr)
+
+## function to simulate data and see whether closed-form / root-finding solution
+## aligns with Monte Carlo power
+simbenchmark <- function(nsim = 10000, k = 1/10, power = 0.8, usd, null = 0, pm,
+                         psd, dpm, dpsd, lower.tail = TRUE, analytical = TRUE,
+                         integer = FALSE) {
+
+    ## compute n with closed-form solution
+    n <- try(nbf01(k = k, power = power, usd = usd, null = null, pm = pm,
+                   psd = psd, dpm = dpm, dpsd = dpsd, lower.tail = lower.tail,
+                   analytical = analytical, integer = integer))
+    if (is.nan(n)) {
+        power_closed <- NaN
+        power_MC <- NaN
+    } else {
+
+        ## simulate parameter estimates
+        se <- usd/sqrt(n)
+        est <- rnorm(n = nsim, mean = dpm, sd = sqrt(se^2 + dpsd^2))
+
+        ## compute Bayes factors
+        bf <- bf01(estimate = est, se = se, null = null, pm = pm, psd = psd)
+
+        ## recompute power
+        power_closed <- pbf01(k = k, n = n, usd = usd, null = null, pm = pm,
+                              psd = psd, dpm = dpm, dpsd = dpsd,
+                              lower.tail = lower.tail)
+        if (lower.tail == TRUE) {
+            power_MC <- mean(bf <= k)
+
+        } else {
+            power_MC <- mean(bf > k)
+        }
+    }
+    res <- data.frame(nsim, k, usd, null, pm, psd, dpm, dpsd, lower.tail, n,
+                      power, power_closed, power_MC)
+    return(res)
+}
+
+## simulation benchmarking
+set.seed(424242)
+res <- do.call("rbind", lapply(X = seq(1, nrow(pargrid)), FUN = function(i) {
+    simbenchmark(nsim = nsim, k = pargrid$k[i], power = pargrid$power[i],
+                 usd = pargrid$usd[i], null = pargrid$null[i],
+                 pm = pargrid$pm[i], psd = pargrid$psd[i], dpm = pargrid$dpm[i],
+                 dpsd = pargrid$dpsd[i])
+}))
+res$mcse <- sqrt(res$power_MC*(1 - res$power_MC)/nsim)
+@
+<< "additional-simulations2", fig.height = 8, fig.width = 9 >>=
+library(dplyr)
+library(ggplot2)
+nDF <- res |>
+    group_by(k, power, usd, null, pm, psd, dpm, dpsd) |>
+    summarise(n = ceiling(unique(n))) |>
+    ungroup() |>
+    mutate(nFormat = ifelse(is.nan(n), "x", n))
+
+ggplot(data = res,
+       aes(x = factor(dpm, ordered = TRUE), y = power_MC,
+           color = factor(dpsd, ordered = TRUE))) +
+    geom_vline(xintercept = seq(0.5, 10.5, 1), alpha = 0.1, lty = 3) +
+    geom_hline(yintercept = pow, lty = 2, alpha = 0.7) +
+    facet_grid(psd ~pm,
+               labeller = label_bquote(cols = "Analysis prior mean" ~ mu == .(pm),
+                                       rows = "Analysis prior SD" ~ tau == .(psd))) +
+    geom_pointrange(aes(ymin = power_MC - mcse, ymax = power_MC + mcse),
+                    position = position_dodge2(width = 0.5),
+                    fatten = 1.5) +
+    geom_text(data = nDF, aes(y = pow + 0.0075, label = nFormat), size = 2.5,
+              position = position_dodge2(width = 1), angle = 30,
+              fontface = "bold") +
+    labs(x = bquote("Design prior mean" ~ mu[italic(d)]),
+         y = bquote("Estimated power" %+-% "MCSE"),
+         color =  bquote("Design prior SD" ~ tau[italic(d)])) +
+    scale_y_continuous(labels = scales::percent) +
+    coord_cartesian(ylim = pow + c(-1, 1)*0.008) +
+    scale_color_viridis_d(end = 0.7, option = "A") +
+    theme_bw() +
+    theme(legend.position = "top", panel.grid.minor = element_blank(),
+          panel.grid.major.x = element_blank(),
+          strip.background = element_rect(fill = alpha("black", 0.01)))
+@
+\caption{Simulation-based evaluation of power and sample size calculations
+  related to the Bayesian $z$-test as implemented in the \texttt{bfpwr}
+  package.}
+\label{fig:simeval}
+\end{figure}
+
+We can see that in all conditions, the simulated-based estimate of the power is
+close to the target power of \Sexpr{round(100*pow, 2)}\%. The maximally observed
+discrepancy is \Sexpr{round(100*max(abs(res[,"power_MC"] - pow), na.rm = TRUE),
+  2)}\% while the median discrepancy is
+\Sexpr{round(100*median(abs(res[,"power_MC"] - pow), na.rm = TRUE), 2)}\%. This
+suggests that the power and sample size calculation methods work as intended.
 
 
 \section{Power with normal moment prior}

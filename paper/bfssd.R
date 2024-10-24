@@ -627,6 +627,108 @@ ssd
 plot(ssd, nlim = c(1, 400))
 
 
+## ----"sim-evaluation-params"--------------------------------------------------
+pow <- 0.8
+k <- 1/10
+usd <- sqrt(2)
+null <- 0
+nsim <- 50000
+pargrid <- expand.grid(k = k,
+                       power = pow,
+                       usd = usd,
+                       null = null,
+                       pm = c(0, 0.2, 0.5, 0.8),
+                       psd = c(0, 0.5, 1, 2),
+                       dpm = c(0, 0.2, 0.5, 0.8),
+                       dpsd = c(0, 0.5, 1))
+
+
+## ----"additional-simulations1", cache = TRUE----------------------------------
+library(bfpwr)
+
+## function to simulate data and see whether closed-form / root-finding solution
+## aligns with Monte Carlo power
+simbenchmark <- function(nsim = 10000, k = 1/10, power = 0.8, usd, null = 0, pm,
+                         psd, dpm, dpsd, lower.tail = TRUE, analytical = TRUE,
+                         integer = FALSE) {
+
+    ## compute n with closed-form solution
+    n <- try(nbf01(k = k, power = power, usd = usd, null = null, pm = pm,
+                   psd = psd, dpm = dpm, dpsd = dpsd, lower.tail = lower.tail,
+                   analytical = analytical, integer = integer))
+    if (is.nan(n)) {
+        power_closed <- NaN
+        power_MC <- NaN
+    } else {
+
+        ## simulate parameter estimates
+        se <- usd/sqrt(n)
+        est <- rnorm(n = nsim, mean = dpm, sd = sqrt(se^2 + dpsd^2))
+
+        ## compute Bayes factors
+        bf <- bf01(estimate = est, se = se, null = null, pm = pm, psd = psd)
+
+        ## recompute power
+        power_closed <- pbf01(k = k, n = n, usd = usd, null = null, pm = pm,
+                              psd = psd, dpm = dpm, dpsd = dpsd,
+                              lower.tail = lower.tail)
+        if (lower.tail == TRUE) {
+            power_MC <- mean(bf <= k)
+
+        } else {
+            power_MC <- mean(bf > k)
+        }
+    }
+    res <- data.frame(nsim, k, usd, null, pm, psd, dpm, dpsd, lower.tail, n,
+                      power, power_closed, power_MC)
+    return(res)
+}
+
+## simulation benchmarking
+set.seed(424242)
+res <- do.call("rbind", lapply(X = seq(1, nrow(pargrid)), FUN = function(i) {
+    simbenchmark(nsim = nsim, k = pargrid$k[i], power = pargrid$power[i],
+                 usd = pargrid$usd[i], null = pargrid$null[i],
+                 pm = pargrid$pm[i], psd = pargrid$psd[i], dpm = pargrid$dpm[i],
+                 dpsd = pargrid$dpsd[i])
+}))
+res$mcse <- sqrt(res$power_MC*(1 - res$power_MC)/nsim)
+
+## ----"additional-simulations2", fig.height = 8, fig.width = 9-----------------
+library(dplyr)
+library(ggplot2)
+nDF <- res |>
+    group_by(k, power, usd, null, pm, psd, dpm, dpsd) |>
+    summarise(n = ceiling(unique(n))) |>
+    ungroup() |>
+    mutate(nFormat = ifelse(is.nan(n), "x", n))
+
+ggplot(data = res,
+       aes(x = factor(dpm, ordered = TRUE), y = power_MC,
+           color = factor(dpsd, ordered = TRUE))) +
+    geom_vline(xintercept = seq(0.5, 10.5, 1), alpha = 0.1, lty = 3) +
+    geom_hline(yintercept = pow, lty = 2, alpha = 0.7) +
+    facet_grid(psd ~pm,
+               labeller = label_bquote(cols = "Analysis prior mean" ~ mu == .(pm),
+                                       rows = "Analysis prior SD" ~ tau == .(psd))) +
+    geom_pointrange(aes(ymin = power_MC - mcse, ymax = power_MC + mcse),
+                    position = position_dodge2(width = 0.5),
+                    fatten = 1.5) +
+    geom_text(data = nDF, aes(y = pow + 0.0075, label = nFormat), size = 2.5,
+              position = position_dodge2(width = 1), angle = 30,
+              fontface = "bold") +
+    labs(x = bquote("Design prior mean" ~ mu[italic(d)]),
+         y = bquote("Estimated power" %+-% "MCSE"),
+         color =  bquote("Design prior SD" ~ tau[italic(d)])) +
+    scale_y_continuous(labels = scales::percent) +
+    coord_cartesian(ylim = pow + c(-1, 1)*0.008) +
+    scale_color_viridis_d(end = 0.7, option = "A") +
+    theme_bw() +
+    theme(legend.position = "top", panel.grid.minor = element_blank(),
+          panel.grid.major.x = element_blank(),
+          strip.background = element_rect(fill = alpha("black", 0.01)))
+
+
 
 ## ----"sessionInfo2", echo = Reproducibility, results = Reproducibility--------
 cat(paste(Sys.time(), Sys.timezone(), "\n"))
