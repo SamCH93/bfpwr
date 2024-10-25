@@ -1,3 +1,8 @@
+# bfpwr 0.1.3
+
+- changed citation in DESCRIPTION file to adher to CRAN policy
+- properly reset user's par() in the vignette
+
 # bfpwr 0.1.2
 
 - polished documentation based on feedback from Tsz Keung Wong (thanks!)

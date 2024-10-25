@@ -39,13 +39,14 @@ library(bfpwr)
 ## Bayes factor analysis parameters
 null <- 0 # null value
 sd <- 1 # standard deviation of one observation
-pm <- null # analysis prior centered around null value
-psd <- sqrt(2) # unit information SD for a standardized mean difference (SMD)
+pm <- null # analysis prior mean set to the null value
+psd <- sqrt(2) # analysis prior sd set to sqrt(2)
 type <- "two.sample" # two-sample test
 
+
 ## design prior parameters
-dpm <- 0.5 # design prior mean equal to large SMD effect size
-dpsd <- 0.1 # design prior sd to incorporate parameter uncertainty
+dpm <- 0.5 # design prior mean equal to medium SMD effect size
+dpsd <- 0.1 # positive design prior sd to incorporate parameter uncertainty
 
 ## determine sample size to achieve 85% power
 k <- 1/6 # BF threshold

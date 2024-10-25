@@ -355,7 +355,7 @@ dens <- sapply(X = seq(1, nrow(pars)), FUN = function(i) {
                 pdf = pars$pdf[i], alternative = pars$alternative[i])
 })
 cols <- palette.colors(n = 4, alpha = 0.8)[-1]
-par(mar = c(4, 5, 2, 2))
+oldpar <- par(mar = c(4, 5, 2, 2))
 matplot(dseq, dens, lty = 1, type = "l", lwd = 1.5, las = 1, col = cols,
         xlab = "Standardized mean difference", ylab = "Prior density",
         panel.first = grid(lty = 3, col = adjustcolor(col = 1, alpha = 0.1)),
@@ -365,7 +365,7 @@ leg <- sapply(X = seq(1, nrow(pars)),
                                       collapse = ", ")
               )
 legend("topright", legend = leg, col = cols, lwd = 1.5, lty = 1, cex = 0.8)
-
+par(oldpar)
 @
 \caption{Illustration of different (truncated) scale-location $t$ prior
   distributions for the \textit{t}-test Bayes factor along with the arguments to
@@ -485,13 +485,14 @@ taus <- c(0.5, 1, 2)
 null <- 0
 dens <- sapply(X = taus, FUN = function(tau) dnmoment(x = xseq, location = 0, spread = tau))
 cols <- hcl.colors(n = length(taus), alpha = 0.8)
-par(mar = c(4, 5, 2, 2))
+oldpar <- par(mar = c(4, 5, 2, 2))
 matplot(xseq, dens, type = "l", lty = 1, col = cols, lwd = 1.5,
         xlab = bquote("Parameter" ~ theta), ylab = "Density", las = 1,
         panel.first = grid(lty = 3, col = adjustcolor(col = 1, alpha = 0.1)))
 leg <- paste("null = 0, psd =", taus)
 legend("topright", legend = leg, col = cols, lty = 1, lwd = 1.5, cex = 0.8,
        bg = "white")
+par(oldpar)
 @
 \caption{Illustration of different normal moment prior distributions along with
   the arguments to specify them.}
