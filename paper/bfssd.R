@@ -17,6 +17,8 @@ library(xtable)
 library(lamW)
 library(BayesRep)
 library(BFDA)
+library(dplyr)
+library(ggplot2)
 
 
 ## ----"plot-power", fig.height = 4.5-------------------------------------------
@@ -223,22 +225,27 @@ print(xtab, booktabs = TRUE, floating = FALSE,
       include.colnames = FALSE)
 
 
-## ----fig.height = 6-----------------------------------------------------------
-## A randomized trial to assess the effectiveness of zanamivir, a new treatment for
-## influenza, compared a group randomly allocated to the new treatment with a group
-## randomly allocated to a sham (or placebo) treatment. When planning the trial the
-## investigators decided that the primary variable would be the number of days to
-## the alleviation of symptoms (with alleviation and symptoms defined precisely
-## elsewhere in the plan of the study).
+## ----"radiotherapy-example"---------------------------------------------------
+## sample size calculation as in You et al. (2020, p. 1347)
+## https://doi.org/10.1001/jamaoncol.2020.1808
+logHR <- log(0.53) # from previous studies
+pow <- 0.9
+alpha <- 0.05
+n <- 4*(qnorm(p = 1 - alpha/2) + qnorm(p = pow))^2/logHR^2
 
-## A previous study suggested that a sensible value for sd was 2.75 d and the
-## minimal clinically relevant difference that the trial should have good power
-## to detect was taken to be 1 d.
+## study results
+est <- log(0.42)
+ci <- log(c(0.23, 0.77))
+se <- (ci[2] - ci[1])/(2*qnorm(p = 0.975))
+p <- 2*pnorm(q = abs(est/se), lower.tail = FALSE)
+lr01 <- bf01(estimate = est, se = se, null = 0, pm = logHR, psd = 0)
 
+
+## ----"radiotherapy-example-design", fig.height = 6----------------------------
 ## BF parameter
 null <- 0
-sd <- sqrt(2)*2.75 # unit sd for an MD effect size so that n is the group size
-pm <- 1 # the effect on MD scale
+sd <- 2 # unit sd for a logHR effect size so that n is the number of events
+pm <- round(log(0.53), 2) # from previous studies
 psd <- 0 # point analysis prior
 k <- 1/10
 
@@ -246,7 +253,7 @@ k <- 1/10
 power <- 0.9
 dpm <- pm
 dpsd1 <- 0
-dpsd2 <- 1/4
+dpsd2 <- 0.2
 
 ## compute required sample size to achieve 80% power for LR
 nnum <- nbf01(k = k, power = power, usd = sd, null = null, pm = pm, psd = psd,
@@ -259,16 +266,11 @@ b <- sd^2*((null + pm - 2*dpm)*log(k)/(null - pm) - zb^2)
 c <- (sd^2*log(k)/(null - pm))^2
 nanalyt2 <- ceiling((-b + sqrt(b^2 - 4*a*c))/(2*a))
 
-
-## ## sample size to achieve 80% power under the null
-## nbf01(k = 1/k, power = power, usd = sd, null = null, pm = pm, psd = psd,
-##       dpm = null, dpsd = 0, lower.tail = FALSE, analytical = FALSE)
-
 ## plot power curves
 par(mfrow = c(2, 1), mar = c(2.5, 5, 2.5, 2.5))
 cols <- rev(palette.colors(n = 4, alpha = 0.95)[2:4])
 transpblack <- adjustcolor(col = 1, alpha = 0.2)
-nseq <- seq(from = 5, to = 550, by = 1)
+nseq <- seq(from = 5, to = 650, by = 1)
 pow <- pbf01(k = k, n = nseq, usd = sd, null = null, pm = pm, psd = psd,
              dpm = dpm, dpsd = dpsd1)
 pow2 <- pbf01(k = k, n = nseq, usd = sd, null = null, pm = pm, psd = psd,
@@ -282,10 +284,11 @@ plot(nseq, pow*100, xlab = "",
 lines(nseq, pow2*100, type = "l", col = cols[2], lwd = 1.5)
 lines(nseq, powNull*100, type = "l", col = cols[3], lwd = 1.5)
 axis(side = 2, at = seq(0, 100, 20), labels = paste0(seq(0, 100, 20), "%"), las = 1)
-axis(side = 4, at = power*100, labels = paste0(power*100, "%"), las = 1,
-     col = transpblack, cex.axis = 0.8)
+axis(side = 4, at = c(power, 0.05)*100,
+     labels = paste0(c(power, 0.05)*100, "%"), las = 1, col = transpblack,
+     cex.axis = 0.8)
 axis(side = 3, at = c(nanalyt, nanalyt2), col = transpblack, cex.axis = 0.8)
-abline(h = power*100, col = transpblack)
+abline(h = c(power, 0.05)*100, col = transpblack)
 abline(v = c(nanalyt, nanalyt2), col = transpblack)
 legend("right", title = "Design prior",
        legend = c(bquote("N(" * {mu[italic("d")] == .(dpm)} * ", "
@@ -302,7 +305,7 @@ pow2H0 <- pbf01(k = 1/k, n = nseq, usd = sd, null = null, pm = pm, psd = psd,
                 dpm = dpm, dpsd = dpsd2, lower.tail = FALSE)
 powNullH0 <- pbf01(k = 1/k, n = nseq, usd = sd, null = null, pm = pm, psd = psd,
                    dpm = null, dpsd = 0, lower.tail = FALSE)
-plot(nseq, powH0*100, xlab = bquote("Sample size per group" ~ italic(n)),
+plot(nseq, powH0*100, xlab = bquote("Number of events" ~ italic(n)),
      ylab = bquote("Pr(BF"["01"] > .(1/k) * " )"), type = "l",
      ylim = c(0, 100), lwd = 1.5, yaxt = "n", col = cols[1],
      panel.first = grid(lty = 3, col = adjustcolor(col = 1, alpha = 0.1)))
@@ -310,16 +313,17 @@ lines(nseq, pow2H0*100, type = "l", col = cols[2], lwd = 1.5)
 lines(nseq, powNullH0*100, type = "l", col = cols[3], lwd = 1.5)
 axis(side = 2, at = seq(0, 100, 20), labels = paste0(seq(0, 100, 20), "%"), las = 1)
 abline(v = nanalyt, col = transpblack)
-abline(h = power*100, col = transpblack)
-axis(side = 4, at = power*100, labels = paste0(power*100, "%"), las = 1,
-     col = transpblack, cex.axis = 0.8)
+abline(h = c(power, 0.05)*100, col = transpblack)
+axis(side = 4, at = c(power, 0.05)*100,
+     labels = paste0(c(power, 0.05)*100, "%"), las = 1, col = transpblack,
+     cex.axis = 0.8)
 
 
-## ----fig.height = 6-----------------------------------------------------------
+## ----"BFDA-comparison", fig.height = 6----------------------------------------
 ## "1) In the example given below, we used two populations with normal
-## distributions and a fixed standardized mean difference of delta =0.5 3) In
-## the example given below, we analyzed simulated data with a Cauchy prior"
-## (scale parameter = 1/sqrt(2))"
+## distributions and a fixed standardized mean difference of delta = 0.5
+## 3) In the example given below, we analyzed simulated data with a Cauchy
+## prior" (scale parameter = 1/sqrt(2))"
 
 
 ## ## compare Normal to Cauchy prior
@@ -350,10 +354,6 @@ n2 <- nbf01(k = k, power = power, usd = sd, null = null, pm = pm, psd = psd,
             dpm = dpm, dpsd = dpsd2)
 nH0 <- nbf01(k = 1/k, power = power, usd = sd, null = null, pm = pm, psd = psd,
              dpm = null, dpsd = 0, lower.tail = FALSE)
-
-## ## under the null
-## nbf01(k = 1/k, power = power, usd = sd, null = null, pm = pm, psd = psd, dpm = null,
-##       dpsd = 0, lower.tail = FALSE)
 
 ## compute power curve
 nseq <- seq(from = 2, to = 800, by = 1)
@@ -614,8 +614,8 @@ psd <- sqrt(2) # analysis prior sd set to sqrt(2)
 type <- "two.sample" # two-sample test
 
 ## design prior
-dpm <- 0.5 # design prior mean equal to large SMD effect size
-dpsd <- 0.1 # design prior sd to incorporate parameter uncertainty
+dpm <- 0.5 # design prior mean equal to medium SMD effect size
+dpsd <- 0.1 # positive design prior sd to incorporate parameter uncertainty
 
 ## determine sample size to achieve 85% power
 power <- 0.85
@@ -626,6 +626,8 @@ ssd
 ## plot power curve
 plot(ssd, nlim = c(1, 400))
 
+
+## ----child = "appendix.Rnw"---------------------------------------------------
 
 ## ----"sim-evaluation-params"--------------------------------------------------
 pow <- 0.8
@@ -727,6 +729,7 @@ ggplot(data = res,
     theme(legend.position = "top", panel.grid.minor = element_blank(),
           panel.grid.major.x = element_blank(),
           strip.background = element_rect(fill = alpha("black", 0.01)))
+
 
 
 

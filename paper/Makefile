@@ -1,4 +1,4 @@
-all: pdf code clean
+all: pdf code supplement clean
 
 # names of .Rnw .bib. and .bst files
 FILE=bfssd
@@ -23,6 +23,9 @@ pdf2:
 	pdflatex $(FILE)
 	pdflatex $(FILE)
 
+supplement: supplement.Rnw appendix.Rnw tex
+	Rscript -e "knitr::knit2pdf('supplement.Rnw')" --vanilla
+
 ## extract R code
 code: $(FILE).Rnw
 	Rscript -e "knitr::purl('$(FILE).Rnw')" --vanilla
@@ -39,6 +42,8 @@ texdiff: tex old/$(FILE)V1.tex old/ld.cfg
 clean:  
 	-rm $(FILE).aux  $(FILE).blg  $(FILE).log  $(FILE).tex  $(FILE).bbl \
 	$(FILE).out $(FILE).brf $(FILE).synctex.gz \
+	supplement.aux  supplement.blg  supplement.log  supplement.tex  supplement.bbl \
+	supplement.out supplement.brf supplement.synctex.gz \
 	$(FILE)-changes.aux  $(FILE)-changes.blg  $(FILE)-changes.log \
 	$(FILE)-changes.tex  $(FILE)-changes.bbl $(FILE)-changes.out \
 	$(FILE)-changes.brf $(FILE)-changes.synctex.gz

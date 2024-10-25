@@ -1,0 +1,255 @@
+\section{Distribution of the Bayes factor}
+\label{app:distributions}
+The Bayes factor~\eqref{eq:BF01} with point analysis prior ($\tau = 0$) can be
+rewritten as
+\begin{align}
+\label{eq:LRdesignform}
+    \text{BF}_{01} 
+    &= \exp\left[\frac{n}{\sigma^2_{\scriptscriptstyle \hat{\theta}}} \left\{\hat{\theta}(\theta_0 - \mu) - \frac{\theta_0^2 - \mu^2}{2}\right\}\right].
+\end{align}
+Suppose that compelling evidence for $H_1$ is achieved when
+$\text{BF}_{01} \leq k$. In this case, $\text{BF}_{01} \leq k$ can be rewritten
+as
+\begin{align*}
+    \hat{\theta}(\theta_0 - \mu) \leq \frac{\sigma^2_{\scriptscriptstyle \hat{\theta}}\log k}{n} + \frac{\theta_0^2 - \mu^2}{2}.
+\end{align*}
+Dividing by $(\theta_0 - \mu)$ changes the inequality if $\mu > \theta_0$. We
+then have that under a normal distribution
+$\hat{\theta} \mid n, \mu_{d}, \tau_{d} \sim \mathrm{N}(\mu_{d}, \tau^{2}_{d} + \sigma^2_{\scriptscriptstyle \hat{\theta}}/n)$,
+the probability of compelling evidence is given by~\eqref{eq:prLR}.
+
+The Bayes factor~\eqref{eq:BF01} with normal analysis prior ($\tau > 0$) can
+be rewritten as
+\begin{align}
+\label{eq:BFdesignform}
+    \text{BF}_{01} 
+    &= \sqrt{1 + \frac{n \tau^2}{\sigma^2_{\scriptscriptstyle \hat{\theta}}}} \, \exp\left(-\frac{1}{2} \left[\frac{\{\hat{\theta} - \theta_0 - \frac{\sigma^2_{\scriptscriptstyle \hat{\theta}}}{n\tau^2}(\theta_0 - \mu)\}^2}{\frac{\sigma^2_{\scriptscriptstyle \hat{\theta}}}{n}(1 + \frac{\sigma^2_{\scriptscriptstyle \hat{\theta}}}{n\tau^2})} - \frac{(\theta_0 - \mu)^2}{\tau^2}\right]\right).
+\end{align}
+Suppose that compelling evidence for $H_1$ is achieved when
+$\text{BF}_{01} \leq k$, which can be rearranged to
+\begin{align*}
+    \left\{\hat{\theta} - \theta_0 - \frac{\sigma^2_{\scriptscriptstyle \hat{\theta}}}{n\tau^2}(\theta_0 - \mu)\right\}^2 \geq
+    \left\{\log\left(1 + \frac{n\tau^2}{\sigma^2_{\scriptscriptstyle \hat{\theta}}}\right) + \frac{(\theta_0 - \mu)^2}{\tau^2} - \log k^2\right\} \left(1 + \frac{\sigma^2_{\scriptscriptstyle \hat{\theta}}}{n\tau^2} \right) \frac{\sigma^2_{\scriptscriptstyle \hat{\theta}}}{n}.
+\end{align*}
+Therefore, under a normal distribution
+$\hat{\theta} \mid n, \mu_{d}, \tau_{d} \sim \mathrm{N}(\mu_{d}, \tau^{2}_{d} + \sigma^2_{\scriptscriptstyle \hat{\theta}}/n)$,
+the probability of compelling evidence is given by~\eqref{eq:prBF}.
+
+\section{Limiting power of Bayes factor with normal analysis prior}
+\label{app:asymptotics}
+We have that
+\begin{align*}
+  \lim_{n\to \infty} M
+  = \frac{\mu_{d} - \theta_{0}}{\tau_{d}}
+\end{align*}
+and
+\begin{align*}
+  \lim_{n\to \infty} X
+  = \lim_{n \to \infty} \left[\left\{\log\left(1 + \frac{n\tau^2}{\sigma^2_{\scriptscriptstyle \hat{\theta}}}\right) + \frac{(\theta_0 - \mu)^2}{\tau^2} - \log k^2\right\}
+  \frac{\sigma^2_{\scriptscriptstyle \hat{\theta}}}{n\tau^{2}_{d} + \sigma^{2}_{\scriptscriptstyle \hat{\theta}}}\right].
+\end{align*}
+Thus, when also $\tau_{d} \downarrow 0$ and $\mu_{d} \neq \theta_{0}$, both $M$
+and $X$ diverge but the $M$ term diverges faster than the $X$ term. When
+$\tau_{d} > 0$, the $M$ term approaches a constant while the $X$ term approaches
+zero. Consequently, in both cases it holds that
+\begin{align*}
+  \lim_{n\to \infty}  \Pr(\text{BF}_{01} \leq k \mid n, \mu_{d} , \tau_{d}, \tau > 0)
+  &= \lim_{n\to \infty} \left\{\Phi(-\sqrt{X} - M) + \Phi(-\sqrt{X} + M)\right\} %  \\
+  % &= \lim_{n\to \infty} \left\{\Phi(-\sqrt{X} - M) + \Phi(-\sqrt{X} + M)\right\} \\
+  = 1.
+\end{align*}
+
+\section{Sample size for Bayes factor with local normal prior}
+\label{app:lambertWderiv}
+
+Equating the power function~\eqref{eq:prBFcenter} to $1 - \beta$ and applying
+algebraic manipulations, we have that
+\begin{align*}
+  z^{2}_{(1 - \beta)/2}
+  &= \left\{\log\left(1 + \frac{n\tau^2}{\sigma^2_{\scriptscriptstyle \hat{\theta}}}\right) - \log k^2\right\} \frac{\sigma^2_{\scriptscriptstyle \hat{\theta}}}{n\tau^2} \\
+  &\approx \left\{\log\left(\frac{n\tau^2}{\sigma^2_{\scriptscriptstyle \hat{\theta}}}\right) - \log k^2\right\} \frac{\sigma^2_{\scriptscriptstyle \hat{\theta}}}{n\tau^2} \\
+  &= \log\left(\frac{n\tau^2}{\sigma^2_{\scriptscriptstyle \hat{\theta}}k^{2}}\right)  \frac{\sigma^2_{\scriptscriptstyle \hat{\theta}}}{n\tau^2}
+\end{align*}
+Multiplying by $-k^{2}$ and rewriting the second factor on the right-hand-side
+as exponential leads to
+\begin{align*}
+ -k^{2} \, z^{2}_{(1 - \beta)/2}
+  &= -\log\left(\frac{n\tau^2}{\sigma^2_{\scriptscriptstyle \hat{\theta}}k^{2}}\right)   \exp\left\{-\log\left(\frac{n\tau^2}{\sigma^2_{\scriptscriptstyle \hat{\theta}}k^{2}}\right) \right\}.
+\end{align*}
+Hence, we can apply the Lambert W function to obtain
+\begin{align*}
+  -\log\left(\frac{n\tau^2}{\sigma^2_{\scriptscriptstyle \hat{\theta}}k^{2}}\right)   = \mathrm{W}\left(-k^{2} \, z^{2}_{(1 - \beta)/2}\right)
+\end{align*}
+from which we can obtain the sample size
+\begin{align*}
+ n = \frac{\sigma^2_{\scriptscriptstyle \hat{\theta}}}{\tau^{2}} \, k^{2} \, \exp \left\{ -\mathrm{W}\left(-k^{2} \, z^{2}_{(1 - \beta)/2}\right)\right\}.
+\end{align*}
+For arguments $y \in (-1/e, 0)$ , the Lambert W function has two branches. The
+sample size is obtained from the branch commonly denoted as
+$\mathrm{W}_{-1}(\cdot)$ which satisfies $\mathrm{W}(x) < -1$ for
+$y \in (-1/e, 0)$ \citep{Corless1996}. This is because this branch always leads
+to larger sample sizes than the other and guarantees that unit information
+sample sizes are always larger than one.
+
+
+<< "sim-evaluation-params" >>=
+pow <- 0.8
+k <- 1/10
+usd <- sqrt(2)
+null <- 0
+nsim <- 50000
+pargrid <- expand.grid(k = k,
+                       power = pow,
+                       usd = usd,
+                       null = null,
+                       pm = c(0, 0.2, 0.5, 0.8),
+                       psd = c(0, 0.5, 1, 2),
+                       dpm = c(0, 0.2, 0.5, 0.8),
+                       dpsd = c(0, 0.5, 1))
+@
+
+\section{Simulation-based evaluation of the bfpwr package}
+\label{app:simeval}
+Figure~\ref{fig:simeval} shows a simulation-based evaluation of the power and
+sample size calculation methods for the Bayesian $z$-test as implemented in our
+\texttt{bfpwr} R package. The values for the design and analysis prior means
+were chosen to represent conventions for no (0), small (0.2), medium (0.5), and
+large (0.8) standardized mean differences \citep{Cohen1992}. The null and
+alternative hypotheses were defined as $H_{0}\colon \theta = 0$ against
+$H_{1} \colon \theta \neq 0$. The standard deviations were chosen to include
+point and normal priors. For each combination of analysis/design prior
+mean/standard deviation, the sample size to obtain a Bayes factor equal or below
+$k = 1/\Sexpr{1/k}$ with a target power of \Sexpr{round(100*pow, 2)}\% was
+computed (shown at the top of each plot). This sample size along with the design
+prior were subsequently used to simulate \Sexpr{format(nsim, big.mark = "'")}
+standardized mean difference parameter estimates based on which
+\Sexpr{format(nsim, big.mark = "'")} Bayes factor were computed. The power was
+then estimated from the proportion of Bayes factors equal or below the level
+$k = 1/\Sexpr{1/k}$. Note that for certain design/analysis prior combinations,
+it is impossible to achieve the target power with a finite sample size. In this
+case an ``x'' is shown in the plot.
+
+\begin{figure}[!htb]
+<< "additional-simulations1", cache = TRUE >>=
+library(bfpwr)
+
+## function to simulate data and see whether closed-form / root-finding solution
+## aligns with Monte Carlo power
+simbenchmark <- function(nsim = 10000, k = 1/10, power = 0.8, usd, null = 0, pm,
+                         psd, dpm, dpsd, lower.tail = TRUE, analytical = TRUE,
+                         integer = FALSE) {
+
+    ## compute n with closed-form solution
+    n <- try(nbf01(k = k, power = power, usd = usd, null = null, pm = pm,
+                   psd = psd, dpm = dpm, dpsd = dpsd, lower.tail = lower.tail,
+                   analytical = analytical, integer = integer))
+    if (is.nan(n)) {
+        power_closed <- NaN
+        power_MC <- NaN
+    } else {
+
+        ## simulate parameter estimates
+        se <- usd/sqrt(n)
+        est <- rnorm(n = nsim, mean = dpm, sd = sqrt(se^2 + dpsd^2))
+
+        ## compute Bayes factors
+        bf <- bf01(estimate = est, se = se, null = null, pm = pm, psd = psd)
+
+        ## recompute power
+        power_closed <- pbf01(k = k, n = n, usd = usd, null = null, pm = pm,
+                              psd = psd, dpm = dpm, dpsd = dpsd,
+                              lower.tail = lower.tail)
+        if (lower.tail == TRUE) {
+            power_MC <- mean(bf <= k)
+
+        } else {
+            power_MC <- mean(bf > k)
+        }
+    }
+    res <- data.frame(nsim, k, usd, null, pm, psd, dpm, dpsd, lower.tail, n,
+                      power, power_closed, power_MC)
+    return(res)
+}
+
+## simulation benchmarking
+set.seed(424242)
+res <- do.call("rbind", lapply(X = seq(1, nrow(pargrid)), FUN = function(i) {
+    simbenchmark(nsim = nsim, k = pargrid$k[i], power = pargrid$power[i],
+                 usd = pargrid$usd[i], null = pargrid$null[i],
+                 pm = pargrid$pm[i], psd = pargrid$psd[i], dpm = pargrid$dpm[i],
+                 dpsd = pargrid$dpsd[i])
+}))
+res$mcse <- sqrt(res$power_MC*(1 - res$power_MC)/nsim)
+@
+<< "additional-simulations2", fig.height = 8, fig.width = 9 >>=
+library(dplyr)
+library(ggplot2)
+nDF <- res |>
+    group_by(k, power, usd, null, pm, psd, dpm, dpsd) |>
+    summarise(n = ceiling(unique(n))) |>
+    ungroup() |>
+    mutate(nFormat = ifelse(is.nan(n), "x", n))
+
+ggplot(data = res,
+       aes(x = factor(dpm, ordered = TRUE), y = power_MC,
+           color = factor(dpsd, ordered = TRUE))) +
+    geom_vline(xintercept = seq(0.5, 10.5, 1), alpha = 0.1, lty = 3) +
+    geom_hline(yintercept = pow, lty = 2, alpha = 0.7) +
+    facet_grid(psd ~pm,
+               labeller = label_bquote(cols = "Analysis prior mean" ~ mu == .(pm),
+                                       rows = "Analysis prior SD" ~ tau == .(psd))) +
+    geom_pointrange(aes(ymin = power_MC - mcse, ymax = power_MC + mcse),
+                    position = position_dodge2(width = 0.5),
+                    fatten = 1.5) +
+    geom_text(data = nDF, aes(y = pow + 0.0075, label = nFormat), size = 2.5,
+              position = position_dodge2(width = 1), angle = 30,
+              fontface = "bold") +
+    labs(x = bquote("Design prior mean" ~ mu[italic(d)]),
+         y = bquote("Estimated power" %+-% "MCSE"),
+         color =  bquote("Design prior SD" ~ tau[italic(d)])) +
+    scale_y_continuous(labels = scales::percent) +
+    coord_cartesian(ylim = pow + c(-1, 1)*0.008) +
+    scale_color_viridis_d(end = 0.7, option = "A") +
+    theme_bw() +
+    theme(legend.position = "top", panel.grid.minor = element_blank(),
+          panel.grid.major.x = element_blank(),
+          strip.background = element_rect(fill = alpha("black", 0.01)))
+@
+\caption{Simulation-based evaluation of power and sample size calculations
+  related to the Bayesian $z$-test as implemented in the \texttt{bfpwr}
+  package.}
+\label{fig:simeval}
+\end{figure}
+
+We can see that in all conditions, the simulation-based estimate of the power is
+close to the target power of \Sexpr{round(100*pow, 2)}\%. The maximally observed
+discrepancy is \Sexpr{round(100*max(abs(res[,"power_MC"] - pow), na.rm = TRUE),
+  2)}\% while the median discrepancy is
+\Sexpr{round(100*median(abs(res[,"power_MC"] - pow), na.rm = TRUE), 2)}\%. This
+suggests that the power and sample size calculation methods work as intended.
+
+
+\section{Power with normal moment prior}
+\label{app:nmprior}
+
+Setting the Bayes factor~\eqref{eq:nlBF} to less or equal than $k$ and applying
+algebraic manipulations, we can bring the inequality into the form
+\begin{align*}
+  \exp\left[1 + \frac{n(\hat{\theta} - \theta_{0})^{2}}{
+  \sigma^{2}_{\scriptscriptstyle \hat{\theta}}\{1 + \sigma^{2}_{\scriptscriptstyle \hat{\theta}}/(n \tau^{2})\}}\right] \,
+  \left[1 + \frac{n(\hat{\theta} - \theta_{0})^{2}}{
+  \sigma^{2}_{\scriptscriptstyle \hat{\theta}}\{1 + \sigma^{2}_{\scriptscriptstyle \hat{\theta}}/(n \tau^{2})\}}\right] \geq
+  \frac{\{1 + (n\tau^{2})/\sigma^{2}_{\scriptscriptstyle \hat{\theta}}\}\sqrt{e}}{2k}.
+\end{align*}
+Applying the Lambert W function on both sides, leads to
+\begin{align}
+  \label{eq:powernmp2}
+  1 + \frac{n(\hat{\theta} - \theta_{0})^{2}}{\sigma^{2}_{\scriptscriptstyle \hat{\theta}}\{1 + \sigma^{2}_{\scriptscriptstyle \hat{\theta}}/(n \tau^{2})\}} \geq
+  \mathrm{W}_{0} \left[\frac{\{1 + (n\tau^{2})/\sigma^{2}_{\scriptscriptstyle \hat{\theta}}\}\sqrt{e}}{2k}\right].
+\end{align}
+Since the argument of the Lambert W function is real and always non-negative,
+only the principal branch $\mathrm{W}_{0}$ can satisfy the inequality
+\citep{Corless1996}. Assuming a
+\mbox{$\hat{\theta} \mid n, \mu_{d}, \tau_{d} \sim \mathrm{N}(\mu_{d}, \tau^{2}_{d} + \sigma^2_{\scriptscriptstyle \hat{\theta}}/n)$}
+distribution induced by a normal design prior, we can rearrange the
+inequality~\eqref{eq:powernmp2} and obtain the power function~\eqref{eq:pnlBF}.

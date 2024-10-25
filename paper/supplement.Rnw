@@ -1,0 +1,119 @@
+\documentclass[a4paper, 11pt]{article}
+\usepackage{amsmath, amssymb}
+\usepackage{doi} % automatic doi-links
+\usepackage[round]{natbib} % bibliography
+\usepackage{multirow}
+\usepackage{booktabs} % nicer tables
+\usepackage[title]{appendix} % better appendices
+\usepackage{nameref} % reference appendices with names
+\usepackage[dvipsnames,table]{xcolor}
+\usepackage[onehalfspacing]{setspace}
+\usepackage[labelfont=bf,font=small]{caption} % smaller captions
+\usepackage{helvet}
+\usepackage{mathpazo}
+\usepackage{sectsty} % use different fonts for different sections
+\allsectionsfont{\sffamily} % for sections use sans serif
+\usepackage[labelfont={bf,sf},font=small]{caption} % customize captions
+\usepackage{orcidlink} % for ORCID symbol with link
+\definecolor{lightgray}{gray}{0.9}
+
+\usepackage{xr}
+\externaldocument{bfssd}
+
+%% margins
+\usepackage{geometry}
+\geometry{
+  a4paper,
+  total={170mm,257mm},
+  left=20mm,
+  right=20mm,
+  top=30mm,
+  bottom=25mm,
+}
+
+
+%% title, authors, affiliations, mail
+\newcommand\mail{samuel.pawel@uzh.ch}
+\title{\vspace{-4em}
+  \textsf{
+    \textbf{Closed-Form Power and Sample Size Calculations for Bayes Factors} \\
+    Supplementary Material
+  }
+}
+\author{
+  \textbf{Samuel Pawel} \orcidlink{0000-0003-2779-320X} \and
+  \textbf{Leonhard Held} \orcidlink{0000-0002-8686-5325}
+}
+\date{
+  Epidemiology, Biostatistics and Prevention Institute (EBPI) \\
+  Center for Reproducible Science (CRS) \\
+  University of Zurich \\
+  E-mail: \href{mailto:\mail}{\mail}
+}
+
+%% hyperref options
+%% ----------------------------------------------------------------------------
+\usepackage{hyperref}  
+\hypersetup{
+  bookmarksopen=true, 
+  breaklinks=true,
+  pdftitle={Closed-Form Power and Sample Size Calculations for Bayes Factors -- Supplementary Materials},
+  pdfsubject={},
+  pdfkeywords={},
+  colorlinks=true,
+  linkcolor=black,
+  anchorcolor=black,
+  citecolor=blue,
+  urlcolor=blue,
+}
+
+%% Headers and footers
+%% ----------------------------------------------------------------------------
+\usepackage{fancyhdr}
+\pagestyle{fancy}
+\lhead{Closed-Form Power and Sample Size Calculations for Bayes Factors}
+\rhead{S. Pawel and L. Held}
+
+
+<< "main-setup", include = FALSE >>=
+## knitr options
+library(knitr)
+opts_chunk$set(fig.height = 4,
+               echo = FALSE,
+               warning = FALSE,
+               message = FALSE,
+               cache = FALSE,
+               eval = TRUE)
+
+## should sessionInfo be printed at the end?
+Reproducibility <- TRUE
+
+## packages
+library(bfpwr)
+library(dplyr)
+library(ggplot2)
+@
+
+\begin{document}
+\maketitle
+
+<< child = "appendix.Rnw" >>=
+@
+
+% Bibliography
+% ======================================================================
+{\small
+\bibliographystyle{apalikedoiurl}
+\bibliography{bibliography}
+}
+<< "sessionInfo1", eval = Reproducibility, results = "asis" >>=
+## print R sessionInfo to see system information and package versions
+## used to compile the manuscript (set Reproducibility = FALSE, to not do that)
+cat("\\newpage \\section*{Computational details}")
+@
+<< "sessionInfo2", echo = Reproducibility, results = Reproducibility >>=
+cat(paste(Sys.time(), Sys.timezone(), "\n"))
+sessionInfo()
+@
+
+\end{document}

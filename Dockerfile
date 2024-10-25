@@ -8,5 +8,5 @@ COPY package /home/rstudio/package
 
 ## install R packages from CRAN the last day of the specified R version
 RUN install2.r --error --skipinstalled --ncpus -1 \
-    BayesRep lamW xtable remotes knitr && \
-    R CMD INSTALL  package/out/bfpwr_0.1.tar.gz
+    BayesRep lamW xtable remotes knitr ggplot2 dplyr && \
+    R CMD INSTALL  package/out/bfpwr_0.1.3.tar.gz
