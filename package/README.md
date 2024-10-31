@@ -10,8 +10,8 @@ for Bayes factors. <https://doi.org/10.48550/arXiv.2406.19940>
 ## Installation
 
 ```r
-## ## CRAN version (not yet available on CRAN)
-## install.packages("bfpwr")
+## CRAN version
+install.packages("bfpwr")
 
 ## from GitHub
 ## install.packages("remotes") # requires remotes package
