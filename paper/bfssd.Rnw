@@ -1041,101 +1041,100 @@ examples from medicine and psychology.
 << "radiotherapy-example" >>=
 ## sample size calculation as in You et al. (2020, p. 1347)
 ## https://doi.org/10.1001/jamaoncol.2020.1808
-logHR <- log(0.53) # from previous studies
-pow <- 0.9
+pm <- -6
+pow <- 0.8
+sd <- 15
 alpha <- 0.05
-n <- 4*(qnorm(p = 1 - alpha/2) + qnorm(p = pow))^2/logHR^2
+attrition <- 0.1
+n <- 2*sd^2*(qnorm(p = 1 - alpha/2) + qnorm(p = pow))^2/pm^2
+## power.t.test(sd = sd, power = pow, delta = pm)
 
 ## study results
-est <- log(0.42)
-ci <- log(c(0.23, 0.77))
+est <- -1.74
+ci <- c(-7.17, 3.69)
 se <- (ci[2] - ci[1])/(2*qnorm(p = 0.975))
 p <- 2*pnorm(q = abs(est/se), lower.tail = FALSE)
-lr01 <- bf01(estimate = est, se = se, null = 0, pm = logHR, psd = 0)
+lr01 <- bf01(estimate = est, se = se, null = 0, pm = pm, psd = 0)
 @
 
 
-\subsection{Randomized controlled clinical trial on locoregional radiotherapy}
-\citet{You2020} conducted a randomized controlled clinical trial to assess the
-efficacy of locoregional radiotherapy plus chemotherapy versus chemotherapy
-alone in patients with nasopharyngeal carcinoma. The primary endpoint of the
-trial was overall survival and the treatment effect was quantified with a log
-hazard ratio $\theta$. For this type of parameter, the frequentist
-sample size formula~\eqref{eq:freqsamplesize} can be adapted to
-\begin{align}
-  \label{eq:survival}
-  n = \frac{4(z_{1 - \alpha/2} + z_{1 - \beta})^{2}}{(\mu - \theta_{0})^{2}}
-\end{align}
-which is obtained from taking the unit variance $\sigma^{2}_{\hat{\theta}} = 4$
-and interpreting $n$ as the total number of events (i.e., deaths) required, see
-Table~\ref{tab:outcomes}. The null hypothesis was defined as no difference in
-the efficacy of the treatments ($H_{0} \colon \theta = 0$), while the
-alternative hypothesis was formulated based on an estimated hazard ratio of
-\Sexpr{exp(logHR)} from previous studies
-($H_{1} \colon \theta = \log(\Sexpr{exp(logHR)}) = \Sexpr{round(logHR, 2)}$).
-With a target power of $1 - \beta = \Sexpr{pow*100}\%$ and a two-sided level of
-$\alpha = \Sexpr{alpha}$, formula~\eqref{eq:survival} gives a required number of
-events of $n = \Sexpr{round(n, 1)}$. The investigators rounded this to
-\Sexpr{round(n)}, although it might have been better to round to the next larger
-integer \Sexpr{ceiling(n)} to ensure the desired target power. Based on
-additional assumptions about the dropout and survival rates, the investigators
-translated the required number of events into a total of 204 participants that
-needed to be recruited (102 for each group). In the end, the trial fortunately
-found a beneficial effect of the radiotherapy plus chemotherapy combination
-compared to chemotherapy only (estimated hazard ratio of \Sexpr{exp(est)} with
-95\% confidence interval from \Sexpr{exp(ci[1])} to \Sexpr{exp(ci[2])}).
+\subsection{Randomized controlled clinical trial on mirtazapine in dementia}
+\citet{Banerjee2021} conducted a randomized controlled clinical trial to assess
+the effect of the antidepressant mirtazapine on agitated behavior in patients
+with dementia. The primary endpoint of the trial was the Cohen-Mansfield
+Agitation Inventory (CMAI) at 12 weeks after treatment start, and the treatment
+effect was quantified as the difference in mean CMAI between the mirtazapine and
+placebo groups $\theta$. The null hypothesis was defined as no difference
+between mirtazapine and placebo ($H_{0} \colon \theta = 0$), while the
+alternative hypothesis was formulated as a mean decrease of six CMAI points
+($H_{1} \colon \theta = \Sexpr{pm}$). With a target power of $1 - \beta =
+\Sexpr{pow*100}\%$, a two-sided level of $\alpha = \Sexpr{alpha}$, and an
+assumed standard deviation of $\sigma = \Sexpr{sd}$ points,
+formula~\eqref{eq:freqsamplesize} gives a required per-group sample size of $n =
+\Sexpr{ceiling(n)}$, which the investigators adjusted upwards to 111 to account
+for attrition. Contrary to these expectations, however, the trial did not find a
+statistically significant effect of mirtazapine over placebo and the 95\%
+confidence interval spanned a wide range of parameter values from beneficial to
+evene harmful effects (estimated mean difference of \Sexpr{est} with 95\%
+confidence interval from \Sexpr{ci[1]} to \Sexpr{ci[2]}, $p = \Sexpr{round(p,
+  3)}$). This was especially problematic as also a slightly higher mortality was
+observed in the mirtazipine group, leading the investigators to recommend
+against using mirtazipine for the treatment of agitation in patients with
+dementia.
 
 While this study was designed and analyzed using frequentist methodology, we
 will now examine what the analysis, power, and sample size calculations might
-look like if the planned analysis were performed using Bayes factors. For doing
-so, we assume a point analysis prior that equals the alternative hypothesis
-specified by the trial investigators ($\mu = \Sexpr{round(logHR, 2)}$ and
-$\tau = 0$), so that the Bayes factor corresponds to a likelihood ratio. Based
-on the estimated log hazard ratio $\hat{\theta} = \Sexpr{round(est, 2)}$ and its
-standard error $\sigma = \Sexpr{round(se, 2)}$ (recalculated from the confidence
-interval), we can apply equation~\eqref{eq:BF01} and obtain a Bayes factor
-$\text{BF}_{01} = 1/\Sexpr{round(1/lr01, 1)}$, which indicates strong evidence
-for the existence of a beneficial treatment effect over the null hypothesis of
-no effect. Taking a step back and assuming that no data have yet been collected,
-we can use equations~\eqref{eq:prLR} and \eqref{eq:nLR} to compute power and
-sample size, which we illustrate in the following.
+look like if the planned analysis were performed using Bayes factors. To do
+this, we assume a point analysis prior equal to the alternative hypothesis
+specified by the trial investigators ($\mu = \Sexpr{round(pm, 2)}$ and $\tau =
+0$), so that the Bayes factor corresponds to a likelihood ratio. Based on the
+estimated mean difference $\hat{\theta} = \Sexpr{round(est, 2)}$ and its
+standard error $\sigma_{\hat{\theta}}/\sqrt{n} = \Sexpr{round(se, 2)}$
+(recalculated from the confidence interval), we can apply
+equation~\eqref{eq:BF01} and obtain a Bayes factor $\text{BF}_{01} =
+\Sexpr{round(lr01, 1)}$. This Bayes factor indicates slight evidence in favor of
+the null hypothesis of no effect over the specified alternative hypothesis,
+although this level of evidence is merely anecdotal and far from compelling.
+However, if we take a step back and assume that no data have yet been collected,
+we can use the equations~\eqref{eq:prLR} and \eqref{eq:nLR} to calculate power
+and sample size, and design the study for compelling inferences. We will
+illustrate this below.
 
 \begin{figure}[!tb]
 <<  "radiotherapy-example-design", fig.height = 6 >>=
 ## BF parameter
 null <- 0
-sd <- 2 # unit sd for a logHR effect size so that n is the number of events
-pm <- round(log(0.53), 2) # from previous studies
+usd <- sqrt(2)*sd # unit sd for mean difference so that n is the group size
 psd <- 0 # point analysis prior
 k <- 1/10
 
 ## design parameters
-power <- 0.9
+power <- 0.8
 dpm <- pm
 dpsd1 <- 0
-dpsd2 <- 0.2
+dpsd2 <- 2
 
 ## compute required sample size to achieve 80% power for LR
-nnum <- nbf01(k = k, power = power, usd = sd, null = null, pm = pm, psd = psd,
+nnum <- nbf01(k = k, power = power, usd = usd, null = null, pm = pm, psd = psd,
               dpm = dpm, dpsd = dpsd1)
 zb <- qnorm(p = power)
 nanalyt <- ceiling((zb + sqrt(zb^2 - log(k^2)*(pm + null - 2*dpm)/(null - pm)))^2/
-                   (pm + null - 2*dpm)^2*sd^2)
+                   (pm + null - 2*dpm)^2*usd^2)
 a <- ((null + pm)/2 - dpm)^2 - zb^2*dpsd2^2
-b <- sd^2*((null + pm - 2*dpm)*log(k)/(null - pm) - zb^2)
-c <- (sd^2*log(k)/(null - pm))^2
+b <- usd^2*((null + pm - 2*dpm)*log(k)/(null - pm) - zb^2)
+c <- (usd^2*log(k)/(null - pm))^2
 nanalyt2 <- ceiling((-b + sqrt(b^2 - 4*a*c))/(2*a))
 
 ## plot power curves
 par(mfrow = c(2, 1), mar = c(2.5, 5, 2.5, 2.5))
 cols <- rev(palette.colors(n = 4, alpha = 0.95)[2:4])
 transpblack <- adjustcolor(col = 1, alpha = 0.2)
-nseq <- seq(from = 5, to = 650, by = 1)
-pow <- pbf01(k = k, n = nseq, usd = sd, null = null, pm = pm, psd = psd,
+nseq <- seq(from = 5, to = 350, by = 1)
+pow <- pbf01(k = k, n = nseq, usd = usd, null = null, pm = pm, psd = psd,
              dpm = dpm, dpsd = dpsd1)
-pow2 <- pbf01(k = k, n = nseq, usd = sd, null = null, pm = pm, psd = psd,
+pow2 <- pbf01(k = k, n = nseq, usd = usd, null = null, pm = pm, psd = psd,
               dpm = dpm, dpsd = dpsd2)
-powNull <- pbf01(k = k, n = nseq, usd = sd, null = null, pm = pm, psd = psd,
+powNull <- pbf01(k = k, n = nseq, usd = usd, null = null, pm = pm, psd = psd,
                  dpm = null, dpsd = 0)
 plot(nseq, pow*100, xlab = "",
      ylab = bquote("Pr(BF"["01"] < 1/.(1/k) * " )"), type = "l",
@@ -1159,13 +1158,13 @@ legend("right", title = "Design prior",
                          * tau[italic("d")] == 0 * ")")),
        lty = 1, lwd = 1.5, col = cols, bg = "white", cex = 0.7)
 par(mar = c(4, 5, 1, 2.5))
-powH0 <- pbf01(k = 1/k, n = nseq, usd = sd, null = null, pm = pm, psd = psd,
+powH0 <- pbf01(k = 1/k, n = nseq, usd = usd, null = null, pm = pm, psd = psd,
                dpm = dpm, dpsd = dpsd1, lower.tail = FALSE)
-pow2H0 <- pbf01(k = 1/k, n = nseq, usd = sd, null = null, pm = pm, psd = psd,
+pow2H0 <- pbf01(k = 1/k, n = nseq, usd = usd, null = null, pm = pm, psd = psd,
                 dpm = dpm, dpsd = dpsd2, lower.tail = FALSE)
-powNullH0 <- pbf01(k = 1/k, n = nseq, usd = sd, null = null, pm = pm, psd = psd,
+powNullH0 <- pbf01(k = 1/k, n = nseq, usd = usd, null = null, pm = pm, psd = psd,
                    dpm = null, dpsd = 0, lower.tail = FALSE)
-plot(nseq, powH0*100, xlab = bquote("Number of events" ~ italic(n)),
+plot(nseq, powH0*100, xlab = bquote("Sample size per group" ~ italic(n)),
      ylab = bquote("Pr(BF"["01"] > .(1/k) * " )"), type = "l",
      ylim = c(0, 100), lwd = 1.5, yaxt = "n", col = cols[1],
      panel.first = grid(lty = 3, col = adjustcolor(col = 1, alpha = 0.1)))
@@ -1179,37 +1178,35 @@ axis(side = 4, at = c(power, 0.05)*100,
      cex.axis = 0.8)
 @
 \caption{Power and sample size calculations for randomized clinical trial
-  comparing efficacy of locoregional radiotherapy plus chemotherapy versus
-  chemotherapy on overall survival in patients with nasopharyngeal carcinoma
-  \citep{You2020}. The Bayes factor assumed for the analysis contrasts
-  $H_{0} \colon \theta = \Sexpr{null}$ to $H_{1} \colon \theta = \Sexpr{pm}$.
-  The power is computed under either a point prior at the assumed effect under
-  the alternative (green), a normal prior that incorporates additional parameter
-  uncertainty (blue), or under the null hypothesis (orange).}
+  assessing the effect of the antidepressant mirtazapine on agitated behavior
+  compared to placebo in patients with dementia \citep{Banerjee2021}. The Bayes
+  factor assumed for the analysis contrasts $H_{0} \colon \theta = \Sexpr{null}$
+  to $H_{1} \colon \theta = \Sexpr{pm}$. The power is computed under either a
+  point prior at the assumed effect under the alternative (green), a normal
+  prior that incorporates additional parameter uncertainty (blue), or under the
+  null hypothesis (orange).}
 \label{fig:radiotherapy}
 \end{figure}
 
-Figure~\ref{fig:radiotherapy} shows power curves based on the Bayes factor providing
-strong evidence in favor of the alternative ($\mathrm{BF}_{01} < 1/\Sexpr{1/k}$)
-in the top plot, and based on the Bayes factor providing strong evidence in
-favor of the null ($\mathrm{BF}_{01} > \Sexpr{1/k}$) in the bottom plot. The
-colors indicate under which design prior the power was computed.
-
-Focusing on the top plot, we can see from the green curve that at least
-$n = \Sexpr{nanalyt}$ events are required to ensure a target power of
-$1 - \beta = \Sexpr{round(power*100,2)}\%$ assuming that the same point prior is
-used in the design as for the analysis (i.e., a point prior at
-$\mu = \Sexpr{pm}$). This number increases to $n = \Sexpr{nanalyt2}$ when we
-move to a design prior that incorporates parameter uncertainty (blue curve),
-i.e., a prior that is still centered around $\mu = \Sexpr{pm}$ but with a
-standard deviation of $\tau_{d} = \Sexpr{dpsd2}$. Finally, if we look at the
-orange power curve computed assuming that the null hypothesis is true
-($\theta = \Sexpr{null}$), we can see that the probability of misleading
-evidence for the alternative when the null hypothesis is actually true (the type
-I error rate) is very low and appears to be adequately controlled by
-conventional standards (i.e., below 5\%) for each of the two number of events.
-This curve could be presented to a trial regulator to demonstrate that the
-design is adequately calibrated.
+Figure~\ref{fig:radiotherapy} shows power curves based on the Bayes factor
+providing strong evidence in favor of the alternative ($\mathrm{BF}_{01} <
+1/\Sexpr{1/k}$) in the top plot, and based on the Bayes factor providing strong
+evidence in favor of the null ($\mathrm{BF}_{01} > \Sexpr{1/k}$) in the bottom
+plot. The colors indicate under which design prior the power was computed.
+Focusing on the top plot, we can see from the green curve that at least $n =
+\Sexpr{nanalyt}$ events are required to ensure a target power of $1 - \beta =
+\Sexpr{round(power*100,2)}\%$ assuming that the same point prior is used in the
+design as for the analysis (i.e., a point prior at $\mu = \Sexpr{pm}$). This
+number increases to $n = \Sexpr{nanalyt2}$ when we move to a design prior that
+incorporates parameter uncertainty (blue curve), i.e., a prior that is still
+centered around $\mu = \Sexpr{pm}$ but with a standard deviation of $\tau_{d} =
+\Sexpr{dpsd2}$. Finally, if we look at the orange power curve computed assuming
+that the null hypothesis is true ($\theta = \Sexpr{null}$), we can see that the
+probability of misleading evidence for the alternative when the null hypothesis
+is actually true (the type I error rate) is very low and appears to be
+adequately controlled by conventional standards (i.e., below 5\%) for each of
+the two number of events. This curve could be presented to a trial regulator to
+demonstrate that the design is adequately calibrated.
 
 Focusing now on the bottom plot, we can see that the same number of events
 $n = \Sexpr{nanalyt}$ also ensures a power of

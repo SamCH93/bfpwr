@@ -228,54 +228,56 @@ print(xtab, booktabs = TRUE, floating = FALSE,
 ## ----"radiotherapy-example"---------------------------------------------------
 ## sample size calculation as in You et al. (2020, p. 1347)
 ## https://doi.org/10.1001/jamaoncol.2020.1808
-logHR <- log(0.53) # from previous studies
-pow <- 0.9
+pm <- -6
+pow <- 0.8
+sd <- 15
 alpha <- 0.05
-n <- 4*(qnorm(p = 1 - alpha/2) + qnorm(p = pow))^2/logHR^2
+attrition <- 0.1
+n <- 2*sd^2*(qnorm(p = 1 - alpha/2) + qnorm(p = pow))^2/pm^2
+## power.t.test(sd = sd, power = pow, delta = pm)
 
 ## study results
-est <- log(0.42)
-ci <- log(c(0.23, 0.77))
+est <- -1.74
+ci <- c(-7.17, 3.69)
 se <- (ci[2] - ci[1])/(2*qnorm(p = 0.975))
 p <- 2*pnorm(q = abs(est/se), lower.tail = FALSE)
-lr01 <- bf01(estimate = est, se = se, null = 0, pm = logHR, psd = 0)
+lr01 <- bf01(estimate = est, se = se, null = 0, pm = pm, psd = 0)
 
 
 ## ----"radiotherapy-example-design", fig.height = 6----------------------------
 ## BF parameter
 null <- 0
-sd <- 2 # unit sd for a logHR effect size so that n is the number of events
-pm <- round(log(0.53), 2) # from previous studies
+usd <- sqrt(2)*sd # unit sd for mean difference so that n is the group size
 psd <- 0 # point analysis prior
 k <- 1/10
 
 ## design parameters
-power <- 0.9
+power <- 0.8
 dpm <- pm
 dpsd1 <- 0
-dpsd2 <- 0.2
+dpsd2 <- 2
 
 ## compute required sample size to achieve 80% power for LR
-nnum <- nbf01(k = k, power = power, usd = sd, null = null, pm = pm, psd = psd,
+nnum <- nbf01(k = k, power = power, usd = usd, null = null, pm = pm, psd = psd,
               dpm = dpm, dpsd = dpsd1)
 zb <- qnorm(p = power)
 nanalyt <- ceiling((zb + sqrt(zb^2 - log(k^2)*(pm + null - 2*dpm)/(null - pm)))^2/
-                   (pm + null - 2*dpm)^2*sd^2)
+                   (pm + null - 2*dpm)^2*usd^2)
 a <- ((null + pm)/2 - dpm)^2 - zb^2*dpsd2^2
-b <- sd^2*((null + pm - 2*dpm)*log(k)/(null - pm) - zb^2)
-c <- (sd^2*log(k)/(null - pm))^2
+b <- usd^2*((null + pm - 2*dpm)*log(k)/(null - pm) - zb^2)
+c <- (usd^2*log(k)/(null - pm))^2
 nanalyt2 <- ceiling((-b + sqrt(b^2 - 4*a*c))/(2*a))
 
 ## plot power curves
 par(mfrow = c(2, 1), mar = c(2.5, 5, 2.5, 2.5))
 cols <- rev(palette.colors(n = 4, alpha = 0.95)[2:4])
 transpblack <- adjustcolor(col = 1, alpha = 0.2)
-nseq <- seq(from = 5, to = 650, by = 1)
-pow <- pbf01(k = k, n = nseq, usd = sd, null = null, pm = pm, psd = psd,
+nseq <- seq(from = 5, to = 350, by = 1)
+pow <- pbf01(k = k, n = nseq, usd = usd, null = null, pm = pm, psd = psd,
              dpm = dpm, dpsd = dpsd1)
-pow2 <- pbf01(k = k, n = nseq, usd = sd, null = null, pm = pm, psd = psd,
+pow2 <- pbf01(k = k, n = nseq, usd = usd, null = null, pm = pm, psd = psd,
               dpm = dpm, dpsd = dpsd2)
-powNull <- pbf01(k = k, n = nseq, usd = sd, null = null, pm = pm, psd = psd,
+powNull <- pbf01(k = k, n = nseq, usd = usd, null = null, pm = pm, psd = psd,
                  dpm = null, dpsd = 0)
 plot(nseq, pow*100, xlab = "",
      ylab = bquote("Pr(BF"["01"] < 1/.(1/k) * " )"), type = "l",
@@ -299,13 +301,13 @@ legend("right", title = "Design prior",
                          * tau[italic("d")] == 0 * ")")),
        lty = 1, lwd = 1.5, col = cols, bg = "white", cex = 0.7)
 par(mar = c(4, 5, 1, 2.5))
-powH0 <- pbf01(k = 1/k, n = nseq, usd = sd, null = null, pm = pm, psd = psd,
+powH0 <- pbf01(k = 1/k, n = nseq, usd = usd, null = null, pm = pm, psd = psd,
                dpm = dpm, dpsd = dpsd1, lower.tail = FALSE)
-pow2H0 <- pbf01(k = 1/k, n = nseq, usd = sd, null = null, pm = pm, psd = psd,
+pow2H0 <- pbf01(k = 1/k, n = nseq, usd = usd, null = null, pm = pm, psd = psd,
                 dpm = dpm, dpsd = dpsd2, lower.tail = FALSE)
-powNullH0 <- pbf01(k = 1/k, n = nseq, usd = sd, null = null, pm = pm, psd = psd,
+powNullH0 <- pbf01(k = 1/k, n = nseq, usd = usd, null = null, pm = pm, psd = psd,
                    dpm = null, dpsd = 0, lower.tail = FALSE)
-plot(nseq, powH0*100, xlab = bquote("Number of events" ~ italic(n)),
+plot(nseq, powH0*100, xlab = bquote("Sample size per group" ~ italic(n)),
      ylab = bquote("Pr(BF"["01"] > .(1/k) * " )"), type = "l",
      ylim = c(0, 100), lwd = 1.5, yaxt = "n", col = cols[1],
      panel.first = grid(lty = 3, col = adjustcolor(col = 1, alpha = 0.1)))
