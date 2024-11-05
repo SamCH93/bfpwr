@@ -80,7 +80,7 @@ Hence, we can apply the Lambert W function to obtain
 \begin{align*}
   -\log\left(\frac{n\tau^2}{\sigma^2_{\scriptscriptstyle \hat{\theta}}k^{2}}\right)   = \mathrm{W}\left(-k^{2} \, z^{2}_{(1 - \beta)/2}\right)
 \end{align*}
-from which we can obtain the sample size
+from which we obtain the sample size
 \begin{align*}
  n = \frac{\sigma^2_{\scriptscriptstyle \hat{\theta}}}{\tau^{2}} \, k^{2} \, \exp \left\{ -\mathrm{W}\left(-k^{2} \, z^{2}_{(1 - \beta)/2}\right)\right\}.
 \end{align*}

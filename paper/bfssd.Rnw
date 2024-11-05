@@ -1038,9 +1038,9 @@ We will now illustrate Bayes factor sample size and power calculations using
 examples from medicine and psychology.
 
 
-<< "radiotherapy-example" >>=
-## sample size calculation as in You et al. (2020, p. 1347)
-## https://doi.org/10.1001/jamaoncol.2020.1808
+<< "mirtazapine-example" >>=
+## sample size calculation as in Banerjee et al. (2021, p. 1490-1491)
+## https://doi.org/10.1016/S0140-6736(21)01210-1
 pm <- -6
 pow <- 0.8
 sd <- 15
@@ -1061,26 +1061,24 @@ lr01 <- bf01(estimate = est, se = se, null = 0, pm = pm, psd = 0)
 \subsection{Randomized controlled clinical trial on mirtazapine in dementia}
 \citet{Banerjee2021} conducted a randomized controlled clinical trial to assess
 the effect of the antidepressant mirtazapine on agitated behavior in patients
-with dementia. The primary endpoint of the trial was the Cohen-Mansfield
-Agitation Inventory (CMAI) at 12 weeks after treatment start, and the treatment
-effect was quantified as the difference in mean CMAI between the mirtazapine and
-placebo groups $\theta$. The null hypothesis was defined as no difference
-between mirtazapine and placebo ($H_{0} \colon \theta = 0$), while the
-alternative hypothesis was formulated as a mean decrease of six CMAI points
+with dementia. The primary outcome of the trial was the Cohen-Mansfield
+Agitation Inventory (CMAI) score at 12 weeks after treatment start. The
+treatment effect was quantified as the difference in mean CMAI between the
+mirtazapine and placebo groups $\theta$. The null hypothesis was defined as no
+difference between mirtazapine and placebo ($H_{0} \colon \theta = 0$), while
+the alternative hypothesis was formulated as a mean decrease of six CMAI points
 ($H_{1} \colon \theta = \Sexpr{pm}$). With a target power of $1 - \beta =
 \Sexpr{pow*100}\%$, a two-sided level of $\alpha = \Sexpr{alpha}$, and an
-assumed standard deviation of $\sigma = \Sexpr{sd}$ points,
+assumed standard deviation of $\sigma = \Sexpr{sd}$ CMAI points,
 formula~\eqref{eq:freqsamplesize} gives a required per-group sample size of $n =
-\Sexpr{ceiling(n)}$, which the investigators adjusted upwards to 111 to account
-for attrition. Contrary to these expectations, however, the trial did not find a
-statistically significant effect of mirtazapine over placebo and the 95\%
-confidence interval spanned a wide range of parameter values from beneficial to
-evene harmful effects (estimated mean difference of \Sexpr{est} with 95\%
-confidence interval from \Sexpr{ci[1]} to \Sexpr{ci[2]}, $p = \Sexpr{round(p,
-  3)}$). This was especially problematic as also a slightly higher mortality was
-observed in the mirtazipine group, leading the investigators to recommend
-against using mirtazipine for the treatment of agitation in patients with
-dementia.
+\Sexpr{ceiling(n)}$, which the investigators adjusted further upwards to account
+for attrition. Contrary to their expectations, however, the trial did not find a
+statistically significant effect of mirtazapine over placebo (estimated mean
+difference of $\Sexpr{est}$ with 95\% confidence interval from $\Sexpr{ci[1]}$
+to $\Sexpr{ci[2]}$, $p = \Sexpr{round(p, 3)}$). This was especially problematic
+as also a slightly higher mortality was observed in the mirtazapine group,
+leading the investigators to ultimately recommend against using mirtazapine for
+the treatment of agitation in patients with dementia.
 
 While this study was designed and analyzed using frequentist methodology, we
 will now examine what the analysis, power, and sample size calculations might
@@ -1093,15 +1091,11 @@ standard error $\sigma_{\hat{\theta}}/\sqrt{n} = \Sexpr{round(se, 2)}$
 (recalculated from the confidence interval), we can apply
 equation~\eqref{eq:BF01} and obtain a Bayes factor $\text{BF}_{01} =
 \Sexpr{round(lr01, 1)}$. This Bayes factor indicates slight evidence in favor of
-the null hypothesis of no effect over the specified alternative hypothesis,
-although this level of evidence is merely anecdotal and far from compelling.
-However, if we take a step back and assume that no data have yet been collected,
-we can use the equations~\eqref{eq:prLR} and \eqref{eq:nLR} to calculate power
-and sample size, and design the study for compelling inferences. We will
-illustrate this below.
+the null hypothesis of no effect of mirtazapine over the specified alternative.
+However, this level of evidence is merely anecdotal and far from compelling.
 
 \begin{figure}[!tb]
-<<  "radiotherapy-example-design", fig.height = 6 >>=
+<<  "mirtazapine-example-design", fig.height = 6 >>=
 ## BF parameter
 null <- 0
 usd <- sqrt(2)*sd # unit sd for mean difference so that n is the group size
@@ -1178,21 +1172,25 @@ axis(side = 4, at = c(power, 0.05)*100,
      cex.axis = 0.8)
 @
 \caption{Power and sample size calculations for randomized clinical trial
-  assessing the effect of the antidepressant mirtazapine on agitated behavior
-  compared to placebo in patients with dementia \citep{Banerjee2021}. The Bayes
-  factor assumed for the analysis contrasts $H_{0} \colon \theta = \Sexpr{null}$
-  to $H_{1} \colon \theta = \Sexpr{pm}$. The power is computed under either a
-  point prior at the assumed effect under the alternative (green), a normal
-  prior that incorporates additional parameter uncertainty (blue), or under the
-  null hypothesis (orange).}
+  assessing the effect of mirtazapine on agitated behavior in patients with
+  dementia \citep{Banerjee2021}. The Bayes factor assumed for the analysis
+  contrasts $H_{0} \colon \theta = \Sexpr{null}$ to $H_{1} \colon \theta =
+  \Sexpr{pm}$ related to the mean difference $\theta$ in CMAI scores between
+  mirtazapine and placebo. The power is computed under either a point prior at
+  the assumed effect under the alternative (green), a normal prior that
+  incorporates additional parameter uncertainty (blue), or under the null
+  hypothesis (orange).}
 \label{fig:radiotherapy}
 \end{figure}
 
+Taking a step back and assuming that no data have yet been collected, we can use
+equations~\eqref{eq:prLR} and \eqref{eq:nLR} to calculate power and sample size.
 Figure~\ref{fig:radiotherapy} shows power curves based on the Bayes factor
 providing strong evidence in favor of the alternative ($\mathrm{BF}_{01} <
 1/\Sexpr{1/k}$) in the top plot, and based on the Bayes factor providing strong
 evidence in favor of the null ($\mathrm{BF}_{01} > \Sexpr{1/k}$) in the bottom
 plot. The colors indicate under which design prior the power was computed.
+
 Focusing on the top plot, we can see from the green curve that at least $n =
 \Sexpr{nanalyt}$ events are required to ensure a target power of $1 - \beta =
 \Sexpr{round(power*100,2)}\%$ assuming that the same point prior is used in the
@@ -1208,18 +1206,18 @@ adequately controlled by conventional standards (i.e., below 5\%) for each of
 the two number of events. This curve could be presented to a trial regulator to
 demonstrate that the design is adequately calibrated.
 
-Focusing now on the bottom plot, we can see that the same number of events
-$n = \Sexpr{nanalyt}$ also ensures a power of
-$1 - \beta = \Sexpr{round(power*100,2)}\%$ for finding evidence for the null
-hypothesis. This is due to the symmetric nature of the point versus point
-hypothesis Bayes factor considered in this example, as swapping the null
-$\theta_{0}$ and alternative $\mu$ in formula~\eqref{eq:nLR3} does not change
-the resulting sample size. Finally, looking at the green and blue curves we can
-see that the probability of misleading evidence in favor of the null when the
-data are generated from the non-null design priors seems to be reasonably well
-controlled (below the conventional 5\%) for the point design prior (green),
-while it is slightly inflated for the normal design prior (blue) after more than
-100 events.
+Focusing now on the bottom plot, we can see that the same number of events $n =
+\Sexpr{nanalyt}$ also ensures a power of $1 - \beta =
+\Sexpr{round(power*100,2)}\%$ for finding evidence for the null hypothesis. This
+is due to the symmetric nature of the point versus point hypothesis Bayes factor
+considered in this example, as swapping the null $\theta_{0}$ and alternative
+$\mu$ in formula~\eqref{eq:nLR3} does not change the resulting sample size.
+Finally, looking at the green and blue curves we can see that the probability of
+misleading evidence in favor of the null when the data are generated from the
+non-null design priors seems to be reasonably well controlled (below the
+conventional 5\%) for the point design prior (green), while it is slightly
+inflated for the normal design prior (blue) for sample sizes larger than
+\Sexpr{nseq[which(pow2H0 > 0.05)[1]]}.
 
 
 \subsection{Comparison to Monte Carlo simulation methods}
