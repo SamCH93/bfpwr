@@ -62,7 +62,7 @@
   \anonymize{Center for Reproducible Science (CRS)} \\
   \anonymize{University of Zurich} \\
   \anonymize{E-mail: \href{mailto:\mail}{\mail}} \\[2ex]
-  \anonymize{{\color{blue} Preprint version June 28, 2024}}
+  \anonymize{{\color{blue} Preprint version November 8, 2024}}
 }
 
 %% hyperref options
@@ -209,13 +209,13 @@ factors with local normal analysis and design priors (i.e., normal priors
 centered on the null value). Table~\ref{tab:summary} provides an overview of our
 results. In addition to our novel formulas, we summarize sample size
 determination for Bayes factors with normal priors based on numerical
-root-finding \citep[which has done before, e.g., in][]{Weiss1997, Pawel2023e},
-and show how it can be extended to more advanced prior distributions, such as
-normal moment priors and Jeffreys-Zellner-Siow priors. While root-finding
-approaches also do not produce closed-form sample sizes, computations are
-deterministic and usually faster than with simulation approaches. To facilitate
-reuse of our results, all methods are made available through our R package
-\texttt{bfpwr}.
+root-finding \citep[which has been done before, e.g., in][]{Weiss1997,
+  Pawel2023e}, and show how it can be extended to more advanced prior
+distributions, such as normal moment priors and Jeffreys-Zellner-Siow priors.
+While root-finding approaches also do not produce closed-form sample sizes,
+computations are deterministic and usually faster than with simulation
+approaches. To facilitate reuse of our results, all methods are made available
+through our R package \texttt{bfpwr}.
 
 \begingroup
 \renewcommand{\arraystretch}{1.3} % Default value: 1
@@ -263,18 +263,21 @@ R package \texttt{bfpwr} that implements the developed methods is illustrated in
 Appendix~\ref{app:pkg}.
 
 
-\section{Assumed Bayes factor analysis}
+\section{Bayes factor analysis}
 \label{sec:BF}
 To derive a sample size formula, we must first clarify how the future data will
 be analyzed. Denote by $\hat{\theta}$ the estimate of an unknown parameter
-$\theta$ that will result from the statistical analysis of $n$ effective future
-observations, each with unit variance
-$\sigma^2_{\scriptscriptstyle \hat{\theta}}$. Assume that the estimate (but not
-necessarily the underlying data) is approximately normally distributed around
-$\theta$ with variance $\sigma^2_{\scriptscriptstyle \hat{\theta}}/n$, i.e.,
-\mbox{$\hat{\theta} \mid \theta \sim \mathrm{N}(\theta, \sigma^2_{\scriptscriptstyle \hat{\theta}}/n)$}.
+$\theta$ that will result from the statistical analysis of a future data set
+with effective sample size $n$. Suppose that the estimate's standard error is of
+the form $\sigma_{\scriptscriptstyle \hat{\theta}}/\sqrt{n}$ where
+$\sigma_{\scriptscriptstyle \hat{\theta}}$ is the standard deviation of one
+effective observation. For many commonly used estimators, it is reasonable to
+assume that the estimate (but not necessarily the underlying data) is
+approximately normally distributed around $\theta$ with variance equal to the
+squared standard error, i.e., \mbox{$\hat{\theta} \mid \theta \sim
+  \mathrm{N}(\theta, \sigma^2_{\scriptscriptstyle \hat{\theta}}/n)$}.
 Table~\ref{tab:outcomes} shows common types of parameter estimates and the
-resulting interpretation of $n$ and the unit variance
+resulting interpretation of the effective sample size $n$ and the unit variance
 $\sigma^2_{\scriptscriptstyle \hat{\theta}}$. It is important to note that these
 are only approximations and they may be inadequate in certain situations, such
 as small sample sizes or rare events \citep{Spiegelhalter2004}. The frequentist
@@ -346,7 +349,7 @@ Conventional thresholds for substantial and strong evidence for the alternative
 (null) hypothesis are $1/3$ and $1/10$ ($3$ and $10$), respectively. A Bayes
 factor $1/3 < \text{BF}_{01} < 3$ is typically interpreted as absence of
 evidence for either hypothesis, calling for more data to discern the more
-appropriate hypothesis \citep{Jeffreys1961, Held2018}.
+appropriate hypothesis \citep{Jeffreys1939, Held2018}.
 
 The Bayes factor~\eqref{eq:BF01} is implemented in our package in the function
 \texttt{bf01}. It has already appeared in the literature in one form or another
@@ -592,7 +595,7 @@ Unlike the power function
 based on the Bayes factor with point analysis prior~\eqref{eq:prLR}, the power
 function based on the Bayes factor with normal analysis prior~\eqref{eq:prBF} can
 be increased arbitrarily close to one by increasing the sample size $n$ (see
-Appendix~\ref{app:asymptotics}). That is, we have that
+Appendix~\ref{app:asymptotics}). That is, we have
 \begin{align}
   \lim_{n\to \infty} \Pr(\text{BF}_{01} \leq k \mid n, \mu_{d} , \tau_{d}, \tau > 0) = 1
   \label{eq:plimBF}
@@ -625,13 +628,13 @@ package \texttt{bfpwr} (see Appendix~\ref{app:pkg} for an illustration).
 Iterative root-finding can then be applied to determine the sample size such
 that compelling evidence is obtained with a desired target power under a
 specified design prior \citep[as pioneered by][]{Weiss1997}. It is important to
-emphasize again that one can and should also compute a power curve in favor of
-the null hypothesis. That is, one can look at one minus the power
+emphasize again that one can also compute a power curve in favor of the null
+hypothesis. That is, one can look at one minus the power
 functions~\eqref{eq:prLR} and~\eqref{eq:prBF} along with a Bayes factor
-threshold $k > 1$ and fixing the design prior to the null hypothesis
-($\mu_{d} = \theta_{0}$, $\tau_{d} = 0$). In this way, sample sizes can be
-determined that ensure a desired probability of compelling evidence for both the
-null and the alternative.
+threshold $k > 1$ and fixing the design prior to the null hypothesis ($\mu_{d} =
+\theta_{0}$, $\tau_{d} = 0$). In this way, sample sizes can be determined that
+ensure a desired probability of compelling evidence for both the null and the
+alternative.
 % This approach is also implemented in our R package.
 
 We will now investigate situations where the sample size can be obtained in
@@ -1192,22 +1195,22 @@ evidence in favor of the null ($\mathrm{BF}_{01} > \Sexpr{1/k}$) in the bottom
 plot. The colors indicate under which design prior the power was computed.
 
 Focusing on the top plot, we can see from the green curve that at least $n =
-\Sexpr{nanalyt}$ events are required to ensure a target power of $1 - \beta =
-\Sexpr{round(power*100,2)}\%$ assuming that the same point prior is used in the
-design as for the analysis (i.e., a point prior at $\mu = \Sexpr{pm}$). This
-number increases to $n = \Sexpr{nanalyt2}$ when we move to a design prior that
-incorporates parameter uncertainty (blue curve), i.e., a prior that is still
-centered around $\mu = \Sexpr{pm}$ but with a standard deviation of $\tau_{d} =
-\Sexpr{dpsd2}$. Finally, if we look at the orange power curve computed assuming
-that the null hypothesis is true ($\theta = \Sexpr{null}$), we can see that the
-probability of misleading evidence for the alternative when the null hypothesis
-is actually true (the type I error rate) is very low and appears to be
-adequately controlled by conventional standards (i.e., below 5\%) for each of
-the two number of events. This curve could be presented to a trial regulator to
+\Sexpr{nanalyt}$ observations per group are required to ensure a target power of
+$1 - \beta = \Sexpr{round(power*100,2)}\%$ assuming that the same point prior is
+used in the design as for the analysis (i.e., a point prior at $\mu =
+\Sexpr{pm}$). This number increases to $n = \Sexpr{nanalyt2}$ when we move to a
+design prior that incorporates parameter uncertainty (blue curve), i.e., a prior
+that is still centered around $\mu = \Sexpr{pm}$ but with a standard deviation
+of $\tau_{d} = \Sexpr{dpsd2}$. Finally, if we look at the orange power curve
+computed assuming that the null hypothesis is true ($\theta = \Sexpr{null}$), we
+can see that the probability of misleading evidence for the alternative when the
+null hypothesis is actually true (the type I error rate) is very low and appears
+to be adequately controlled by conventional standards (i.e., below 5\%) for each
+of the two samples sizes. This curve could be presented to a trial regulator to
 demonstrate that the design is adequately calibrated.
 
-Focusing now on the bottom plot, we can see that the same number of events $n =
-\Sexpr{nanalyt}$ also ensures a power of $1 - \beta =
+Focusing now on the bottom plot, we can see that the sample size $n =
+\Sexpr{nanalyt}$ based on the point prior also ensures a power of $1 - \beta =
 \Sexpr{round(power*100,2)}\%$ for finding evidence for the null hypothesis. This
 is due to the symmetric nature of the point versus point hypothesis Bayes factor
 considered in this example, as swapping the null $\theta_{0}$ and alternative
@@ -1411,8 +1414,8 @@ studies, an overestimation of the sample size by even one animal may be highly
 problematic and thus a higher number of simulations may be preferred, whereas in
 other studies this would not be a problem at all.
 
-Looking at the green curves in the top plot, we see that a sample size of
-$n = \Sexpr{n}$ per group is sufficient to achieve a target power of
+Looking at the green curves in the top plot, we see that a sample size of $n =
+\Sexpr{n}$ per group is sufficient to achieve a target power of
 $\Sexpr{100*power}\%$ with a Bayes factor threshold of $k = 1/\Sexpr{1/k}$ under
 the point design prior. This sample size is slightly larger than the $n = 146$
 that \citet{Schoenbrodt2017} obtained in their calculations, which instead
@@ -1430,18 +1433,18 @@ composite alternative with normal analysis prior \citep{Johnson2010}. Finally,
 looking at the orange curve in the top plot and the green/blue curves in the
 bottom plot, we see that the probability of misleading evidence in favor of the
 incorrect hypothesis appears to be adequately controlled, as these curves are
-virtually zero over the entire range of sample sizes.
+virtually constant at zero over the entire range of sample sizes.
 
 Appendix~\ref{app:simeval} shows a more systematic comparison with Monte Carlo
 simulation, including many other design and analysis prior conditions. To verify
 that the methods work as intended under a given condition, a sample size was
 first calculated using closed-form (if available) or root-finding methods to
-ensure a desired target power for a specified Bayes factor threshold. Data were
-then simulated based on this sample size and the design prior. Bayes factors
-were then calculated from the simulated data and the power empirically estimated
-from the proportion of Bayes factors that were below the specified threshold.
-These simulation-based power estimates were very close to the specified target
-power in all conditions.
+ensure a desired target power for a specified Bayes factor threshold.
+Subsequently, data were simulated based on this sample size and the design
+prior. Bayes factors were then calculated from the simulated data, and power was
+estimated empirically from the proportion of Bayes factors below the specified
+threshold. These simulation-based power estimates were spread closely around the
+specified target power in all conditions.
 
 
 \section{Extensions}
@@ -1481,7 +1484,7 @@ one-sided test in positive direction, we have $a = 0$ and $b=+\infty$, while for
 a two-sided test we have $a = -\infty$ and $b=+\infty$. When the prior under the
 alternative is set to a (scaled) Cauchy distribution ($\kappa = 1$, $\mu = 0$,
 $a = -\infty$, $b=+\infty$), the Bayes factor reduces to the
-`Jeffreys-Zellner-Siow' (JZS) Bayes factor \citep{Jeffreys1961, Zellner1980},
+`Jeffreys-Zellner-Siow' (JZS) Bayes factor \citep{Jeffreys1939, Zellner1980},
 which is often used as a `default' Bayes factor in the social sciences
 \citep{Rouder2009}. Setting other values for these parameters allows data
 analysts to incorporate directionality, such as a one-sided JZS Bayes factor
@@ -1611,21 +1614,21 @@ error.
 @
 
 \subsection{Normal moment priors}
-Nonlocal priors are prior distributions that have zero probability density/mass at
-the null value. They were introduced to allow evidence for the null to
+Nonlocal priors are prior distributions that have zero probability density/mass
+at the null value. They were introduced to allow evidence for the null to
 accumulate more quickly if it is indeed true \citep{Johnson2010}. A convenient
 class of nonlocal priors are normal moment priors, which have a density of the
-form
-$\mathrm{NM}(\theta \mid \theta_{0}, \tau) = \mathrm{N}(\theta \mid \theta_{0}, \tau^{2}) \times (\theta - \theta_{0})^{2}/\tau^{2}$
-with location $\theta_{0}$ and spread $\tau$. Figure~\ref{fig:nonlocal} shows
-three examples of normal moment priors. We see that the distributions have a
-density of zero at the null value $\theta_{0} = 0$, encoding the assumption that
-the null is the least likely parameter value under the alternative. Normal
-moment priors have two modes at $\pm \tau \sqrt{2}$, which gives a convenient
-way to elicit a prior, as $\tau$ may, for example, be set so that the mode
-equals two parameter values deemed most plausible under the alternative.
+form $\mathrm{NM}(\theta \mid \theta_{0}, \tau) = \mathrm{N}(\theta \mid
+\theta_{0}, \tau^{2}) \times (\theta - \theta_{0})^{2}/\tau^{2}$ with location
+$\theta_{0}$ and spread $\tau$. Figure~\ref{fig:nonlocal} shows three examples
+of normal moment priors. We see that the distributions have a density of zero at
+the null value $\theta_{0} = 0$, encoding the assumption that the null is the
+least likely parameter value under the alternative. Normal moment priors have
+two modes at $\pm \tau \sqrt{2}$, which gives a convenient way to elicit a
+prior, as $\tau$ may, for example, be set so that the modes equals two parameter
+values deemed most plausible under the alternative.
 \begin{figure}[!htb]
-<< "moment-priors-illustration-plot", fig.height = 3.5 >>=
+<< "moment-priors-illustration-plot", fig.height = 3.25 >>=
 dnmoment <- function(x, location = 0, spread = 1) {
     stats::dnorm(x = x, mean = location, sd = spread)*(x - location)^2/spread^2
 }
@@ -1634,12 +1637,12 @@ taus <- c(0.5, 1, 2)
 null <- 0
 dens <- sapply(X = taus, FUN = function(tau) dnmoment(x = xseq, location = 0, spread = tau))
 cols <- hcl.colors(n = length(taus), alpha = 0.8)
-par(mar = c(4, 5, 2, 2))
+par(mar = c(4, 5, 1, 1))
 matplot(xseq, dens, type = "l", lty = 1, col = cols, lwd = 1.5,
         xlab = bquote("Parameter" ~ theta), ylab = "Density", las = 1,
         panel.first = grid(lty = 3, col = adjustcolor(col = 1, alpha = 0.1)))
 leg <- sapply(taus, function(tau) as.expression(bquote({"NM("* theta[0] == "0,"} * tau == .(tau) * ")")))
-legend("topright", legend = leg, col = cols, lty = 1, lwd = 1.5, cex = 0.7,
+legend("topright", legend = leg, col = cols, lty = 1, lwd = 1.5, cex = 0.9,
        bg = "white")
 @
 \caption{Illustration of a normal moment prior distribution for different spread
@@ -1683,7 +1686,7 @@ Appendix~\ref{app:nmprior} for details. Based on the power
 function~\eqref{eq:pnlBF}, numerical root-finding can again be used to determine
 the sample size such that a specified target power is achieved. Methods for
 power and sample size calculations for normal moment prior Bayes factors are
-both implemented in our R package (functions \texttt{nmbf01} and
+implemented in our R package (functions \texttt{nmbf01} and
 \texttt{powernmbf01}).
 
 
@@ -1806,15 +1809,14 @@ An important issue in any Bayesian design and analysis is the choice of prior
 distributions. While there are differences between point and normal priors in
 terms of the closed-form availability of sample sizes (see
 Table~\ref{tab:summary}), we believe that the choice between them should be
-guided only by prior knowledge and the questions researchers wish to answer,
-rather than by mathematical convenience. Point analysis priors seem more
-appropriate when researchers have precise hypotheses to test, they can also be
-motivated from a non-Bayesian likelihoodist perspective, and they are easier to
-communicate to non-statistical audiences. In contrast, normal analysis priors
-can incorporate uncertainty and may therefore be more appropriate for
-exploratory settings where little is known about the phenomenon under
-investigation \citep{Held2018}. Similar considerations apply to the choice of
-the design prior. For example, a point design prior may be specified at a
+guided only by prior knowledge and the questions researchers wish to answer.
+Point analysis priors seem more appropriate when researchers have precise
+hypotheses to test, they can also be motivated from a likelihood perspective,
+and they are easier to communicate to a non-statistical audience. In contrast,
+normal analysis priors can incorporate uncertainty and may therefore be more
+appropriate for exploratory settings where little is known about the phenomenon
+under investigation \citep{Held2018}. Similar considerations apply to the choice
+of the design prior. For example, a point design prior may be specified at a
 minimally relevant parameter value if such a value can be formulated. On the
 other hand, if such a value is difficult to formulate but data from a previous
 study are available, a normal design prior that takes the previous estimate and
@@ -1840,8 +1842,19 @@ $t$, or point priors under the alternative. However, after publishing an initial
 version of this article on the arXiv preprint server, \citet{Wong2024} have
 built on our results and extended the root-finding approach from
 Section~\ref{sec:extensions} to more flexible design prior distributions and
-$t$~likelihoods. Nevertheless, the approach could still be further extended to
+$t$~likelihoods. Nevertheless, the approach could even be further extended to
 ANOVA or regression settings with multivariate parameters.
+
+Furthermore, in the case of two-group parameters, we have assumed equal
+allocation of observations between the two groups, but unequal allocation may
+sometimes be desirable. For example, it might be easier to recruit patients for
+a study if they have a higher chance of receiving a new treatment than placbo,
+as participation will then be more attractive. In the case of (standardized)
+mean difference parameters, this can be addressed by introducing an allocation
+ratio $r = n_2/n_1$ and changing the sample size per group $n$ based on equal
+allocation to $n_1 = (2n)/(1 + r)$ and $n_2 = (2n)/(1 + 1/r)$ \citep[see
+  e.g.,][p.~21]{Kieser2020}. For other parameter types, such as log odds/hazard
+ratios, this is more complicated and may be developed in future work.
 
 We also did not consider `open-ended' sequential designs, where data are
 collected continuously until compelling evidence for one of the competing
@@ -1864,8 +1877,8 @@ the value of the true parameter needed to achieve a given power for a given
 sample size, and then reason about whether or not this true parameter is
 realistic. In both cases, however, it is important that the focus is on
 reasoning about the plausibility of the design prior/parameter, and researchers
-should be careful not to give the impression that this choice has been made at a
-priori.
+should be careful not to give the impression that this choice has been made
+\textit{a priori}.
 
 \section*{Acknowledgments}
 We thank \anonymize{Angelika Stefan} and \anonymize{František Bartoš} for
@@ -1902,13 +1915,13 @@ As \texttt{power.t.test}, the function \texttt{powerbf01} assumes that the data
 are continuous and that the parameter of interest is either a mean or a
 (standardized) mean difference. The functions \texttt{pbf01} and \texttt{nbf01}
 are more general and can be used for any approximately normally distributed
-parameter estimate with approximate variance
-$\mathrm{Var}(\hat{\theta}) = \sigma^{2}_{\scriptscriptstyle \hat{\theta}}/n$,
-although users have to specify the unit variance
-$\sigma^{2}_{\scriptscriptstyle \hat{\theta}}$ themselves. Similar functions
-exist also for $t$-test Bayes factors (\texttt{powertbf01}) and normal moment
-prior Bayes factors (\texttt{powernmbf01}). The following code chunk illustrate
-how \texttt{powerbf01} can be used.
+parameter estimate with approximate variance $\mathrm{Var}(\hat{\theta}) =
+\sigma^{2}_{\scriptscriptstyle \hat{\theta}}/n$, although users have to specify
+the unit standard deviation $\sigma_{\scriptscriptstyle \hat{\theta}}$
+themselves. Similar functions exist also for $t$-test Bayes factors
+(\texttt{powertbf01}) and normal moment prior Bayes factors
+(\texttt{powernmbf01}). The following code chunk illustrate how
+\texttt{powerbf01} can be used.
 
 \begin{spacing}{1}
 << "package-illustration", echo = TRUE, fig.height = 6 >>=
@@ -1916,15 +1929,15 @@ library(bfpwr)
 
 ## BF parameters
 k <- 1/6 # BF threshold
-null <- 0 # null value
+null <- 0 # null value is zero
 sd <- 1 # standard deviation of one observation
-pm <- null # analysis prior mean set to the null value
-psd <- sqrt(2) # analysis prior sd set to sqrt(2)
+pm <- 0 # analysis prior mean set to zero
+psd <- sqrt(2) # analysis prior SD set to sqrt(2)
 type <- "two.sample" # two-sample test
 
 ## design prior
 dpm <- 0.5 # design prior mean equal to medium SMD effect size
-dpsd <- 0.1 # positive design prior sd to incorporate parameter uncertainty
+dpsd <- 0.1 # positive design prior SD to incorporate parameter uncertainty
 
 ## determine sample size to achieve 85% power
 power <- 0.85

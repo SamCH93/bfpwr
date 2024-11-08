@@ -123,7 +123,7 @@ $k = 1/\Sexpr{1/k}$ with a target power of \Sexpr{round(100*pow, 2)}\% was
 computed (shown at the top of each plot). This sample size along with the design
 prior were subsequently used to simulate \Sexpr{format(nsim, big.mark = "'")}
 standardized mean difference parameter estimates based on which
-\Sexpr{format(nsim, big.mark = "'")} Bayes factor were computed. The power was
+\Sexpr{format(nsim, big.mark = "'")} Bayes factors were computed. The power was
 then estimated from the proportion of Bayes factors equal or below the level
 $k = 1/\Sexpr{1/k}$. Note that for certain design/analysis prior combinations,
 it is impossible to achieve the target power with a finite sample size. In this
@@ -221,10 +221,10 @@ ggplot(data = res,
 \label{fig:simeval}
 \end{figure}
 
-We can see that in all conditions, the simulation-based estimate of the power is
-close to the target power of \Sexpr{round(100*pow, 2)}\%. The maximally observed
-discrepancy is \Sexpr{round(100*max(abs(res[,"power_MC"] - pow), na.rm = TRUE),
-  2)}\% while the median discrepancy is
+We can see that in all conditions, the simulation-based estimate of the power
+closely spreads around the target power of \Sexpr{round(100*pow, 2)}\%. The
+maximally observed discrepancy is \Sexpr{round(100*max(abs(res[,"power_MC"] -
+  pow), na.rm = TRUE), 2)}\% while the median discrepancy is
 \Sexpr{round(100*median(abs(res[,"power_MC"] - pow), na.rm = TRUE), 2)}\%. This
 suggests that the power and sample size calculation methods work as intended.
 

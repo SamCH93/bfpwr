@@ -225,9 +225,9 @@ print(xtab, booktabs = TRUE, floating = FALSE,
       include.colnames = FALSE)
 
 
-## ----"radiotherapy-example"---------------------------------------------------
-## sample size calculation as in You et al. (2020, p. 1347)
-## https://doi.org/10.1001/jamaoncol.2020.1808
+## ----"mirtazapine-example"----------------------------------------------------
+## sample size calculation as in Banerjee et al. (2021, p. 1490-1491)
+## https://doi.org/10.1016/S0140-6736(21)01210-1
 pm <- -6
 pow <- 0.8
 sd <- 15
@@ -244,7 +244,7 @@ p <- 2*pnorm(q = abs(est/se), lower.tail = FALSE)
 lr01 <- bf01(estimate = est, se = se, null = 0, pm = pm, psd = 0)
 
 
-## ----"radiotherapy-example-design", fig.height = 6----------------------------
+## ----"mirtazapine-example-design", fig.height = 6-----------------------------
 ## BF parameter
 null <- 0
 usd <- sqrt(2)*sd # unit sd for mean difference so that n is the group size
@@ -521,7 +521,7 @@ nex <- ntbf01(k = k, power = power, null = null, plocation = plocation,
 ## ##>  83.67747 85.16477 92.08307 88.00866 98.46287 117.2702   100
 
 
-## ----"moment-priors-illustration-plot", fig.height = 3.5----------------------
+## ----"moment-priors-illustration-plot", fig.height = 3.25---------------------
 dnmoment <- function(x, location = 0, spread = 1) {
     stats::dnorm(x = x, mean = location, sd = spread)*(x - location)^2/spread^2
 }
@@ -530,12 +530,12 @@ taus <- c(0.5, 1, 2)
 null <- 0
 dens <- sapply(X = taus, FUN = function(tau) dnmoment(x = xseq, location = 0, spread = tau))
 cols <- hcl.colors(n = length(taus), alpha = 0.8)
-par(mar = c(4, 5, 2, 2))
+par(mar = c(4, 5, 1, 1))
 matplot(xseq, dens, type = "l", lty = 1, col = cols, lwd = 1.5,
         xlab = bquote("Parameter" ~ theta), ylab = "Density", las = 1,
         panel.first = grid(lty = 3, col = adjustcolor(col = 1, alpha = 0.1)))
 leg <- sapply(taus, function(tau) as.expression(bquote({"NM("* theta[0] == "0,"} * tau == .(tau) * ")")))
-legend("topright", legend = leg, col = cols, lty = 1, lwd = 1.5, cex = 0.7,
+legend("topright", legend = leg, col = cols, lty = 1, lwd = 1.5, cex = 0.9,
        bg = "white")
 
 
@@ -609,15 +609,15 @@ library(bfpwr)
 
 ## BF parameters
 k <- 1/6 # BF threshold
-null <- 0 # null value
+null <- 0 # null value is zero
 sd <- 1 # standard deviation of one observation
-pm <- null # analysis prior mean set to the null value
-psd <- sqrt(2) # analysis prior sd set to sqrt(2)
+pm <- 0 # analysis prior mean set to zero
+psd <- sqrt(2) # analysis prior SD set to sqrt(2)
 type <- "two.sample" # two-sample test
 
 ## design prior
 dpm <- 0.5 # design prior mean equal to medium SMD effect size
-dpsd <- 0.1 # positive design prior sd to incorporate parameter uncertainty
+dpsd <- 0.1 # positive design prior SD to incorporate parameter uncertainty
 
 ## determine sample size to achieve 85% power
 power <- 0.85
