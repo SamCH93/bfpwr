@@ -248,8 +248,7 @@ Applying the Lambert W function on both sides, leads to
   \mathrm{W}_{0} \left[\frac{\{1 + (n\tau^{2})/\sigma^{2}_{\scriptscriptstyle \hat{\theta}}\}\sqrt{e}}{2k}\right].
 \end{align}
 Since the argument of the Lambert W function is real and always non-negative,
-only the principal branch $\mathrm{W}_{0}$ can satisfy the inequality
-\citep{Corless1996}. Assuming a
+only the principal branch $\mathrm{W}_{0}$ can satisfy the inequality. Assuming a
 \mbox{$\hat{\theta} \mid n, \mu_{d}, \tau_{d} \sim \mathrm{N}(\mu_{d}, \tau^{2}_{d} + \sigma^2_{\scriptscriptstyle \hat{\theta}}/n)$}
 distribution induced by a normal design prior, we can rearrange the
 inequality~\eqref{eq:powernmp2} and obtain the power function~\eqref{eq:pnlBF}.
