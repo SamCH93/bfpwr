@@ -121,8 +121,8 @@ library(ggplot2)
 \begin{abstract}
   \noindent Determining an appropriate sample size is a critical element of study design, and the method used to determine it should be consistent with the planned analysis. When the planned analysis involves Bayes factor hypothesis testing, the sample size is usually desired to ensure a sufficiently high probability of obtaining a Bayes factor indicating compelling evidence for a hypothesis, given that the hypothesis is true. In practice, Bayes factor sample size determination is typically performed using computationally intensive Monte Carlo simulation. Here, we summarize alternative approaches that enable sample size determination without simulation. We show how, under approximate normality assumptions, sample sizes can be determined numerically, and provide the R package \texttt{bfpwr} for this purpose. Additionally, we identify conditions under which sample sizes can even be determined in closed-form, resulting in novel, easy-to-use formulas that also help foster intuition, enable asymptotic analysis, and can also be used for hybrid Bayesian/likelihoodist design. Furthermore, we show how power and sample size can be computed without simulation for more complex analysis priors, such as Jeffreys-Zellner-Siow priors or non-local normal moment priors. Case studies from medicine and psychology illustrate how researchers can use our methods to design informative yet cost-efficient studies.
   \\
-  \textit{Keywords:} Bayesian hypothesis testing, evidence, likelihood ratio,
-  predictive power, study design
+  \textit{Keywords:} Bayesian hypothesis testing, design prior, evidence,
+  likelihood ratio, study design
 \end{abstract}
 
 
@@ -275,23 +275,23 @@ the form $\sigma_{\scriptscriptstyle \hat{\theta}}/\sqrt{n}$ where
 $\sigma_{\scriptscriptstyle \hat{\theta}}^2$ is the variance of one effective
 observation. For example, if the data are normally distributed with known
 variance $\sigma^2$ and the parameter of interest is their mean $\theta$
-estimated with the sample mean $\hat{\theta}$, we have that
-$\mathrm{Var}(\hat{\theta}) = \sigma^2/n$ so the unit variance is
+estimated with the sample mean $\hat{\theta}$ (the `one-sample' case), we have
+that $\mathrm{Var}(\hat{\theta}) = \sigma^2/n$ so the unit variance is
 $\sigma_{\scriptscriptstyle \hat{\theta}}^2 = \sigma^2$ and the effective sample
 size $n$ is the number of observations. If there were another group of $n$
 normally distributed observations with a potentially different mean but the same
 known variance $\sigma^2$, and we were interested in the mean difference
-$\theta$ estimated with the empirical mean difference $\hat{\theta}$, we would
-have that $\mathrm{Var}(\hat{\theta}) = (2\sigma^2)/n$ so the unit variance
-would be $\sigma_{\scriptscriptstyle \hat{\theta}}^2 = 2\sigma^2$ and the
-effective sample size would be the number of observations per group $n$. For
-many commonly used estimators, it is reasonable to assume that the estimate (but
-not necessarily the underlying data) is approximately normally distributed
-around $\theta$ with variance equal to the squared standard error, i.e.,
-\mbox{$\hat{\theta} \mid \theta \sim \mathrm{N}(\theta,
-  \sigma^2_{\scriptscriptstyle \hat{\theta}}/n)$}. Table~\ref{tab:outcomes}
-shows common types of parameter estimates and the resulting interpretation of
-the effective sample size $n$ and the unit variance
+$\theta$ estimated with the empirical mean difference $\hat{\theta}$ (the
+`two-sample' case), we would have that $\mathrm{Var}(\hat{\theta}) =
+(2\sigma^2)/n$ so the unit variance would be $\sigma_{\scriptscriptstyle
+  \hat{\theta}}^2 = 2\sigma^2$ and the effective sample size would be the number
+of observations per group $n$. For many commonly used estimators, it is
+reasonable to assume that the estimate (but not necessarily the underlying data)
+is approximately normally distributed around $\theta$ with variance equal to the
+squared standard error, i.e., \mbox{$\hat{\theta} \mid \theta \sim
+  \mathrm{N}(\theta, \sigma^2_{\scriptscriptstyle \hat{\theta}}/n)$}.
+Table~\ref{tab:outcomes} shows common types of parameter estimates and the
+resulting interpretation of the effective sample size $n$ and the unit variance
 $\sigma^2_{\scriptscriptstyle \hat{\theta}}$. It is important to note that these
 are only approximations and they may be inadequate in certain situations, such
 as small sample sizes or when the assumed variance $\sigma$ is strongly
@@ -481,8 +481,8 @@ limiting power value is given by
       \Phi(Z_{\mathrm{lim}}) & \text{if}~ \mu - \theta_0 < 0
     \end{cases}
 \end{align}
-with $Z_{\mathrm{lim}} = (\theta_{0} + \mu - 2 \mu_{d})/(2 \tau_{d})$ the limit
-of~\eqref{eq:Z} for increasing $n$. When the design prior is also point prior
+with $Z_{\mathrm{lim}} = (\theta_{0} + \mu - 2 \mu_{d})/(2 \tau_{d})$, the limit
+of~\eqref{eq:Z} for increasing $n$. When the design prior is also a point prior
 ($\tau_{d} = 0$), $Z_{\mathrm{lim}}$~diverges and the limiting
 power~\eqref{eq:powerlimLR} approaches one or zero, depending on whether the
 location of the design prior $\mu_{d}$ is closer to the alternative $\mu$ or to
@@ -1095,8 +1095,9 @@ formula~\eqref{eq:freqsamplesize} gives a required per-group sample size of $n =
 \Sexpr{ceiling(n)}$, which the investigators adjusted further upwards to 111 to
 account for attrition. Contrary to their expectations, however, the trial did
 not find a statistically significant effect of mirtazapine over placebo
-(estimated mean difference of $\Sexpr{est}$ with 95\% confidence interval from
-$\Sexpr{ci[1]}$ to $\Sexpr{ci[2]}$, $p = \Sexpr{round(p, 3)}$).
+(estimated mean difference of $\hat{\theta} = \Sexpr{est}$ with 95\% confidence
+interval from $\Sexpr{ci[1]}$ to $\Sexpr{ci[2]}$ and two-sided $p$-value of $p =
+\Sexpr{round(p, 3)}$ for null hypothesis of no difference).
 %% This was especially problematic as also a slightly higher mortality was
 %% observed in the mirtazapine group, leading the investigators to ultimately
 %% recommend against using mirtazapine for the treatment of agitation in
@@ -1633,13 +1634,13 @@ and Wagenmakers, possibly due to Monte Carlo error.
 @
 
 \subsection{Normal moment priors}
-Non-Local priors are prior distributions that have zero probability density/mass
+Non-local priors are prior distributions that have zero probability density/mass
 at the null value. They were introduced to allow evidence for the null to
 accumulate more quickly if it is indeed true \citep{Johnson2010}. A convenient
 class of non-local priors are normal moment priors, which have a density of the
 form $\mathrm{NM}(\theta \mid \theta_{0}, \tau) = \mathrm{N}(\theta \mid
 \theta_{0}, \tau^{2}) \times (\theta - \theta_{0})^{2}/\tau^{2}$ with location
-$\theta_{0}$ and spread $\tau$. Figure~\ref{fig:non-local} shows three examples
+$\theta_{0}$ and spread $\tau$. Figure~\ref{fig:nonlocal} shows three examples
 of normal moment priors. We see that the distributions have a density of zero at
 the null value $\theta_{0} = 0$, encoding the assumption that the null is the
 least likely parameter value under the alternative. Normal moment priors have
@@ -1666,7 +1667,7 @@ legend("topright", legend = leg, col = cols, lty = 1, lwd = 1.5, cex = 0.9,
 @
 \caption{Illustration of a normal moment prior distribution for different spread
   parameters $\tau$. }
-\label{fig:non-local}
+\label{fig:nonlocal}
 \end{figure}
 
 We will now extend power and sample size calculation to Bayes factors with
@@ -1781,10 +1782,10 @@ nH0normal <- nbf01(k = 6, power = 0.95, usd = sqrt(2), null = 0, pm = 0,
   either a point prior at a medium effect size (green), a normal prior that
   incorporates additional parameter uncertainty (blue), or under the null
   hypothesis (orange).}
-\label{fig:non-localexample}
+\label{fig:nonlocalexample}
 \end{figure}
 
-Figure~\ref{fig:non-localexample} shows again power and sample size calculations
+Figure~\ref{fig:nonlocalexample} shows again power and sample size calculations
 for the example from \citet{Schoenbrodt2017} considered earlier. This time,
 however, we specify a normal moment analysis prior with modes at a medium
 standardized mean difference effect size of $\theta = \pm 0.5$, which translates
@@ -1875,8 +1876,7 @@ on equal allocation to $n_1 = (2n)/(1 + r)$ and $n_2 = (2n)/(1 + 1/r)$, see
 e.g., \citet[p.~21]{Kieser2020}. While this adjustment has been developed for
 frequentist sample size determination, it is equally applicable to the Bayes
 factor methods considered here. However, for other parameter types, such as log
-hazard ratios, this is more complicated \citep[p.74-75]{Kieser2020} and we will
-consider adaptation to Bayes factors in future work.
+hazard ratios, this is more complicated \citep[p.74-75]{Kieser2020}.
 
 We also did not consider sequential designs, where data are collected
 continuously until compelling evidence for one of the competing hypotheses is
@@ -1904,11 +1904,10 @@ should be careful not to give the impression that this choice has been made
 
 \section*{Acknowledgments}
 We thank \anonymize{Angelika Stefan} and \anonymize{František Bartoš} for
-valuable comments on a first draft of the manuscript. We thank \anonymize{Tsz
-  Keung Wong} for helpful suggestions related to our R package. We thank two
-anonymous reviewers and an associate editor for constructive comments. The
-acknowledgment of these individuals does not imply their endorsement of the
-paper.
+valuable comments on drafts of the manuscript. We thank \anonymize{Tsz Keung
+  Wong} for helpful suggestions related to our R package. We thank two anonymous
+reviewers and an associate editor for constructive comments. The acknowledgment
+of these individuals does not imply their endorsement of the paper.
 
 \section*{Conflict of interest}
 We declare no conflict of interest.

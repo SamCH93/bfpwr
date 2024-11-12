@@ -216,8 +216,13 @@ ggplot(data = res,
           strip.background = element_rect(fill = alpha("black", 0.01)))
 @
 \caption{Simulation-based evaluation of power and sample size calculations
-  related to the Bayesian $z$-test as implemented in the \texttt{bfpwr}
-  package.}
+  related to the Bayesian $z$-test as implemented in the \texttt{bfpwr} package.
+  The top of each plot shows the sample size to obtain a Bayes factor equal or
+  below $k = 1/\Sexpr{1/k}$ with a target power of \Sexpr{round(100*pow, 2)}\%
+  for the corresponding combination of analysis and design prior (an ``x'' is
+  shown if the target power is impossible to achieve for a given condition).
+  \Sexpr{format(nsim, big.mark = "'")} Bayes factors were then simulated based
+  on this sample size, from which then the power was empirically estimated.}
 \label{fig:simeval}
 \end{figure}
 
