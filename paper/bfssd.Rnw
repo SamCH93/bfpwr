@@ -294,7 +294,7 @@ Table~\ref{tab:outcomes} shows common types of parameter estimates and the
 resulting interpretation of the effective sample size $n$ and the unit variance
 $\sigma^2_{\scriptscriptstyle \hat{\theta}}$. It is important to note that these
 are only approximations and they may be inadequate in certain situations, such
-as small sample sizes or when the assumed variance $\sigma$ is strongly
+as small sample sizes or when the assumed variance $\sigma^2$ is strongly
 misspecified \citep{Spiegelhalter2004}. The frequentist sample size
 formula~\eqref{eq:freqsamplesize} can also be cast in this framework; it assumes
 continuous outcome data and a mean difference parameter (second row in
@@ -926,10 +926,9 @@ we will show now, solutions can, under certain conditions, be expressed in terms
 of the Lambert W function \citep{Corless1996}. The Lambert W function is the
 function $\mathrm{W}(\cdot)$ that satisfies
 $\mathrm{W}(x)\exp\{\mathrm{W}(x)\}=x$, and it is therefore sometimes also
-called `product logarithm'. It has many fundamental applications, such as the
-solution of the Schrödinger equation in quantum-mechanics \citep{Williams2005},
-and has also previously appeared in the context of Bayes factor hypothesis
-testing \citep{Pawel2022b, Wagenmakers2022, Held2021b, Pawel2023}.
+called `product logarithm'. It has many fundamental applications and has also
+previously appeared in the context of Bayes factor hypothesis testing
+\citep{Pawel2022b, Wagenmakers2022, Held2021b, Pawel2023}.
 
 Suppose now that the design and analysis prior are both centered around the null
 value \mbox{($\mu_{d} = \mu = \theta_0$)}. Centering the prior around the null
@@ -1097,7 +1096,7 @@ account for attrition. Contrary to their expectations, however, the trial did
 not find a statistically significant effect of mirtazapine over placebo
 (estimated mean difference of $\hat{\theta} = \Sexpr{est}$ with 95\% confidence
 interval from $\Sexpr{ci[1]}$ to $\Sexpr{ci[2]}$ and two-sided $p$-value of $p =
-\Sexpr{round(p, 3)}$ for null hypothesis of no difference).
+\Sexpr{round(p, 3)}$ for the null hypothesis of no difference).
 %% This was especially problematic as also a slightly higher mortality was
 %% observed in the mirtazapine group, leading the investigators to ultimately
 %% recommend against using mirtazapine for the treatment of agitation in
@@ -1500,7 +1499,7 @@ $\mathrm{NCT}_{\nu}(\cdot \mid \lambda)$ the non-central $t$ density with
 degrees of freedom $\nu$ and non-centrality parameter $\lambda$ \citep[chapters
 28 and 31]{Johnson1995}. The subscript $[a,b]$ denotes truncation of a
 distribution to the interval from $a$ to $b$, i.e.,
-$f(x)_{[a,b]} = \{f(x) 1_{[a,b]}(x)\}/\{F(a) - F(b)\}$. For example, for a
+$f(x)_{[a,b]} = \{f(x) 1_{[a,b]}(x)\}/\{F(b) - F(a)\}$. For example, for a
 one-sided test in positive direction, we have $a = 0$ and $b=+\infty$, while for
 a two-sided test we have $a = -\infty$ and $b=+\infty$. When the prior under the
 alternative is set to a (scaled) Cauchy distribution ($\kappa = 1$, $\mu = 0$,
@@ -1841,7 +1840,7 @@ minimally relevant parameter value if such a value can be formulated. On the
 other hand, if such a value is difficult to formulate but data from a previous
 study are available, a normal design prior that takes the previous estimate and
 its standard error as the mean and standard deviation may be a reasonable way to
-incorporate prior knowledge and uncertainty.
+incorporate prior knowledge and uncertainty. %%\citep{Pawel2023e}.
 % In any case, it is important that researchers are transparent about their
 % choices and motivations.
 
@@ -1863,7 +1862,7 @@ version of this article on the arXiv preprint server, \citet{Wong2024} have
 built on our results and extended the root-finding approach from
 Section~\ref{sec:extensions} to more flexible design prior distributions and
 $t$~likelihoods. Nevertheless, the approach could even be further extended to
-ANOVA or regression settings with multivariate parameters.
+ANOVA or regression settings.
 
 Furthermore, in the case of two-group parameters, we have assumed equal
 allocation of observations between the two groups, but unequal allocation may
@@ -1949,19 +1948,19 @@ themselves. Similar functions exist also for $t$-test Bayes factors
 library(bfpwr)
 
 ## BF parameters
-k <- 1/6 # BF threshold
-null <- 0 # null value is zero
-sd <- 1 # standard deviation of one observation
-pm <- 0 # analysis prior mean set to zero
-psd <- sqrt(2) # analysis prior SD set to sqrt(2)
-type <- "two.sample" # two-sample test
+k <- 1/6 # set BF_01 threshold to 1/6
+null <- 0 # set null value to 0
+sd <- 1 # set standard deviation of one observation to 1
+pm <- 0 # set analysis prior mean to 0
+psd <- sqrt(2) # set analysis prior SD set to sqrt(2)
+type <- "two.sample" # set test to two-sample
 
 ## design prior
-dpm <- 0.5 # design prior mean equal to medium SMD effect size
-dpsd <- 0.1 # positive design prior SD to incorporate parameter uncertainty
+dpm <- 0.5 # set design prior mean equal to medium SMD effect size
+dpsd <- 0.1 # set positive design prior SD to incorporate parameter uncertainty
 
 ## determine sample size to achieve 85% power
-power <- 0.85
+power <- 0.85 # target power
 ssd <- powerbf01(k = k, power = power, sd = sd, null = null, pm = pm, psd = psd,
                  dpm = dpm, dpsd = dpsd, type = type)
 ssd

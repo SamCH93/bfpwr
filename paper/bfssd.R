@@ -608,19 +608,19 @@ nH0normal <- nbf01(k = 6, power = 0.95, usd = sqrt(2), null = 0, pm = 0,
 library(bfpwr)
 
 ## BF parameters
-k <- 1/6 # BF threshold
-null <- 0 # null value is zero
-sd <- 1 # standard deviation of one observation
-pm <- 0 # analysis prior mean set to zero
-psd <- sqrt(2) # analysis prior SD set to sqrt(2)
-type <- "two.sample" # two-sample test
+k <- 1/6 # set BF_01 threshold to 1/6
+null <- 0 # set null value to 0
+sd <- 1 # set standard deviation of one observation to 1
+pm <- 0 # set analysis prior mean to 0
+psd <- sqrt(2) # set analysis prior SD set to sqrt(2)
+type <- "two.sample" # set test to two-sample
 
 ## design prior
-dpm <- 0.5 # design prior mean equal to medium SMD effect size
-dpsd <- 0.1 # positive design prior SD to incorporate parameter uncertainty
+dpm <- 0.5 # set design prior mean equal to medium SMD effect size
+dpsd <- 0.1 # set positive design prior SD to incorporate parameter uncertainty
 
 ## determine sample size to achieve 85% power
-power <- 0.85
+power <- 0.85 # target power
 ssd <- powerbf01(k = k, power = power, sd = sd, null = null, pm = pm, psd = psd,
                  dpm = dpm, dpsd = dpsd, type = type)
 ssd

@@ -115,18 +115,18 @@ sample size calculation methods for the Bayesian $z$-test as implemented in our
 \texttt{bfpwr} R package. The values for the design and analysis prior means
 were chosen to represent conventions for no (0), small (0.2), medium (0.5), and
 large (0.8) standardized mean differences \citep{Cohen1992}. The null and
-alternative hypotheses were defined as $H_{0}\colon \theta = 0$ against
-$H_{1} \colon \theta \neq 0$. The standard deviations were chosen to include
-point and normal priors. For each combination of analysis/design prior
-mean/standard deviation, the sample size to obtain a Bayes factor equal or below
-$k = 1/\Sexpr{1/k}$ with a target power of \Sexpr{round(100*pow, 2)}\% was
-computed (shown at the top of each plot). This sample size along with the design
-prior were subsequently used to simulate \Sexpr{format(nsim, big.mark = "'")}
+alternative hypotheses were defined as $H_{0}\colon \theta = 0$ against $H_{1}
+\colon \theta \neq 0$. The standard deviations were chosen to include point and
+normal priors. For each combination of analysis/design prior mean/standard
+deviation, the sample size to obtain a Bayes factor equal or below $k =
+1/\Sexpr{1/k}$ with a target power of \Sexpr{round(100*pow, 2)}\% was computed
+(shown at the top of each plot). This sample size along with the design prior
+was subsequently used to simulate \Sexpr{format(nsim, big.mark = "'")}
 standardized mean difference parameter estimates based on which
 \Sexpr{format(nsim, big.mark = "'")} Bayes factors were computed. The power was
-then estimated from the proportion of Bayes factors equal or below the level
-$k = 1/\Sexpr{1/k}$. Note that for certain design/analysis prior combinations,
-it is impossible to achieve the target power with a finite sample size. In this
+then estimated from the proportion of Bayes factors equal or below the level $k
+= 1/\Sexpr{1/k}$. Note that for certain design/analysis prior combinations, it
+is impossible to achieve the target power with a finite sample size. In this
 case an ``x'' is shown in the plot.
 
 \begin{figure}[!htb]
@@ -201,14 +201,14 @@ ggplot(data = res,
     geom_pointrange(aes(ymin = power_MC - mcse, ymax = power_MC + mcse),
                     position = position_dodge2(width = 0.5),
                     fatten = 1.5) +
-    geom_text(data = nDF, aes(y = pow + 0.0075, label = nFormat), size = 2.5,
+    geom_text(data = nDF, aes(y = pow + 0.0125, label = nFormat), size = 2.5,
               position = position_dodge2(width = 1), angle = 30,
               fontface = "bold") +
     labs(x = bquote("Design prior mean" ~ mu[italic(d)]),
          y = bquote("Estimated power" %+-% "MCSE"),
          color =  bquote("Design prior SD" ~ tau[italic(d)])) +
     scale_y_continuous(labels = scales::percent) +
-    coord_cartesian(ylim = pow + c(-1, 1)*0.008) +
+    coord_cartesian(ylim = pow + c(-1, 1)*0.015) +
     scale_color_viridis_d(end = 0.7, option = "A") +
     theme_bw() +
     theme(legend.position = "top", panel.grid.minor = element_blank(),
