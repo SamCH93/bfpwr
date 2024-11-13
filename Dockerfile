@@ -1,5 +1,5 @@
 ## set R version (https://hub.docker.com/r/rocker/verse/tags)
-FROM rocker/verse:4.4.0
+FROM rocker/verse:4.4.1
 
 ## set up directories
 WORKDIR home/rstudio

@@ -26,5 +26,6 @@ To cite our work, use the following BibTeX reference
 Make sure to have Docker and Make installed, then run `make docker` from the
 root directory of this git repository. This will install all necessary
 dependencies. RStudio Server can then be opened from a browser
-(<http://localhost:8787>), and the R scripts in `./paper` can be rerun (make
-sure to set the working directory to `./paper` when running R interactively).
+(<http://localhost:8787>), and the R scripts in `./paper`, e.g., `bfssd.R` which
+contains all code for the results from the paper, can be rerun (make sure to set
+the working directory to `./paper` when running R interactively).

@@ -718,14 +718,14 @@ ggplot(data = res,
     geom_pointrange(aes(ymin = power_MC - mcse, ymax = power_MC + mcse),
                     position = position_dodge2(width = 0.5),
                     fatten = 1.5) +
-    geom_text(data = nDF, aes(y = pow + 0.0075, label = nFormat), size = 2.5,
+    geom_text(data = nDF, aes(y = pow + 0.0125, label = nFormat), size = 2.5,
               position = position_dodge2(width = 1), angle = 30,
               fontface = "bold") +
     labs(x = bquote("Design prior mean" ~ mu[italic(d)]),
          y = bquote("Estimated power" %+-% "MCSE"),
          color =  bquote("Design prior SD" ~ tau[italic(d)])) +
     scale_y_continuous(labels = scales::percent) +
-    coord_cartesian(ylim = pow + c(-1, 1)*0.008) +
+    coord_cartesian(ylim = pow + c(-1, 1)*0.015) +
     scale_color_viridis_d(end = 0.7, option = "A") +
     theme_bw() +
     theme(legend.position = "top", panel.grid.minor = element_blank(),

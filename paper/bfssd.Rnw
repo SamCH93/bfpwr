@@ -62,7 +62,7 @@
   \anonymize{Center for Reproducible Science (CRS)} \\
   \anonymize{University of Zurich} \\
   \anonymize{E-mail: \href{mailto:\mail}{\mail}} \\[2ex]
-  \anonymize{{\color{blue} Preprint version November 8, 2024}}
+  \anonymize{{\color{blue} Preprint version November 13, 2024}}
 }
 
 %% hyperref options
