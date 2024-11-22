@@ -1,6 +1,6 @@
 ## function to compute Pr(binbf01 <= k)
 pbinbf01. <- function(k, n, p0 = 0.5, type = c("point", "direction"), a = 1,
-                      b = 1, dp = NULL, da = a, db = b, dl = 0, du = 1,
+                      b = 1, dp = NA, da = a, db = b, dl = 0, du = 1,
                       lower.tail = TRUE) {
     ## input checks
     stopifnot(
@@ -34,7 +34,7 @@ pbinbf01. <- function(k, n, p0 = 0.5, type = c("point", "direction"), a = 1,
         !is.na(lower.tail)
     )
     type <- match.arg(arg = type)
-    if (!is.null(dp)) {
+    if (!is.na(dp)) {
         ## point design prior
         stopifnot(
             length(dp) == 1,
@@ -155,20 +155,20 @@ pbinbf01. <- function(k, n, p0 = 0.5, type = c("point", "direction"), a = 1,
 #' @param b Number of failures parameter of the beta analysis prior
 #'     distribution. Defaults to \code{1}
 #' @param dp Fixed binomial proportion assumed for the power calculation. Set to
-#'     \code{NULL} to use a truncated beta design prior instead (specified via
+#'     \code{NA} to use a truncated beta design prior instead (specified via
 #'     the \code{da}, \code{db}, \code{dl}, and \code{du} arguments). Defaults
-#'     to \code{NULL}
+#'     to \code{NA}
 #' @param da Number of successes parameter of the truncated beta design prior
-#'     distribution. Is only taken into account if \code{dp = NULL}. Defaults to
+#'     distribution. Is only taken into account if \code{dp = NA}. Defaults to
 #'     the same value \code{a} as specified for the analysis prior
 #' @param db Number of failures parameter of the truncated beta design prior
-#'     distribution. Is only taken into account if \code{dp = NULL}. Defaults to
+#'     distribution. Is only taken into account if \code{dp = NA}. Defaults to
 #'     the same value \code{b} as specified for the analysis prior
 #' @param dl Lower truncation limit of of the truncated beta design prior
-#'     distribution. Is only taken into account if \code{dp = NULL}. Defaults to
+#'     distribution. Is only taken into account if \code{dp = NA}. Defaults to
 #'     \code{0}
 #' @param du Upper truncation limit of of the truncated beta design prior
-#'     distribution. Is only taken into account if \code{dp = NULL}. Defaults to
+#'     distribution. Is only taken into account if \code{dp = NA}. Defaults to
 #'     \code{1}
 #' @param lower.tail Logical indicating whether Pr(BF \eqn{\leq} \code{k})
 #'     (\code{TRUE}) or Pr(BF \eqn{>} \code{k}) (\code{FALSE}) should be

@@ -1,7 +1,7 @@
 # bfpwr 0.1.4
 
 - new functions related to Bayes factors for testing a binomial proportion:
-  `binbf01`, `pbinbf01`
+  `binbf01`, `pbinbf01`, `nbinbf01`
 
 # bfpwr 0.1.3
 
