@@ -19,14 +19,16 @@ binbf01(
 
 \item{n}{Number of trials}
 
-\item{p0}{Tested binomial proportion}
+\item{p0}{Tested binomial proportion. Defaults to \code{0.5}}
 
 \item{type}{Type of test. Can be \code{"point"} or \code{"directional"}.
 Defaults to \code{"point"}}
 
-\item{a}{Number of successes parameter of the beta prior distribution}
+\item{a}{Number of successes parameter of the beta prior distribution.
+Defaults to \code{1}}
 
-\item{b}{Number of failures parameter of the beta prior distribution}
+\item{b}{Number of failures parameter of the beta prior distribution.
+Defaults to \code{1}}
 
 \item{log}{Logical indicating whether the natural logarithm of the Bayes
 factor should be returned. Defaults to \code{FALSE}}

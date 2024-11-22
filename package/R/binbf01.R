@@ -77,9 +77,11 @@ binbf01. <- function(x, n, p0 = 0.5, type = c("point", "direction"), a = 1,
 #'
 #' @param x Number of successes
 #' @param n Number of trials
-#' @param p0 Tested binomial proportion
-#' @param a Number of successes parameter of the beta prior distribution
-#' @param b Number of failures parameter of the beta prior distribution
+#' @param p0 Tested binomial proportion. Defaults to \code{0.5}
+#' @param a Number of successes parameter of the beta prior distribution.
+#'     Defaults to \code{1}
+#' @param b Number of failures parameter of the beta prior distribution.
+#'     Defaults to \code{1}
 #' @param type Type of test. Can be \code{"point"} or \code{"directional"}.
 #'     Defaults to \code{"point"}
 #' @param log Logical indicating whether the natural logarithm of the Bayes
