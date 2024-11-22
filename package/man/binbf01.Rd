@@ -41,7 +41,7 @@ evidence for the alternative)
 \description{
 This function computes the Bayes factor for testing a binomial
 proportion \eqn{p} based on \eqn{x} observed successes out of \eqn{n}
-trials. Two types of tests are possible:
+trials. Two types of tests are available:
 \itemize{
 \item Test of a point null hypothesis: The Bayes factor quantifies the evidence
 for \eqn{H_0 \colon p = p_0}{H0: p = p0} against \eqn{H_1 \colon p \neq
@@ -62,7 +62,15 @@ binbf01(x = 682, n = 925, p0 = 3/4, a = 1, b = 1, type = "point")
 
 ## with directional hypothesis
 binbf01(x = 682, n = 925, p0 = 3/4, a = 1, b = 1, type = "direction")
-## 1.5 => only anecdotal evidence that p <= p0 compared to p > p0
+## 1.5 => only anecdotal evidence for p <= 3/4 over p > 3/4
+
+## Particle-counting experiment from Stone (1997) with point null
+binbf01(x = 106298, n = 527135, p0 = 0.2, a = 1, b = 1, type = "point")
+## 8.1 => moderate evidence for the alternative over the null
+
+## Coin flip experiment from Bartos et al. (2023) with point null
+binbf01(x = 178079, n = 350757 , p0 = 0.5, a = 5100, b = 4900, type = "point")
+## => 1/1.72e+17 extreme evidence in favor of the alternative over the null
 
 }
 \author{
