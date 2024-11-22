@@ -5,7 +5,7 @@
 ## ----------------------------------------------------------------------------
 
 PACKAGE = bfpwr
-VERSION = 0.1.3
+VERSION = 0.1.4
 TAR = $(PACKAGE)_$(VERSION).tar.gz
 
 all: build

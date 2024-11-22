@@ -1,3 +1,8 @@
+# bfpwr 0.1.4
+
+- new functions related to Bayes factors for testing a binomial proportion:
+  `binbf01`, 
+
 # bfpwr 0.1.3
 
 - changed citation in DESCRIPTION file to adher to CRAN policy
