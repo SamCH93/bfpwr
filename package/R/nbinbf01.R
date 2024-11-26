@@ -1,7 +1,6 @@
 nbinbf01. <- function(k, power, p0 = 0.5, type = c("point", "direction"), a = 1,
                       b = 1, dp = NA, da = a, db = b, dl = 0, du = 1,
-                      lower.tail = TRUE, integer = TRUE, nrange = c(1, 10^3),
-                      ...) {
+                      lower.tail = TRUE, nrange = c(1, 10^4), ...) {
     ## input checks
     stopifnot(
         length(power) == 1,
@@ -13,11 +12,7 @@ nbinbf01. <- function(k, power, p0 = 0.5, type = c("point", "direction"), a = 1,
         all(is.numeric(nrange)),
         all(is.finite(nrange)),
         nrange[2] > nrange[1],
-        nrange[1] > 0,
-
-        length(integer) == 1,
-        is.logical(integer),
-        !is.na(integer)
+        nrange[1] > 0
     )
 
 
@@ -31,25 +26,20 @@ nbinbf01. <- function(k, power, p0 = 0.5, type = c("point", "direction"), a = 1,
     }
 
     n <- searchN(rootFun = rootFun, nrange = nrange, ... = ...)
-
-    if (integer) return(ceiling(n))
-    else return(n)
+    return(n)
 }
 
 
 #' @title Sample size determination for binomial Bayes factor
 #'
 #' @description This function computes the required sample size to obtain a
-#'     Bayes factor (\link{binbf01}) more extreme than a threshold \code{k} with
-#'     a specified target power.
+#'     binomial Bayes factor (\link{binbf01}) more extreme than a threshold
+#'     \code{k} with a specified target power.
 #'
 #' @inheritParams pbinbf01
 #' @param power Target power
 #' @param nrange Sample size search range over which numerical search is
-#'     performed. Defaults to \code{c(1, 10^3)}
-#' @param integer Logical indicating whether only integer valued sample sizes
-#'     should be returned. If \code{TRUE} the required sample size is rounded to
-#'     the next larger integer. Defaults to \code{TRUE}
+#'     performed. Defaults to \code{c(1, 10^4)}
 #' @param ... Other arguments passed to \code{stats::uniroot}
 #'
 #' @return The required sample size to achieve the specified power
@@ -102,4 +92,4 @@ nbinbf01. <- function(k, power, p0 = 0.5, type = c("point", "direction"), a = 1,
 nbinbf01 <- Vectorize(FUN = nbinbf01.,
                       vectorize.args = c("k", "power", "p0", "type", "a", "b",
                                          "dp", "da", "db", "dl", "du",
-                                         "lower.tail", "integer"))
+                                         "lower.tail"))

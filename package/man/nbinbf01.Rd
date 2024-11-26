@@ -17,8 +17,7 @@ nbinbf01(
   dl = 0,
   du = 1,
   lower.tail = TRUE,
-  integer = TRUE,
-  nrange = c(1, 10^3),
+  nrange = c(1, 10^4),
   ...
 )
 }
@@ -64,12 +63,8 @@ distribution. Is only taken into account if \code{dp = NA}. Defaults to
 \eqn{>} \code{k}) (\code{FALSE}) should be computed. Defaults to
 \code{TRUE}}
 
-\item{integer}{Logical indicating whether only integer valued sample sizes
-should be returned. If \code{TRUE} the required sample size is rounded to
-the next larger integer. Defaults to \code{TRUE}}
-
 \item{nrange}{Sample size search range over which numerical search is
-performed. Defaults to \code{c(1, 10^3)}}
+performed. Defaults to \code{c(1, 10^4)}}
 
 \item{...}{Other arguments passed to \code{stats::uniroot}}
 }
@@ -78,8 +73,8 @@ The required sample size to achieve the specified power
 }
 \description{
 This function computes the required sample size to obtain a
-    Bayes factor (\link{binbf01}) more extreme than a threshold \code{k} with
-    a specified target power.
+    binomial Bayes factor (\link{binbf01}) more extreme than a threshold
+    \code{k} with a specified target power.
 }
 \examples{
 ## sample size parameters
