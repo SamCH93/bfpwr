@@ -111,23 +111,30 @@ pbinbf01. <- function(k, n, p0 = 0.5, type = c("point", "direction"), a = 1,
 
     ## point null test
     if (type == "point") {
-        xcrit1 <- stats::uniroot(f = rootFun, lower = 0, upper = xmax$par)$root
-        xcrit2 <- stats::uniroot(f = rootFun, lower = xmax$par, upper = n)$root
+        xcrit1 <- try(stats::uniroot(f = rootFun, lower = 0, upper = xmax$par)$root)
+        xcrit2 <- try(stats::uniroot(f = rootFun, lower = xmax$par, upper = n)$root)
 
         ## ## plot critical values
         ## xseq <- seq(0, n)
-        ## plot(xseq, bf(xseq), type = "b", log = "y", xlab = "x", ylab = "BF")
+        ## plot(xseq, exp(logbf(xseq)), type = "b", log = "y", xlab = "x", ylab = "BF")
         ## abline(h = k, lty = 2)
-        ## abline(v = c(xcrit1, xcrit2), lty = 2)
+        ## abline(v = xcrit1, lty = 2)
+        ## abline(v = xcrit2, lty = 2)
 
         ## data values for which bf01 <= k
-        xsuccess <- c(seq(0, floor(xcrit1)), seq(ceiling(xcrit2), n))
+        if (inherits(xcrit1, "try-error")) {
+            xsuccess <- seq(ceiling(xcrit2), n)
+        } else if (inherits(xcrit2, "try-error")) {
+            xsuccess <- seq(ceiling(xcrit1), n)
+        } else {
+            xsuccess <- c(seq(0, floor(xcrit1)), seq(ceiling(xcrit2), n))
+        }
     } else { ## type == "direction"
         xcrit <- stats::uniroot(f = rootFun, lower = 0, upper = n)$root
 
         ## ## plot critical values
         ## xseq <- seq(0, n)
-        ## plot(xseq, bf(xseq), type = "b", log = "y", xlab = "x", ylab = "BF")
+        ## plot(xseq, exp(logbf(xseq)), type = "b", log = "y", xlab = "x", ylab = "BF")
         ## abline(h = k, lty = 2)
         ## abline(v = xcrit, lty = 2)
 
