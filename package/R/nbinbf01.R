@@ -59,19 +59,44 @@ nbinbf01. <- function(k, power, p0 = 0.5, type = c("point", "direction"), a = 1,
 #' @seealso \link{pbinbf01}, \link{binbf01}
 #'
 #' @examples
-#' ## directional null testing
-#' nbinbf01(k = 1/10, power = 0.9, p0 = 3/4, type = "direction", a = 1, b = 1,
-#'          da = 1, db = 1, dl = 3/4, du = 1)
-#' pbinbf01(k = 1/10, n = 280, p0 = 3/4, type = "direction", a = 1, b = 1,
-#'          da = 1, db = 1, dl = 3/4, du = 1)
+#' ## sample size parameters
+#' pow <- 0.9
+#' p0 <- 3/4
+#' a <- 1
+#' b <- 1
+#' k <- 1/10
 #'
-#' ## point null testing
-#' nbinbf01(k = 1/10, power = 0.9, p0 = 3/4, type = "point", a = 1, b = 1)
-#' nbinbf01(k = 3, power = 0.8, p0 = 3/4, type = "point", dp = 3/4,
-#'          lower.tail = FALSE, nrange = c(1, 10^5))
-#' ## FIXME doesn't work, probably uniroot has issues with oscillations!
-#' pbinbf01(k = 3, n = 9, p0 = 3/4, type = "point", dp = 3/4,
-#'          lower.tail = FALSE)
+#' ## sample sizes for directional testing
+#' (nH1 <- nbinbf01(k = k, power = pow, p0 = p0, type = "direction", a = a,
+#'                  b = b, da = a, db = b, dl = p0, du = 1))
+#' (nH0 <- nbinbf01(k = 1/k, power = pow, p0 = p0, type = "direction", a = a,
+#'                  b = b, da = a, db = b, dl = 0, du = p0, lower.tail = FALSE))
+#' nseq <- seq(1, 1.1*max(c(nH1, nH0)), length.out = 100)
+#' powH1 <- pbinbf01(k = k, n = nseq, p0 = p0, type = "direction", a = a,
+#'                   b = b, da = a, db = b, dl = p0, du = 1)
+#' powH0 <- pbinbf01(k = 1/k, n = nseq, p0 = p0, type = "direction", a = a,
+#'                   b = b, da = a, db = b, dl = 0, du = p0, lower.tail = FALSE)
+#' matplot(nseq, cbind(powH1, powH0), type = "s", xlab = "n", ylab = "Power", lty = 1,
+#'         ylim = c(0, 1), col = c(2, 4), las = 1)
+#' abline(h = pow, lty = 2)
+#' abline(v = c(nH1, nH0), col = c(2, 4), lty = 2)
+#' legend("topleft", legend = c("H1", "H0"), lty = 1, col = c(2, 4))
+#'
+#' ## sample sizes for point null testing
+#' (nH1 <- nbinbf01(k = k, power = pow, p0 = p0, type = "point", a = a,
+#'                  b = b, da = a, db = b))
+#' (nH0 <- nbinbf01(k = 1/k, power = pow, p0 = p0, type = "point", a = a,
+#'                  b = b, dp = p0, lower.tail = FALSE, nrange = c(1, 10^5)))
+#' nseq <- seq(1, max(c(nH1, nH0)), length.out = 100)
+#' powH1 <- pbinbf01(k = k, n = nseq, p0 = p0, type = "point", a = a,
+#'                   b = b, da = a, db = b, dl = 0, du = 1)
+#' powH0 <- pbinbf01(k = 1/k, n = nseq, p0 = p0, type = "point", a = a,
+#'                   b = b, dp = p0, lower.tail = FALSE)
+#' matplot(nseq, cbind(powH1, powH0), type = "s", xlab = "n", ylab = "Power", lty = 1,
+#'         ylim = c(0, 1), col = c(2, 4), las = 1)
+#' abline(h = pow, lty = 2)
+#' abline(v = c(nH1, nH0), col = c(2, 4), lty = 2)
+#' legend("topleft", legend = c("H1", "H0"), lty = 1, col = c(2, 4))
 #'
 #' @export
 nbinbf01 <- Vectorize(FUN = nbinbf01.,

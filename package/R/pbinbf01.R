@@ -34,6 +34,10 @@ pbinbf01. <- function(k, n, p0 = 0.5, type = c("point", "direction"), a = 1,
         !is.na(lower.tail)
     )
     type <- match.arg(arg = type)
+
+    ## n has to be an integer
+    n <- ceiling(n)
+
     if (!is.na(dp)) {
         ## point design prior
         stopifnot(
@@ -111,8 +115,10 @@ pbinbf01. <- function(k, n, p0 = 0.5, type = c("point", "direction"), a = 1,
 
     ## point null test
     if (type == "point") {
-        xcrit1 <- try(stats::uniroot(f = rootFun, lower = 0, upper = xmax$par)$root)
-        xcrit2 <- try(stats::uniroot(f = rootFun, lower = xmax$par, upper = n)$root)
+        xcrit1 <- try(stats::uniroot(f = rootFun, lower = 0, upper = xmax$par)$root,
+                      silent = TRUE)
+        xcrit2 <- try(stats::uniroot(f = rootFun, lower = xmax$par, upper = n)$root,
+                      silent = TRUE)
 
         ## ## plot critical values
         ## xseq <- seq(0, n)
