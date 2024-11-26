@@ -197,21 +197,43 @@ pbinbf01. <- function(k, n, p0 = 0.5, type = c("point", "direction"), a = 1,
 #'
 #' @examples
 #' ## compute probability that BF > 10 under the point null
-#' pbinbf01(k = 10, n = 925, p0 = 3/4, type = "point", a = 1, b = 1,
-#'          dp = 3/4, lower.tail = FALSE)
+#' a <- 1
+#' b <- 1
+#' p0 <- 3/4
+#' k <- 10
+#' nseq <- seq(1, 1000, length.out = 100)
+#' powH0 <- pbinbf01(k = k, n = nseq, p0 = p0, type = "point", a = a, b = b,
+#'                   dp = p0, lower.tail = FALSE)
+#' plot(nseq, powH0, type = "s", xlab = "n", ylab = "Power")
 #'
-#' ## power curve (weird looking oscillations patterns due to discrete data)
-#' nseq <- seq(100, 500, 1)
-#' pow <- pbinbf01(k = 10, n = nseq, p0 = 3/4, type = "point", a = 1, b = 1,
-#'                 dp = 3/4, lower.tail = FALSE)
-#' plot(nseq, pow, type = "s", xlab = "n", ylab = "Power")
+#' ## compare to normal approximation
+#' pm <- a/(a + b) # prior mean under H1
+#' psd <- sqrt(a*b/(a + b)^2/(a + b + 1)) # prior standard deviation under H1
+#' pownormH0 <- pbf01(k = k, n = nseq, usd = sqrt(p0*(1 - p0)), null = p0,
+#'                    pm = pm, psd = psd, dpm = p0, dpsd = 0, lower.tail = FALSE)
+#' lines(nseq, pownormH0, type = "s", col = 2)
+#' legend("right", legend = c("Exact", "Normal approximation"), lty = 1,
+#'        col = c(1, 2))
+#'
+#' ## compute probability that BF < 1/10 under the p|H1 ~ Beta(a, b) alternative
+#' a <- 10
+#' b <- 5
+#' p0 <- 3/4
+#' k <- 1/10
+#' powH1 <- pbinbf01(k = k, n = nseq, p0 = p0, type = "point", a = a, b = b,
+#'                   da = a, db = b, dl = 0, du = 1)
+#' plot(nseq, powH1, type = "s", xlab = "n", ylab = "Power")
+#'
+#' ## compare to normal approximation
+#' pm <- a/(a + b) # prior mean under H1
+#' psd <- sqrt(a*b/(a + b)^2/(a + b + 1)) # prior standard deviation under H1
+#' pownormH1 <- pbf01(k = k, n = nseq, usd = sqrt(pm*(1 - pm)), null = p0,
+#'                    pm = pm, psd = psd, dpm = pm, dpsd = psd)
+#' lines(nseq, pownormH1, type = "s", col = 2)
+#' legend("right", legend = c("Exact", "Normal approximation"), lty = 1,
+#'        col = c(1, 2))
 #'
 #' ## probability that directional BF <= 1/10 under uniform [3/4, 1] design prior
-#' pbinbf01(k = 1/10, n = 925, p0 = 3/4, type = "direction", a = 1, b = 1,
-#'          da = 1, db = 1, dl = 3/4, du = 1)
-#'
-#' ## power curve
-#' nseq <- seq(15, 200, 1)
 #' pow <- pbinbf01(k = 1/10, n = nseq, p0 = 3/4, type = "direction", a = 1, b = 1,
 #'                 da = 1, db = 1, dl = 3/4, du = 1)
 #' plot(nseq, pow, type = "s", xlab = "n", ylab = "Power")
