@@ -265,6 +265,7 @@ print.power.bftest <- function(x, digits = getOption("digits"), ...) {
 #'     Defaults to \code{c(2, 500)}
 #' @param ngrid Number of grid point for which power should be computed.
 #'     Defaults to 100
+#' @param type Type of plot. Defaults to \code{"l"} (line-plot)
 #' @param plot Logical indicating whether data should be plotted. If
 #'     \code{FALSE} only the data used for plotting are returned.
 #' @param nullplot Logcal indicating whether a second plot with the power in
@@ -287,8 +288,8 @@ print.power.bftest <- function(x, digits = getOption("digits"), ...) {
 #' plot(power1, nlim = c(1, 1000))
 #'
 #' @export
-plot.power.bftest <- function(x, nlim = c(2, 500), ngrid = 100, plot = TRUE,
-                              nullplot = TRUE, ...) {
+plot.power.bftest <- function(x, nlim = c(2, 500), ngrid = 100, type = "l",
+                              plot = TRUE, nullplot = TRUE, ...) {
     ## input checks
     stopifnot(
         length(nlim) == 2,
@@ -435,10 +436,10 @@ plot.power.bftest <- function(x, nlim = c(2, 500), ngrid = 100, plot = TRUE,
             }
         }
         plot(nseq, pow*100, xlab = xlab,
-             ylab = bquote("Pr(BF"["01"] < .(kformat) * " )"), type = "l",
+             ylab = bquote("Pr(BF"["01"] < .(kformat) * " )"), type = type,
              ylim = c(0, 100), lwd = 1.5, yaxt = "n", col = 4,
              panel.first = graphics::grid(lty = 3, col = "#0000001A"))
-        graphics::lines(nseq, powNull*100, type = "l", col = 2, lwd = 1.5)
+        graphics::lines(nseq, powNull*100, type = type, col = 2, lwd = 1.5)
         graphics::axis(side = 2, at = seq(0, 100, 20),
                        labels = paste0(seq(0, 100, 20), "%"), las = 1)
         graphics::axis(side = 4, at = x$power*100,
@@ -454,10 +455,10 @@ plot.power.bftest <- function(x, nlim = c(2, 500), ngrid = 100, plot = TRUE,
                          cex = 0.8)
         if (nullplot) {
             plot(nseq, powH0*100, xlab = xlab,
-                 ylab = bquote("Pr(BF"["01"] > .(kformatH0) * " )"), type = "l",
+                 ylab = bquote("Pr(BF"["01"] > .(kformatH0) * " )"), type = type,
                  ylim = c(0, 100), lwd = 1.5, yaxt = "n", col = 4,
                  panel.first = graphics::grid(lty = 3, col = "#0000001A"))
-            graphics::lines(nseq, powNullH0*100, type = "l", col = 2, lwd = 1.5)
+            graphics::lines(nseq, powNullH0*100, type = type, col = 2, lwd = 1.5)
             graphics::axis(side = 2, at = seq(0, 100, 20),
                            labels = paste0(seq(0, 100, 20), "%"), las = 1)
             graphics::axis(side = 4, at = x$power*100,

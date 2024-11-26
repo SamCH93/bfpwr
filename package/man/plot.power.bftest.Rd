@@ -4,7 +4,15 @@
 \alias{plot.power.bftest}
 \title{Plot method for class \code{"power.bftest"}}
 \usage{
-\method{plot}{power.bftest}(x, nlim = c(2, 500), ngrid = 100, plot = TRUE, nullplot = TRUE, ...)
+\method{plot}{power.bftest}(
+  x,
+  nlim = c(2, 500),
+  ngrid = 100,
+  type = "l",
+  plot = TRUE,
+  nullplot = TRUE,
+  ...
+)
 }
 \arguments{
 \item{x}{Object of class \code{"power.bftest"}}
@@ -14,6 +22,8 @@ Defaults to \code{c(2, 500)}}
 
 \item{ngrid}{Number of grid point for which power should be computed.
 Defaults to 100}
+
+\item{type}{Type of plot. Defaults to \code{"l"} (line-plot)}
 
 \item{plot}{Logical indicating whether data should be plotted. If
 \code{FALSE} only the data used for plotting are returned.}

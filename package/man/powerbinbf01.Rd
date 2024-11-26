@@ -85,9 +85,9 @@ This function provides a similar interface as
 }
 \examples{
 ## determine sample size
-(nres <- powerbinbf01(power = 0.9, p0 = 0.2, type = "direction", dl = 0.2))
+(nres <- powerbinbf01(power = 0.8, p0 = 0.2, type = "direction", dl = 0.2))
 \dontrun{
-plot(nres, nlim = c(1, 250))
+plot(nres, nlim = c(1, 250), ngrid = 250, type = "s")
 }
 
 ## determine power

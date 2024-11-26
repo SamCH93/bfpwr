@@ -84,6 +84,7 @@ a <- 1
 b <- 1
 k <- 1/10
 
+\dontrun{
 ## sample sizes for directional testing
 (nH1 <- nbinbf01(k = k, power = pow, p0 = p0, type = "direction", a = a,
                  b = b, da = a, db = b, dl = p0, du = 1))
@@ -115,7 +116,7 @@ matplot(nseq, cbind(powH1, powH0), type = "s", xlab = "n", ylab = "Power", lty =
 abline(h = pow, lty = 2)
 abline(v = c(nH1, nH0), col = c(2, 4), lty = 2)
 legend("topleft", legend = c("H1", "H0"), lty = 1, col = c(2, 4))
-
+}
 }
 \seealso{
 \link{pbinbf01}, \link{binbf01}

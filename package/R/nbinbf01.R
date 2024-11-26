@@ -25,8 +25,9 @@ nbinbf01. <- function(k, power, p0 = 0.5, type = c("point", "direction"), a = 1,
         })
     }
 
-    n <- searchN(rootFun = rootFun, nrange = nrange, ... = ...)
-    return(n)
+    n <- searchNoscil(rootFun = rootFun, nrange = nrange, nextend = 10,
+                      maxcycles = 5, ... = ...)
+    return(ceiling(n))
 }
 
 
@@ -56,6 +57,7 @@ nbinbf01. <- function(k, power, p0 = 0.5, type = c("point", "direction"), a = 1,
 #' b <- 1
 #' k <- 1/10
 #'
+#' \dontrun{
 #' ## sample sizes for directional testing
 #' (nH1 <- nbinbf01(k = k, power = pow, p0 = p0, type = "direction", a = a,
 #'                  b = b, da = a, db = b, dl = p0, du = 1))
@@ -87,7 +89,7 @@ nbinbf01. <- function(k, power, p0 = 0.5, type = c("point", "direction"), a = 1,
 #' abline(h = pow, lty = 2)
 #' abline(v = c(nH1, nH0), col = c(2, 4), lty = 2)
 #' legend("topleft", legend = c("H1", "H0"), lty = 1, col = c(2, 4))
-#'
+#' }
 #' @export
 nbinbf01 <- Vectorize(FUN = nbinbf01.,
                       vectorize.args = c("k", "power", "p0", "type", "a", "b",
