@@ -25,9 +25,10 @@ prior mean}
 factor should be returned. Defaults to \code{FALSE}}
 }
 \value{
-Bayes factor in favor of the null hypothesis over the alternative (BF
-    > 1 indicates evidence for the null hypothesis, whereas BF < 1 indicates
-    evidence for the alternative)
+Bayes factor in favor of the null hypothesis over the alternative
+    (\eqn{\text{BF}_{01}}{BF01} > 1 indicates evidence for the null
+    hypothesis, whereas \eqn{\text{BF}_{01}}{BF01} < 1 indicates evidence for
+    the alternative)
 }
 \description{
 This function computes the Bayes factor that quantifies the

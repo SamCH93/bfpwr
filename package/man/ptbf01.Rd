@@ -59,9 +59,10 @@ the analysis prior to negative and positive effects, respectively. If set
 to \code{"less"} or \code{"greater"}, the power is only computed based on
 data with effect estimates in the direction of the alternative}
 
-\item{lower.tail}{Logical indicating whether Pr(BF \eqn{\leq} \code{k})
-(\code{TRUE}) or Pr(BF \eqn{>} \code{k}) (\code{FALSE}) should be
-computed. Defaults to \code{TRUE}}
+\item{lower.tail}{Logical indicating whether Pr(\eqn{\mathrm{BF}_{01}}{BF01}
+\eqn{\leq}{<=} \code{k}) (\code{TRUE}) or Pr(\eqn{\mathrm{BF}_{01}}{BF01}
+\eqn{>} \code{k}) (\code{FALSE}) should be computed. Defaults to
+\code{TRUE}}
 
 \item{drange}{Standardized mean difference search range over which the
 critical values are searched for. Can be either set to a numerical range

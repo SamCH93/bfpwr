@@ -93,11 +93,11 @@ binbf01. <- function(x, n, p0 = 0.5, type = c("point", "direction"), a = 1,
 #' @param log Logical indicating whether the natural logarithm of the Bayes
 #'     factor should be returned. Defaults to \code{FALSE}
 #'
-#' @return Bayes factor in favor of the null hypothesis over the alternative (BF
-#'     > 1 indicates evidence for the null hypothesis, whereas BF < 1 indicates
-#'     evidence for the alternative)
+#' @inherit bf01 return
 #'
 #' @author Samuel Pawel
+#'
+#' @seealso \link{pbinbf01}, \link{nbinbf01}
 #'
 #' @examples
 #' ## example on Mendelian inheritance from ?stats::binom.test

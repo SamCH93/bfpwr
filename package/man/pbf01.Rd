@@ -11,8 +11,8 @@ pbf01(k, n, usd, null = 0, pm, psd, dpm = pm, dpsd = psd, lower.tail = TRUE)
 
 \item{n}{Sample size}
 
-\item{usd}{Unit standard deviation, the standard error of the parameter
-estimate based on \eqn{\code{n}=1}{n=1}, see details}
+\item{usd}{Unit standard deviation, the (approximate) standard error of the
+parameter estimate based on \eqn{\code{n}=1}{n=1}, see details}
 
 \item{null}{Parameter value under the point null hypothesis. Defaults to
 \code{0}}
@@ -30,9 +30,10 @@ Defaults to the same value as the analysis prior \code{pm}}
 \item{dpsd}{Standard deviation of the normal design prior assigned to the
 parameter. Defaults to the same value as the analysis prior \code{psd}}
 
-\item{lower.tail}{Logical indicating whether Pr(BF \eqn{\leq} \code{k})
-(\code{TRUE}) or Pr(BF \eqn{>} \code{k}) (\code{FALSE}) should be
-computed. Defaults to \code{TRUE}}
+\item{lower.tail}{Logical indicating whether Pr(\eqn{\mathrm{BF}_{01}}{BF01}
+\eqn{\leq}{<=} \code{k}) (\code{TRUE}) or Pr(\eqn{\mathrm{BF}_{01}}{BF01}
+\eqn{>} \code{k}) (\code{FALSE}) should be computed. Defaults to
+\code{TRUE}}
 }
 \value{
 The probability that the Bayes factor is less or greater (depending

@@ -34,9 +34,10 @@ Defaults to \code{1}}
 factor should be returned. Defaults to \code{FALSE}}
 }
 \value{
-Bayes factor in favor of the null hypothesis over the alternative (BF
-> 1 indicates evidence for the null hypothesis, whereas BF < 1 indicates
-evidence for the alternative)
+Bayes factor in favor of the null hypothesis over the alternative
+    (\eqn{\text{BF}_{01}}{BF01} > 1 indicates evidence for the null
+    hypothesis, whereas \eqn{\text{BF}_{01}}{BF01} < 1 indicates evidence for
+    the alternative)
 }
 \description{
 This function computes the Bayes factor for testing a binomial
@@ -72,6 +73,9 @@ binbf01(x = 106298, n = 527135, p0 = 0.2, a = 1, b = 1, type = "point")
 binbf01(x = 178079, n = 350757 , p0 = 0.5, a = 5100, b = 4900, type = "point")
 ## => 1/1.72e+17 extreme evidence in favor of the alternative over the null
 
+}
+\seealso{
+\link{pbinbf01}, \link{nbinbf01}
 }
 \author{
 Samuel Pawel

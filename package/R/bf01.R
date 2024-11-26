@@ -55,9 +55,10 @@ bf01. <- function(estimate, se, null = 0, pm, psd, log = FALSE) {
 #' @param log Logical indicating whether the natural logarithm of the Bayes
 #'     factor should be returned. Defaults to \code{FALSE}
 #'
-#' @return Bayes factor in favor of the null hypothesis over the alternative (BF
-#'     > 1 indicates evidence for the null hypothesis, whereas BF < 1 indicates
-#'     evidence for the alternative)
+#' @return Bayes factor in favor of the null hypothesis over the alternative
+#'     (\eqn{\text{BF}_{01}}{BF01} > 1 indicates evidence for the null
+#'     hypothesis, whereas \eqn{\text{BF}_{01}}{BF01} < 1 indicates evidence for
+#'     the alternative)
 #'
 #' @author Samuel Pawel
 #'

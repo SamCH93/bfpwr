@@ -39,9 +39,9 @@ distribution. Defaults to \code{1}}
 distribution. Defaults to \code{1}}
 
 \item{dp}{Fixed binomial proportion assumed for the power calculation. Set to
-\code{NA} to use a truncated beta design prior instead (specified via
-the \code{da}, \code{db}, \code{dl}, and \code{du} arguments). Defaults
-to \code{NA}}
+\code{NA} to use a truncated beta design prior instead (specified via the
+\code{da}, \code{db}, \code{dl}, and \code{du} arguments). Defaults to
+\code{NA}}
 
 \item{da}{Number of successes parameter of the truncated beta design prior
 distribution. Is only taken into account if \code{dp = NA}. Defaults to
@@ -59,9 +59,10 @@ distribution. Is only taken into account if \code{dp = NA}. Defaults to
 distribution. Is only taken into account if \code{dp = NA}. Defaults to
 \code{1}}
 
-\item{lower.tail}{Logical indicating whether Pr(BF \eqn{\leq} \code{k})
-(\code{TRUE}) or Pr(BF \eqn{>} \code{k}) (\code{FALSE}) should be
-computed. Defaults to \code{TRUE}}
+\item{lower.tail}{Logical indicating whether Pr(\eqn{\mathrm{BF}_{01}}{BF01}
+\eqn{\leq}{<=} \code{k}) (\code{TRUE}) or Pr(\eqn{\mathrm{BF}_{01}}{BF01}
+\eqn{>} \code{k}) (\code{FALSE}) should be computed. Defaults to
+\code{TRUE}}
 
 \item{integer}{Logical indicating whether only integer valued sample sizes
 should be returned. If \code{TRUE} the required sample size is rounded to

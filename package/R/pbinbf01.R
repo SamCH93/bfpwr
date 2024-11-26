@@ -125,7 +125,7 @@ pbinbf01. <- function(k, n, p0 = 0.5, type = c("point", "direction"), a = 1,
         if (inherits(xcrit1, "try-error")) {
             xsuccess <- seq(ceiling(xcrit2), n)
         } else if (inherits(xcrit2, "try-error")) {
-            xsuccess <- seq(ceiling(xcrit1), n)
+            xsuccess <- seq(0, floor(xcrit1))
         } else {
             xsuccess <- c(seq(0, floor(xcrit1)), seq(ceiling(xcrit2), n))
         }
@@ -162,9 +162,9 @@ pbinbf01. <- function(k, n, p0 = 0.5, type = c("point", "direction"), a = 1,
 #' @param b Number of failures parameter of the beta analysis prior
 #'     distribution. Defaults to \code{1}
 #' @param dp Fixed binomial proportion assumed for the power calculation. Set to
-#'     \code{NA} to use a truncated beta design prior instead (specified via
-#'     the \code{da}, \code{db}, \code{dl}, and \code{du} arguments). Defaults
-#'     to \code{NA}
+#'     \code{NA} to use a truncated beta design prior instead (specified via the
+#'     \code{da}, \code{db}, \code{dl}, and \code{du} arguments). Defaults to
+#'     \code{NA}
 #' @param da Number of successes parameter of the truncated beta design prior
 #'     distribution. Is only taken into account if \code{dp = NA}. Defaults to
 #'     the same value \code{a} as specified for the analysis prior
@@ -177,16 +177,17 @@ pbinbf01. <- function(k, n, p0 = 0.5, type = c("point", "direction"), a = 1,
 #' @param du Upper truncation limit of of the truncated beta design prior
 #'     distribution. Is only taken into account if \code{dp = NA}. Defaults to
 #'     \code{1}
-#' @param lower.tail Logical indicating whether Pr(BF \eqn{\leq} \code{k})
-#'     (\code{TRUE}) or Pr(BF \eqn{>} \code{k}) (\code{FALSE}) should be
-#'     computed. Defaults to \code{TRUE}
+#' @param lower.tail Logical indicating whether Pr(\eqn{\mathrm{BF}_{01}}{BF01}
+#'     \eqn{\leq}{<=} \code{k}) (\code{TRUE}) or Pr(\eqn{\mathrm{BF}_{01}}{BF01}
+#'     \eqn{>} \code{k}) (\code{FALSE}) should be computed. Defaults to
+#'     \code{TRUE}
 #'
 #' @return The probability that the Bayes factor is less or greater (depending
 #'     on the specified \code{lower.tail}) than the specified threshold \code{k}
 #'
 #' @author Samuel Pawel
 #'
-#' @seealso \link{binbf01}
+#' @seealso \link{binbf01}, \link{nbinbf01}
 #'
 #' @examples
 #' ## compute probability that BF > 10 under the point null
