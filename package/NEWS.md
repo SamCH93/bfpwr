@@ -1,3 +1,8 @@
+# bfpwr 0.1.5
+
+- update reference to published paper in The American Statistician
+  (<https://doi.org/10.1080/00031305.2025.2467919>)
+
 # bfpwr 0.1.4
 
 - new functions related to Bayes factors for testing a binomial proportion:

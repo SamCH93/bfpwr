@@ -2,22 +2,22 @@
 
 This repository contains 
 
-1. `./package` The R package **bfpwr** to perform power and sample size calculations for
-   planned Bayes factor analysis
+1. `./package` The R package **bfpwr** to perform power and sample size
+   calculations for Bayes factor analysis
 
-2. `./paper` Code and data to reproduce result from the preprint: *Pawel, S.,
-   Held. L. (2024). Closed-Form Power and Sample Size Calculations for Bayes
-   Factors. <https://doi.org/10.48550/arxiv.2406.19940>*
+2. `./paper` Code and data to reproduce result from the paper: *Pawel, S., Held.
+   L. (2025). Closed-Form Power and Sample Size Calculations for Bayes Factors.
+   The American Statistician. <https://doi.org/10.1080/00031305.2025.2467919>*
 
 To cite our work, use the following BibTeX reference
 
 ```BibTeX
-@article{Pawel2024,
-  year = {2024},
+@article{PawelHeld2025,
+  year = {2025},
   author = {Samuel Pawel and Leonhard Held},
   title = {Closed-Form Power and Sample Size Calculations for {Bayes} Factors},
-  doi = {10.48550/arxiv.2406.19940},
-  note = {Preprint}
+  journal = {The American Statistician},
+  doi = {10.1080/00031305.2025.2467919}
 }
 ```
 

@@ -1,19 +1,18 @@
 citHeader(paste("To cite the R-package 'bfpwr' in publications,",
                 "please use:",
                 "Pawel, S., Held, L.",
-                "(2024).",
+                "(2025).",
                 "Closed-Form Power and Sample Size Calculations for Bayes Factors.",
-                "<https://doi.org/10.48550/arxiv.2406.19940>"))
+                "<https://doi.org/10.1080/00031305.2025.2467919>"))
 
-bibentry(bibtype = "Misc",
+bibentry(bibtype = "Article",
          title = "Closed-Form Power and Sample Size Calculations for Bayes Factors",
          author = c(person(given = "Samuel", family = "Pawel", role = c("aut", "cre")),
                     person(given = "Leonhard", family = "Held", role = "aut")),
-         ## journal = "",
-         ## doi = "",
+         journal = "The American Statistician",
          ## volume = "",
          ## number = "",
          ## pages = "",
-         doi = "10.48550/ARXIV.2406.19940",
-         year = "2024"
+         doi = "10.1080/00031305.2025.2467919",
+         year = "2025"
          )

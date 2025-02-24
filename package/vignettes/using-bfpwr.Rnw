@@ -64,11 +64,11 @@ opts_chunk$set(fig.height = 4.5,
 
 \noindent The \textbf{bfpwr} package provides functions to compute commonly used
 Bayes factors and perform corresponding power and sample size calculations. The
-theoretical background of the package is described in \citet{Pawel2024}.
+theoretical background of the package is described in \citet{PawelHeld2025}.
 Calculations in \textbf{bfpwr} are performed analytically or with numerical
 (non-simulation based) methods. This differs from most other packages that use
 simulation methods for the same purposes \citep[e.g., the \textbf{BFDA} package
-from][]{Schoenbrodt2019}. This typically leads to faster computations without
+  from][]{Schoenbrodt2019}. This typically leads to faster computations without
 simulation error, but at the cost of being restricted to certain data
 distributions and analysis methods. This vignette illustrates how the package
 can be used in some typical situations. Table~\ref{tab:mainfunctions} summarizes
