@@ -81,8 +81,8 @@ pbf01. <- function(k, n, usd, null = 0, pm, psd, dpm = pm, dpsd = psd,
 #'
 #' @param k Bayes factor threshold
 #' @param n Sample size
-#' @param usd Unit standard deviation, the standard error of the parameter
-#'     estimate based on \eqn{\code{n}=1}{n=1}, see details
+#' @param usd Unit standard deviation, the (approximate) standard error of the
+#'     parameter estimate based on \eqn{\code{n}=1}{n=1}, see details
 #' @param null Parameter value under the point null hypothesis. Defaults to
 #'     \code{0}
 #' @param pm Mean of the normal prior assigned to the parameter under the
@@ -94,9 +94,10 @@ pbf01. <- function(k, n, usd, null = 0, pm, psd, dpm = pm, dpsd = psd,
 #'     Defaults to the same value as the analysis prior \code{pm}
 #' @param dpsd Standard deviation of the normal design prior assigned to the
 #'     parameter. Defaults to the same value as the analysis prior \code{psd}
-#' @param lower.tail Logical indicating whether Pr(BF \eqn{\leq} \code{k})
-#'     (\code{TRUE}) or Pr(BF \eqn{>} \code{k}) (\code{FALSE}) should be
-#'     computed. Defaults to \code{TRUE}
+#' @param lower.tail Logical indicating whether Pr(\eqn{\mathrm{BF}_{01}}{BF01}
+#'     \eqn{\leq}{<=} \code{k}) (\code{TRUE}) or Pr(\eqn{\mathrm{BF}_{01}}{BF01}
+#'     \eqn{>} \code{k}) (\code{FALSE}) should be computed. Defaults to
+#'     \code{TRUE}
 #'
 #' @details It is assumed that the standard error of the future parameter
 #'     estimate is of the form \eqn{\code{se} =\code{usd}/\sqrt{\code{n}}}{se =

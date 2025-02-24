@@ -11,8 +11,8 @@ pnmbf01(k, n, usd, null = 0, psd, dpm, dpsd, lower.tail = TRUE)
 
 \item{n}{Sample size}
 
-\item{usd}{Unit standard deviation, the standard error of the parameter
-estimate based on \eqn{\code{n}=1}{n=1}, see details}
+\item{usd}{Unit standard deviation, the (approximate) standard error of the
+parameter estimate based on \eqn{\code{n}=1}{n=1}, see details}
 
 \item{null}{Parameter value under the point null hypothesis. Defaults to
 \code{0}}
@@ -26,9 +26,10 @@ the alternative in the analysis. The modes of the prior are located at
 \item{dpsd}{Standard deviation of the normal design prior assigned to the
 parameter. Set to 0 to obtain a point prior at the design prior mean}
 
-\item{lower.tail}{Logical indicating whether Pr(BF \eqn{\leq} \code{k})
-(\code{TRUE}) or Pr(BF \eqn{>} \code{k}) (\code{FALSE}) should be
-computed. Defaults to \code{TRUE}}
+\item{lower.tail}{Logical indicating whether Pr(\eqn{\mathrm{BF}_{01}}{BF01}
+\eqn{\leq}{<=} \code{k}) (\code{TRUE}) or Pr(\eqn{\mathrm{BF}_{01}}{BF01}
+\eqn{>} \code{k}) (\code{FALSE}) should be computed. Defaults to
+\code{TRUE}}
 }
 \value{
 The probability that the Bayes factor is less or greater (depending

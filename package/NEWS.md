@@ -1,6 +1,17 @@
+# bfpwr 0.1.5
+
+- update reference to published paper in The American Statistician
+  (<https://doi.org/10.1080/00031305.2025.2467919>)
+
+# bfpwr 0.1.4
+
+- new functions related to Bayes factors for testing a binomial proportion:
+  `binbf01`, `pbinbf01`, `nbinbf01`, `powerbinbf01`
+- improvements in documentation based on feedback from Riko Kelter (thanks!)
+
 # bfpwr 0.1.3
 
-- changed citation in DESCRIPTION file to adher to CRAN policy
+- changed citation in DESCRIPTION file to adhere to CRAN policy
 - properly reset user's par() in the vignette
 
 # bfpwr 0.1.2

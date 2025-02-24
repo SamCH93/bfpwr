@@ -52,9 +52,10 @@ difference. Defaults to the analysis prior location}
 standardized mean difference. Set to \code{0} to obtain a point prior at
 the design prior mean. Defaults to the analysis prior scale}
 
-\item{lower.tail}{Logical indicating whether Pr(BF \eqn{\leq} \code{k})
-(\code{TRUE}) or Pr(BF \eqn{>} \code{k}) (\code{FALSE}) should be
-computed. Defaults to \code{TRUE}}
+\item{lower.tail}{Logical indicating whether Pr(\eqn{\mathrm{BF}_{01}}{BF01}
+\eqn{\leq}{<=} \code{k}) (\code{TRUE}) or Pr(\eqn{\mathrm{BF}_{01}}{BF01}
+\eqn{>} \code{k}) (\code{FALSE}) should be computed. Defaults to
+\code{TRUE}}
 
 \item{integer}{Logical indicating whether only integer valued sample sizes
 should be returned. If \code{TRUE} the required sample size is rounded to

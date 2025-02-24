@@ -174,11 +174,13 @@ print.power.bftest <- function(x, digits = getOption("digits"), ...) {
 
     if (x$test %in% c("z", "t")) {
         methodstring <- paste0(x$test, "-test")
+    } else if (x$test == "binomial") {
+        methodstring <- "binomial"
     } else {
         methodstring <- "normal moment prior"
     }
     method <- paste(methodstring, c("Bayes factor power calculation"))
-    note <- "BF oriented in favor of H0 (BF < 1 indicates evidence for H1 over H0)"
+    note <- "BF oriented in favor of H0 (BF01 < 1 indicates evidence for H1 over H0)"
     if (x$type == "paired") {
         note <- paste(note,
                       "n is number of *pairs*",
@@ -191,6 +193,17 @@ print.power.bftest <- function(x, digits = getOption("digits"), ...) {
                       "sd is standard deviation of one observation",
                       sep = "\n      ")
         method <- paste("One-sample", method)
+    } else if (x$test == "binomial") {
+        note <- paste(note,
+                      "n is number of *observations*",
+                      "Plot power to check that it does not decrease below target for larger n!",
+                      sep = "\n      ")
+        if (x$type == "point") {
+            testtype <- "point-null"
+        } else {
+            testtype <- "directional-null"
+        }
+        method <- paste("One-sample", testtype, method)
     } else {
         note <- paste(note,
                       "n is number of *observations per group*",
@@ -214,14 +227,27 @@ print.power.bftest <- function(x, digits = getOption("digits"), ...) {
         names(printx) <- c("n", "power", "sd", "null", "analysis prior spread",
                            "design prior mean", "design prior sd",
                            "BF threshold k")
-    } else {
-        ## t-test
+    } else if (x$test == "t") {
         printx <- x[c("n", "power", "sd", "null", "alternative", "plocation",
                       "pscale", "pdf", "dpm", "dpsd", "k")]
         names(printx) <- c("n", "power", "sd", "null", "alternative",
                            "analysis prior location", "analysis prior scale",
                            "analysis prior df", "design prior mean",
                            "design prior sd", "BF threshold k")
+    } else {
+        ## binomial test
+        if (is.na(x$dp)) {
+            dpvars <- c("da", "db", "dl", "du")
+            dpnames <- c("design prior successes", "design prior failures",
+                         "design prior lower limit", "design prior upper limit")
+        } else {
+            dpvars <- "dp"
+            dpnames <- "assumed propability"
+        }
+        printx <- x[c("n", "power", "p0", "a", "b", dpvars, "k")]
+        names(printx) <- c("n", "power", "null value",
+                           "analysis prior successes",
+                           "analysis prior failures", dpnames, "BF threshold k")
     }
 
     cat(paste(paste("     ", format(names(printx), width = 10L, justify = "right")),
@@ -239,6 +265,7 @@ print.power.bftest <- function(x, digits = getOption("digits"), ...) {
 #'     Defaults to \code{c(2, 500)}
 #' @param ngrid Number of grid point for which power should be computed.
 #'     Defaults to 100
+#' @param type Type of plot. Defaults to \code{"l"} (line-plot)
 #' @param plot Logical indicating whether data should be plotted. If
 #'     \code{FALSE} only the data used for plotting are returned.
 #' @param nullplot Logcal indicating whether a second plot with the power in
@@ -261,8 +288,8 @@ print.power.bftest <- function(x, digits = getOption("digits"), ...) {
 #' plot(power1, nlim = c(1, 1000))
 #'
 #' @export
-plot.power.bftest <- function(x, nlim = c(2, 500), ngrid = 100, plot = TRUE,
-                              nullplot = TRUE, ...) {
+plot.power.bftest <- function(x, nlim = c(2, 500), ngrid = 100, type = "l",
+                              plot = TRUE, nullplot = TRUE, ...) {
     ## input checks
     stopifnot(
         length(nlim) == 2,
@@ -323,7 +350,7 @@ plot.power.bftest <- function(x, nlim = c(2, 500), ngrid = 100, plot = TRUE,
         nH0 <- nnmbf01(k = 1/x$k, power = x$power, usd = usd, null = x$null,
                        psd = x$psd, dpm = x$null, dpsd = x$null,
                        lower.tail = FALSE)
-    } else {
+    } else if (x$test == "t") {
         powFun <- function(k, n, lower.tail = TRUE) {
             ptbf01(k = k, n = n, null = x$null, plocation = x$plocation,
                    pscale = x$pscale, pdf = x$pdf, alternative = x$alternative,
@@ -340,6 +367,31 @@ plot.power.bftest <- function(x, nlim = c(2, 500), ngrid = 100, plot = TRUE,
                       plocation = x$plocation, pscale = x$pscale, pdf = x$pdf,
                       alternative = x$alternative, type = x$type, dpm = x$null,
                       dpsd = 0, lower.tail = FALSE)
+    } else {
+        ## binomial test
+        powFun <- function(k, n, lower.tail = TRUE) {
+            pbinbf01(k = k, n = n, p0 = x$p0, type = x$type, a = x$a, b = x$b,
+                     dp = x$dp, da = x$da, db = x$db, dl = x$dl, du = x$du,
+                     lower.tail = lower.tail)
+        }
+        if (x$type == "direction") {
+            powNullFun <- function(k, n, lower.tail = TRUE) {
+                pbinbf01(k = k, n = n, p0 = x$p0, type = x$type, a = x$a,
+                         b = x$b, dp = NA, da = x$a, db = x$b, dl = 0,
+                         du = x$p0, lower.tail = lower.tail)
+            }
+            nH0 <- nbinbf01(k = 1/x$k, power = x$power, p0 = x$p0,
+                            type = x$type, a = x$a, b = x$b, dp = NA, da = x$a,
+                            db = x$b, dl = 0, du = x$p0, lower.tail = FALSE)
+        } else {
+            powNullFun <- function(k, n, lower.tail = TRUE) {
+                pbinbf01(k = k, n = n, p0 = x$p0, type = x$type, a = x$a,
+                         b = x$b, dp = x$p0, lower.tail = lower.tail)
+            }
+            nH0 <- nbinbf01(k = 1/x$k, power = x$power, p0 = x$p0,
+                            type = x$type, a = x$a, b = x$b, dp = x$p0,
+                            lower.tail = FALSE)
+        }
     }
 
 
@@ -365,7 +417,7 @@ plot.power.bftest <- function(x, nlim = c(2, 500), ngrid = 100, plot = TRUE,
         if (nullplot) {
             graphics::par(mfrow = c(2, 1))
         }
-        if (x$type == "one.sample") {
+        if (x$type == "one.sample" | x$test == "binomial") {
             xlab <-  bquote("Sample size" ~ italic(n))
         } else if (x$type == "two.sample") {
             xlab <-  bquote("Sample size per group" ~ italic(n))
@@ -384,10 +436,10 @@ plot.power.bftest <- function(x, nlim = c(2, 500), ngrid = 100, plot = TRUE,
             }
         }
         plot(nseq, pow*100, xlab = xlab,
-             ylab = bquote("Pr(BF"["01"] < .(kformat) * " )"), type = "l",
+             ylab = bquote("Pr(BF"["01"] < .(kformat) * " )"), type = type,
              ylim = c(0, 100), lwd = 1.5, yaxt = "n", col = 4,
              panel.first = graphics::grid(lty = 3, col = "#0000001A"))
-        graphics::lines(nseq, powNull*100, type = "l", col = 2, lwd = 1.5)
+        graphics::lines(nseq, powNull*100, type = type, col = 2, lwd = 1.5)
         graphics::axis(side = 2, at = seq(0, 100, 20),
                        labels = paste0(seq(0, 100, 20), "%"), las = 1)
         graphics::axis(side = 4, at = x$power*100,
@@ -403,10 +455,10 @@ plot.power.bftest <- function(x, nlim = c(2, 500), ngrid = 100, plot = TRUE,
                          cex = 0.8)
         if (nullplot) {
             plot(nseq, powH0*100, xlab = xlab,
-                 ylab = bquote("Pr(BF"["01"] > .(kformatH0) * " )"), type = "l",
+                 ylab = bquote("Pr(BF"["01"] > .(kformatH0) * " )"), type = type,
                  ylim = c(0, 100), lwd = 1.5, yaxt = "n", col = 4,
                  panel.first = graphics::grid(lty = 3, col = "#0000001A"))
-            graphics::lines(nseq, powNullH0*100, type = "l", col = 2, lwd = 1.5)
+            graphics::lines(nseq, powNullH0*100, type = type, col = 2, lwd = 1.5)
             graphics::axis(side = 2, at = seq(0, 100, 20),
                            labels = paste0(seq(0, 100, 20), "%"), las = 1)
             graphics::axis(side = 4, at = x$power*100,

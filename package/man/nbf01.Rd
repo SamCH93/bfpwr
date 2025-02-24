@@ -25,8 +25,8 @@ nbf01(
 
 \item{power}{Target power}
 
-\item{usd}{Unit standard deviation, the standard error of the parameter
-estimate based on \eqn{\code{n}=1}{n=1}, see details}
+\item{usd}{Unit standard deviation, the (approximate) standard error of the
+parameter estimate based on \eqn{\code{n}=1}{n=1}, see details}
 
 \item{null}{Parameter value under the point null hypothesis. Defaults to
 \code{0}}
@@ -47,9 +47,10 @@ parameter. Defaults to the same value as the analysis prior \code{psd}}
 \item{nrange}{Sample size search range over which numerical search is
 performed. Defaults to \code{c(1, 10^5)}}
 
-\item{lower.tail}{Logical indicating whether Pr(BF \eqn{\leq} \code{k})
-(\code{TRUE}) or Pr(BF \eqn{>} \code{k}) (\code{FALSE}) should be
-computed. Defaults to \code{TRUE}}
+\item{lower.tail}{Logical indicating whether Pr(\eqn{\mathrm{BF}_{01}}{BF01}
+\eqn{\leq}{<=} \code{k}) (\code{TRUE}) or Pr(\eqn{\mathrm{BF}_{01}}{BF01}
+\eqn{>} \code{k}) (\code{FALSE}) should be computed. Defaults to
+\code{TRUE}}
 
 \item{integer}{Logical indicating whether only integer valued sample sizes
 should be returned. If \code{TRUE} the required sample size is rounded to

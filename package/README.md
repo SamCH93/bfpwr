@@ -4,8 +4,7 @@ The **bfpwr** R package provides functions to compute commonly used Bayes
 factors and perform corresponding power and sample size calculations. The
 theoretical background of the package is described in 
 
-Pawel, S. and Held, L. (2024). Closed-form power and sample size calculations
-for Bayes factors. <https://doi.org/10.48550/arXiv.2406.19940>
+> Pawel, S., Held. L. (2025). Closed-Form Power and Sample Size Calculations for Bayes Factors. The American Statistician. <https://doi.org/10.1080/00031305.2025.2467919>
 
 ## Installation
 
