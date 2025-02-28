@@ -86,7 +86,7 @@ from which we obtain the sample size
 \end{align*}
 For arguments $y \in (-1/e, 0)$ , the Lambert W function has two branches. The
 sample size is obtained from the branch commonly denoted as
-$\mathrm{W}_{-1}(\cdot)$ which satisfies $\mathrm{W}(x) < -1$ for
+$\mathrm{W}_{-1}(\cdot)$ which satisfies $\mathrm{W}(y) < -1$ for
 $y \in (-1/e, 0)$ \citep{Corless1996}. This is because this branch always leads
 to larger sample sizes than the other and guarantees that unit information
 sample sizes are always larger than one.

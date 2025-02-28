@@ -956,7 +956,7 @@ we obtain the following approximate sample size formula
   n = \frac{\sigma^2_{\scriptscriptstyle \hat{\theta}}}{\tau^2} \, \underbrace{k^2  \exp\left\{-  \mathrm{W}_{-1}(-k^2 \, z^2_{(1 - \beta)/2})\right\}}_{=n_{k,\beta}}
 \end{align}
 with $\mathrm{W}_{-1}(\cdot)$ the branch of the Lambert W function that
-satisfies $\mathrm{W}(x) < -1$ for $y \in (-1/e, 0)$, see
+satisfies $\mathrm{W}(y) < -1$ for $y \in (-1/e, 0)$, see
 Appendix~\ref{app:lambertWderiv} for details.
 
 We can see that the sample size~\eqref{eq:nBF} depends on the ratio of the unit
@@ -1644,7 +1644,7 @@ of normal moment priors. We see that the distributions have a density of zero at
 the null value $\theta_{0} = 0$, encoding the assumption that the null is the
 least likely parameter value under the alternative. Normal moment priors have
 two modes at $\pm \tau \sqrt{2}$, which gives a convenient way to elicit a
-prior, as $\tau$ may, for example, be set so that the modes equals two parameter
+prior, as $\tau$ may, for example, be set so that the modes equal two parameter
 values deemed most plausible under the alternative.
 \begin{figure}[!htb]
 << "moment-priors-illustration-plot", fig.height = 3.25 >>=
@@ -1944,24 +1944,25 @@ themselves. Similar functions exist also for $t$-test Bayes factors
 \texttt{powerbf01} can be used.
 
 \begin{spacing}{1}
-<< "package-illustration", echo = TRUE, fig.height = 6 >>=
+<< "package-illustration", echo = TRUE, fig.height = 5.75 >>=
 library(bfpwr)
 
 ## BF parameters
 k <- 1/6 # set BF_01 threshold to 1/6
 null <- 0 # set null value to 0
-sd <- 1 # set standard deviation of one observation to 1
+sd <- 1 # set SD of one observation to 1
 pm <- 0 # set analysis prior mean to 0
-psd <- sqrt(2) # set analysis prior SD set to sqrt(2)
+psd <- sqrt(2) # set analysis prior SD to sqrt(2)
 type <- "two.sample" # set test to two-sample
 
 ## design prior
-dpm <- 0.5 # set design prior mean equal to medium SMD effect size
-dpsd <- 0.1 # set positive design prior SD to incorporate parameter uncertainty
+dpm <- 0.5 # mean equal to medium SMD effect
+dpsd <- 0.1 # SD > 0 to include uncertainty
 
 ## determine sample size to achieve 85% power
 power <- 0.85 # target power
-ssd <- powerbf01(k = k, power = power, sd = sd, null = null, pm = pm, psd = psd,
+ssd <- powerbf01(k = k, power = power, sd = sd,
+                 null = null, pm = pm, psd = psd,
                  dpm = dpm, dpsd = dpsd, type = type)
 ssd
 
