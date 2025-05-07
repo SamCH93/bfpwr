@@ -405,8 +405,8 @@ plot.power.bftest <- function(x, nlim = c(2, 500), ngrid = 100, type = "l",
         ## compute power in favor of H0
         powH0 <- powFun(k = 1/x$k, n = nseq, lower.tail = FALSE)
         powNullH0 <- powNullFun(k = 1/x$k, n = nseq, lower.tail = FALSE)
-        powDFH0 <- rbind(data.frame(n = nseq, power = pow, prior = "Design prior"),
-                         data.frame(n = nseq, power = powNull, prior = "Null"))
+        powDFH0 <- rbind(data.frame(n = nseq, power = powH0, prior = "Design prior"),
+                         data.frame(n = nseq, power = powNullH0, prior = "Null"))
     }
 
     ## plot power curves if specified
