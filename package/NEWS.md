@@ -2,6 +2,8 @@
 
 - update reference to published paper in The American Statistician
   (<https://doi.org/10.1080/00031305.2025.2467919>)
+- fixed a bug in `plot.power.bftest` so that the correct data frame is returned
+  for H0 (thanks Riko Kelter!)
 
 # bfpwr 0.1.4
 
