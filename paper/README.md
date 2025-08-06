@@ -11,11 +11,11 @@ The results can be reproduced by installing the necessary R packages
 
 ``` r
 ## CRAN packages
-pkgs <- c("BayesRep", "lamW", "xtable", "remotes", "knitr", "dplyr", "ggplot2")
+pkgs <- c("BayesRep", "lamW", "xtable", "remotes", "knitr", "dplyr", "ggplot2",
+          "bfpwr")
 install.packages(pkgs)
 
 ## GitHub packages
-remotes::install_github("SamCH93/bfpwr", subdir = "package")
 remotes::install_github("nicebread/BFDA", subdir = "package")
 ```
 

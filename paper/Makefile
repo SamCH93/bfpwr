@@ -1,4 +1,5 @@
 all: pdf code supplement clean
+.PHONY: all tex pdf supplement code texdiff clean
 
 # names of .Rnw .bib. and .bst files
 FILE=bfssd
@@ -11,13 +12,6 @@ tex: $(FILE).Rnw $(BIB).bib $(BIBSTYLE).bst
 
 ## generate .pdf file from .tex file
 pdf: tex
-	pdflatex $(FILE)
-	bibtex $(FILE)
-	pdflatex $(FILE)
-	pdflatex $(FILE)
-
-## generate .pdf file from .tex (without first running the tex recipe)
-pdf2:
 	pdflatex $(FILE)
 	bibtex $(FILE)
 	pdflatex $(FILE)

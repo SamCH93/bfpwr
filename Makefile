@@ -1,4 +1,5 @@
 all: docker
+.PHONY: all dbuild docker
 
 FILE=bfpwr
 
@@ -7,7 +8,7 @@ dbuild: Dockerfile
 	docker build \
     -t $(FILE) .
 
-## run docker image that produces *pdf* from within docker
+## run RStudio in docker container
 docker: dbuild
 	echo "open RStudio Server at http://localhost:8787"
 	docker run \
