@@ -63,3 +63,6 @@ misc/
 paper/old/
 paper/bfssd-changes.pdf
 paper/cache/
+
+# experimental functions
+package/R/bin2bf01.R
