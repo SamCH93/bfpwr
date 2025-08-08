@@ -57,11 +57,25 @@ xcritbinbf01 <- Vectorize(FUN = xcritbinbf01.)
 #' @seealso \link{binbf01}
 #'
 #' @examples
-#' ## under truncated beta prior (seems not correct yet when compared to simulation)
-#' pbinbf01seq(n1 = 10, n2 = 20, k = 1/10, kf = 3, p0 = 0.2, a = 1, b = 1, dl = 0.2, du = 1)
+#' ## probability of BF<1/10 under truncated beta prior
+#' pbinbf01seq(n1 = 10, n2 = 20, k = 1/10, kf = 3, p0 = 0.2, a = 1, b = 1,
+#'             dl = 0.2, du = 1, type = "direction") # with interim analysis
+#' pbinbf01(n = 20, k = 1/10, p0 = 0.2, a = 1, b = 1, dl = 0.2, du = 1,
+#'          type = "direction") # without interim analysis
 #'
-#' ## under point prior
-#' pbinbf01seq(n1 = 10, n2 = 20, k = 1/10, kf = 3, p0 = 0.2, a = 1, b = 1, dp = 0.4)
+#' ## probability to stop at interim under Bayesian null
+#' pbinbf01(n = 10, k = 3, p0 = 0.2, a = 1, b = 1, dl = 0, du = 0.2,
+#'          type = "direction", lower.tail = FALSE)
+#'
+#' ## probability of BF<1/10 under point null
+#' pbinbf01seq(n1 = 10, n2 = 20, k = 1/10, kf = 3, p0 = 0.2, a = 1, b = 1,
+#'             dp = 0.2, type = "direction") # with interim analysis
+#' pbinbf01(n = 20, k = 1/10, p0 = 0.2, a = 1, b = 1, dp = 0.2,
+#'          type = "direction") # without interim analysis
+#'
+#' ## probability to stop at interim under point null
+#' pbinbf01(n = 10, k = 3, p0 = 0.2, a = 1, b = 1, dp = 0.2,
+#'          type = "direction", lower.tail = FALSE)
 #'
 #' @export
 pbinbf01seq <- function(n1, n2, k = 1/10, kf = 1/k, p0 = 0.5,
@@ -94,7 +108,10 @@ pbinbf01seq <- function(n1, n2, k = 1/10, kf = 1/k, p0 = 0.5,
             0 < dp, dp < 1
             )
         ## predictive PMF under the point design prior
-        predpmf <- function(x, n) stats::dbinom(x = x, size = n, prob = dp)
+        predpmf <- function(x1, x2, n1, n2) {
+            stats::dbinom(x = x1, size = n1, prob = dp) *
+                stats::dbinom(x = x2, size = n2, prob = dp)
+        }
     } else {
         ## Beta design prior
         stopifnot(
@@ -119,10 +136,12 @@ pbinbf01seq <- function(n1, n2, k = 1/10, kf = 1/k, p0 = 0.5,
             dl < du, du <= 1
         )
         ## predictive PMF under the truncated Beta design prior
-        predpmf. <- function(x, n) {
-            exp(lchoose(n, x) + lbeta(da + x, db + n - x) - lbeta(da, db)) *
-                diff(stats::pbeta(q = c(dl, du), shape1 = da + x,
-                                  shape2 = db + n - x)) /
+        predpmf. <- function(x1, x2, n1, n2) {
+            exp(lchoose(n1, x1) + lchoose(n2, x2) +
+                lbeta(da + x1 + x2, db + n1 + n2 - x1 - x2) -
+                lbeta(da, db)) *
+                diff(stats::pbeta(q = c(dl, du), shape1 = da + x1 + x2,
+                                  shape2 = db + n1 + n2 - x1 - x2)) /
                 diff(stats::pbeta(q = c(dl, du), shape1 = da, shape2 = db))
         }
         predpmf <- Vectorize(FUN = predpmf.)
@@ -159,7 +178,7 @@ pbinbf01seq <- function(n1, n2, k = 1/10, kf = 1/k, p0 = 0.5,
                     return(0)
                 } else {
                     x2j <- seq(xcrit2 - x1i, n2 - n1)
-                    predpmf(x = x1i, n = n1) * sum(predpmf(x = x2j, n = n2 - n1))
+                    sum(predpmf(x1 = x1i, x2 = x2j, n1 = n1, n2 = n2 - n1))
                 }
             }))
         }
@@ -260,11 +279,10 @@ pbinbf01seq <- function(n1, n2, k = 1/10, kf = 1/k, p0 = 0.5,
 ## pbinbf01(n = n2, k = k, p0 = p0, a = a, b = b, dp = p1, type = "direction")
 
 ## ## truncateted beta prior H0 sequential
-## psim <- rbeta(n = nsim*20, shape1 = a, shape2 = b)
-## psimH0_1 <- psim[psim <= p0][1:nsim]
-## psimH0_2 <- psim[psim <= p0][(nsim+1):(2*nsim)]
-## x1simtbH0 <- rbinom(n = nsim, size = n1, prob = psimH0_1)
-## x2simtbH0 <- rbinom(n = nsim, size = n2 - n1, prob = psimH0_2)
+## psim <- rbeta(n = nsim*10, shape1 = a, shape2 = b)
+## psimH0 <- psim[psim <= p0][1:nsim]
+## x1simtbH0 <- rbinom(n = nsim, size = n1, prob = psimH0)
+## x2simtbH0 <- rbinom(n = nsim, size = n2 - n1, prob = psimH0)
 ## xsimtbH0 <- x1simtbH0 + x2simtbH0
 ## bf1simtbH0 <- binbf01(x = x1simtbH0, n = n1, p0 = p0, type = "direction", a = a, b = b)
 ## bf2simtbH0 <- binbf01(x = xsimtbH0, n = n2, p0 = p0, type = "direction", a = a, b = b)
@@ -272,19 +290,17 @@ pbinbf01seq <- function(n1, n2, k = 1/10, kf = 1/k, p0 = 0.5,
 ## pbinbf01seq(n1 = n1, n2 = n2, k = k, kf = kf, p0 = p0, a = a, b = b,
 ##             da = da, db = db, dl = 0, du = p0, type = "direction")
 ## ## truncateted beta prior H0 final only
-## psimH0_3 <- psim[psim <= p0][(2*nsim+1):(3*nsim)]
-## x3simtbH0 <- rbinom(n = nsim, size = n2, prob = psimH0_3)
+## x3simtbH0 <- rbinom(n = nsim, size = n2, prob = psimH0)
 ## bfsimtbH0 <- binbf01(x = x3simtbH0, n = n2, p0 = p0, type = "direction", a = a, b = b)
 ## mean(bfsimtbH0 < k) # this works
 ## pbinbf01(n = n2, k = k, p0 = p0, a = a, b = b, da = da, db = db, dl = 0,
 ##          du = p0, type = "direction")
 
 ## ## truncateted beta prior H1 sequential
-## psim <- rbeta(n = nsim*20, shape1 = a, shape2 = b)
-## psimH1_1 <- psim[psim > p0][1:nsim]
-## psimH1_2 <- psim[psim > p0][(nsim+1):(2*nsim)]
-## x1simtbH1 <- rbinom(n = nsim, size = n1, prob = psimH1_1)
-## x2simtbH1 <- rbinom(n = nsim, size = n2 - n1, prob = psimH1_2)
+## psim <- rbeta(n = nsim*10, shape1 = a, shape2 = b)
+## psimH1 <- psim[psim > p0][1:nsim]
+## x1simtbH1 <- rbinom(n = nsim, size = n1, prob = psimH1)
+## x2simtbH1 <- rbinom(n = nsim, size = n2 - n1, prob = psimH1)
 ## xsimtbH1 <- x1simtbH1 + x2simtbH1
 ## bf1simtbH1 <- binbf01(x = x1simtbH1, n = n1, p0 = p0, type = "direction", a = a, b = b)
 ## bf2simtbH1 <- binbf01(x = xsimtbH1, n = n2, p0 = p0, type = "direction", a = a, b = b)
@@ -292,8 +308,7 @@ pbinbf01seq <- function(n1, n2, k = 1/10, kf = 1/k, p0 = 0.5,
 ## pbinbf01seq(n1 = n1, n2 = n2, k = k, kf = kf, p0 = p0, a = a, b = b,
 ##             da = da, db = db, dl = p0, du = 1)
 ## ## truncateted beta prior H1 final only
-## psimH1_3 <- psim[psim > p0][(2*nsim+1):(3*nsim)]
-## x3simtbH1 <- rbinom(n = nsim, size = n2, prob = psimH1_3)
+## x3simtbH1 <- rbinom(n = nsim, size = n2, prob = psimH1)
 ## bfsimtbH1 <- binbf01(x = x3simtbH1, n = n2, p0 = p0, type = "direction", a = a, b = b)
 ## mean(bfsimtbH1 < k) # this works
 ## pbinbf01(n = n2, k = k, p0 = p0, a = a, b = b, da = da, db = db, dl = p0,

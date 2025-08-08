@@ -74,11 +74,25 @@ Compute probability that binomial Bayes factor (\link{binbf01})
     the study can stop if it is above a threshold at interim.
 }
 \examples{
-## under truncated beta prior (seems not correct yet when compared to simulation)
-pbinbf01seq(n1 = 10, n2 = 20, k = 1/10, kf = 3, p0 = 0.2, a = 1, b = 1, dl = 0.2, du = 1)
+## probability of BF<1/10 under truncated beta prior
+pbinbf01seq(n1 = 10, n2 = 20, k = 1/10, kf = 3, p0 = 0.2, a = 1, b = 1,
+            dl = 0.2, du = 1, type = "direction") # with interim analysis
+pbinbf01(n = 20, k = 1/10, p0 = 0.2, a = 1, b = 1, dl = 0.2, du = 1,
+         type = "direction") # without interim analysis
 
-## under point prior
-pbinbf01seq(n1 = 10, n2 = 20, k = 1/10, kf = 3, p0 = 0.2, a = 1, b = 1, dp = 0.4)
+## probability to stop at interim under Bayesian null
+pbinbf01(n = 10, k = 3, p0 = 0.2, a = 1, b = 1, dl = 0, du = 0.2,
+         type = "direction", lower.tail = FALSE)
+
+## probability of BF<1/10 under point null
+pbinbf01seq(n1 = 10, n2 = 20, k = 1/10, kf = 3, p0 = 0.2, a = 1, b = 1,
+            dp = 0.2, type = "direction") # with interim analysis
+pbinbf01(n = 20, k = 1/10, p0 = 0.2, a = 1, b = 1, dp = 0.2,
+         type = "direction") # without interim analysis
+
+## probability to stop at interim under point null
+pbinbf01(n = 10, k = 3, p0 = 0.2, a = 1, b = 1, dp = 0.2,
+         type = "direction", lower.tail = FALSE)
 
 }
 \seealso{
