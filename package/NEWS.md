@@ -1,3 +1,8 @@
+# bfpwr 0.1.6
+
+- added functions `pbinbf01seq` and `powerbinbf01seq` for sequential two-stage
+  designs for binomial Bayes factors with futility stopping
+
 # bfpwr 0.1.5
 
 - update reference to published paper in The American Statistician

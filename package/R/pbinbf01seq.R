@@ -34,8 +34,7 @@ xcritbinbf01 <- Vectorize(FUN = xcritbinbf01.)
 #'
 #' @description Compute probability that binomial Bayes factor (\link{binbf01})
 #'     is equal or below a threshold at final stage, taking into account that
-#'     the study can stop if it is above a threshold at interim.
-#'
+#'     the study can stop if it greater than a specified threshold at interim.
 #'
 #' @inheritParams pbinbf01
 #' @inheritParams powerbf01

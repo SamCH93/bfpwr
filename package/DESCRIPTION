@@ -1,6 +1,6 @@
 Package: bfpwr
-Version: 0.1.5
-Date: 2025-08-08
+Version: 0.1.6
+Date: 2025-08-20
 Authors@R:
     c(person(given = "Samuel",
            family = "Pawel",
