@@ -1,3 +1,7 @@
+# bfpwr 0.1.6
+
+- fixed a bug in `ptbf01` when adaptively determining the search range 
+
 # bfpwr 0.1.5
 
 - update reference to published paper in The American Statistician
