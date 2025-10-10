@@ -81,36 +81,36 @@ abline(h = 100, lty = 2, col = adjustcolor(col = 1, alpha = 0.6))
 
 
 ## ----"verify-equations", eval = FALSE-----------------------------------------
-## ## ## verify closed-form sample size formulas
-## ## null <- 0.1
-## ## pm <- 0.4
-## ## psd <- 0
-## ## dpm1 <- pm
-## ## dpm2 <- 0.35
-## ## dpsd1 <- 0
-## ## dpsd2 <- 0.3
-## ## sd <- sqrt(2)
-## 
-## ## k <- 1/10
-## ## power <- 0.63
-## ## zb <- qnorm(p = power)
-## 
-## ## ## formula (9)
-## ## nbf01(k = k, power = power, usd = sd, null = null, pm = pm, psd = 0, dpm = pm,
-## ##       dpsd = 0, analytical = c(FALSE, TRUE), integer = FALSE)
-## ## sd^2*(zb + sqrt(zb^2 - log(k^2)))^2/(pm - null)^2
-## 
-## ## ## formula (8)
-## ## nbf01(k = k, power = power, usd = sd, null = null, pm = pm, psd = 0, dpm = dpm2,
-## ##       dpsd = 0, analytical = c(FALSE, TRUE), integer = FALSE)
-## ## sd^2*(zb + sqrt(zb^2 - log(k^2)*(null + pm - 2*dpm2)/(null - pm)))^2/(null + pm - 2*dpm2)^2
-## 
-## ## ## formula (7)
-## ## dpsd2 <- 0.1
-## ## nbf01(k = k, power = power, usd = sd, null = null, pm = pm, psd = 0, dpm = dpm2,
-## ##       dpsd = dpsd2, analytical = c(FALSE, TRUE), integer = FALSE)
-## ## A <- sqrt(zb^2 - (2*dpm2 - null - pm)/(pm- null)*log(k^2) + (dpsd2*log(k^2)/(pm - null))^2)
-## ## ((zb + A)^2 - (dpsd2*log(k^2)/(pm - null))^2)/(((2*dpm2- pm - null)^2 - 4*zb^2*dpsd2^2)/sd^2)
+# ## ## verify closed-form sample size formulas
+# ## null <- 0.1
+# ## pm <- 0.4
+# ## psd <- 0
+# ## dpm1 <- pm
+# ## dpm2 <- 0.35
+# ## dpsd1 <- 0
+# ## dpsd2 <- 0.3
+# ## sd <- sqrt(2)
+# 
+# ## k <- 1/10
+# ## power <- 0.63
+# ## zb <- qnorm(p = power)
+# 
+# ## ## formula (9)
+# ## nbf01(k = k, power = power, usd = sd, null = null, pm = pm, psd = 0, dpm = pm,
+# ##       dpsd = 0, analytical = c(FALSE, TRUE), integer = FALSE)
+# ## sd^2*(zb + sqrt(zb^2 - log(k^2)))^2/(pm - null)^2
+# 
+# ## ## formula (8)
+# ## nbf01(k = k, power = power, usd = sd, null = null, pm = pm, psd = 0, dpm = dpm2,
+# ##       dpsd = 0, analytical = c(FALSE, TRUE), integer = FALSE)
+# ## sd^2*(zb + sqrt(zb^2 - log(k^2)*(null + pm - 2*dpm2)/(null - pm)))^2/(null + pm - 2*dpm2)^2
+# 
+# ## ## formula (7)
+# ## dpsd2 <- 0.1
+# ## nbf01(k = k, power = power, usd = sd, null = null, pm = pm, psd = 0, dpm = dpm2,
+# ##       dpsd = dpsd2, analytical = c(FALSE, TRUE), integer = FALSE)
+# ## A <- sqrt(zb^2 - (2*dpm2 - null - pm)/(pm- null)*log(k^2) + (dpsd2*log(k^2)/(pm - null))^2)
+# ## ((zb + A)^2 - (dpsd2*log(k^2)/(pm - null))^2)/(((2*dpm2- pm - null)^2 - 4*zb^2*dpsd2^2)/sd^2)
 
 
 ## ----"nTable1", results = "asis"----------------------------------------------
