@@ -220,7 +220,7 @@ genregions2 <- function(zcrit0, zcrit1, strict = FALSE) {
         nrow(zcrit0) == 2
     )
 
-    if (strict == TRUE & ncol(zcrit0) > 15) {
+    if (strict == TRUE & ncol(zcrit0) > 10) {
         warning("strict = TRUE with many stages may cause numerical problems")
     }
 
@@ -329,7 +329,7 @@ genregions2 <- function(zcrit0, zcrit1, strict = FALSE) {
 #' @noRd
 #'
 #' @keywords internal
-zcrit <- function(k, se, mu, tau, type = c("normal", "directional", "moment")) {
+zcrit <- function(k, se, mu = NULL, tau, type = c("normal", "directional", "moment")) {
 
     type <- match.arg(type)
 

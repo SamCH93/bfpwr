@@ -9,7 +9,7 @@ pbf01seq(
   k0 = 1/k1,
   se,
   n = NULL,
-  pm,
+  pm = NULL,
   psd,
   dpm = pm,
   dpsd = psd,
@@ -55,7 +55,7 @@ centered around 0}}
 combinations (slow but exact). If \code{FALSE}, only integrates over the
 main regions where the sign of the z-statistics does not change across
 stages (faster, recommended when many interim analyses, e.g., more than
-20, are performed). Defaults to \code{TRUE}}
+10, are performed). Defaults to \code{TRUE}}
 
 \item{...}{Additional arguments passed to \code{mvtnorm::pmvnorm}.}
 }

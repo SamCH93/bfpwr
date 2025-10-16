@@ -61,8 +61,8 @@
 #' @author Samuel Pawel
 #'
 #' @export
-pbf01seq <- function(k1, k0 = 1/k1, se, n = NULL, pm, psd, dpm = pm, dpsd = psd,
-                     type = c("normal", "directional", "moment"),
+pbf01seq <- function(k1, k0 = 1/k1, se, n = NULL, pm = NULL, psd, dpm = pm,
+                     dpsd = psd, type = c("normal", "directional", "moment"),
                      strict = TRUE, ...) {
 
     ## input checks
@@ -135,7 +135,7 @@ pbf01seq <- function(k1, k0 = 1/k1, se, n = NULL, pm, psd, dpm = pm, dpsd = psd,
             sigma[i,j] <- sqrt(pmin(inf[i], inf[j])/pmax(inf[i], inf[j]))
         }
     }
-    sigma <- sigma + dpsd^2 * inf %*% t(inf)
+    sigma <- sigma + dpsd^2 * sqrt(inf) %*% t(sqrt(inf))
 
     ## get integration regions based on BFs with one critical value
     if ((type == "normal" & psd == 0) | type == "directional") {
@@ -182,6 +182,35 @@ pbf01seq <- function(k1, k0 = 1/k1, se, n = NULL, pm, psd, dpm = pm, dpsd = psd,
                      class = "bfseqdesign")
     return(out)
 }
+
+
+## ## checks: sequential with one stage should give the same as the fixed N functions
+## ## TODO implement as real tests
+## k1 <- 1/10
+## k0 <- 3
+## pm <- 0.2
+## psd <- 1
+## dpm <- -0.2
+## dpsd <- 0.05
+## n <- 50
+## usd <- sqrt(2)
+## se <- usd/sqrt(50)
+
+## ## normal alternative
+## pbf01(k = k1, n = n, usd = usd, pm = pm, psd = psd, dpm = dpm, dpsd = dpsd)
+## pbf01(k = k0, n = n, usd = usd, pm = pm, psd = psd, dpm = dpm, dpsd = dpsd, lower.tail = FALSE)
+## pbf01seq(k1 = k1, k0 = k0, se = se, pm = pm, psd = psd, dpm = dpm, dpsd = dpsd, type = "normal")
+
+## ## point alternative
+## pbf01(k = k1, n = n, usd = usd, pm = pm, psd = 0, dpm = dpm, dpsd = dpsd)
+## pbf01(k = k0, n = n, usd = usd, pm = pm, psd = 0, dpm = dpm, dpsd = dpsd, lower.tail = FALSE)
+## pbf01seq(k1 = k1, k0 = k0, se = se, pm = pm, psd = 0, dpm = dpm, dpsd = dpsd, type = "normal")
+
+## ## normal moment alternative
+## pnmbf01(k = k1, n = n, usd = usd, psd = psd, dpm = dpm, dpsd = dpsd)
+## pnmbf01(k = k0, n = n, usd = usd, psd = psd, dpm = dpm, dpsd = dpsd, lower.tail = FALSE)
+## pbf01seq(k1 = k1, k0 = k0, se = se, psd = psd, dpm = dpm, dpsd = dpsd, type = "moment")
+
 
 #' Print method for class \code{"bfseqdesign"}
 #' @method print bfseqdesign
