@@ -1,3 +1,8 @@
+# bfpwr 0.2
+
+- add function `pbf01seq` to compute characteristics of sequential Bayes factor
+  designs
+
 # bfpwr 0.1.6
 
 - fixed a bug in `ptbf01` when adaptively determining the search range 

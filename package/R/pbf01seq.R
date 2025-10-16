@@ -1,0 +1,416 @@
+#' @title Sequential Bayes Factor Design Evaluation
+#'
+#' @description Computes cumulative probabilities of observing Bayes factors
+#'     that provide evidence for \eqn{H_0}, \eqn{H_1}, or remain inconclusive in
+#'     a sequential design. Optionally computes also the expected sample size.
+#'
+#' @param k1 Positive numeric scalar. Bayes factor threshold in favor of
+#'     \eqn{H_1} (i.e., \eqn{\text{BF}_{01} \leq k_1 < 1}{BF01 < k1 < 1} implies
+#'     evidence for \eqn{H_1})
+#' @param k0 Positive numeric scalar. Bayes factor threshold in favor of
+#'     \eqn{H_0} (i.e., \eqn{\text{BF}_{01} \geq k_0 > 1}{BF01 > k0 > 1} implies
+#'     evidence for \eqn{H_1})
+#' @param se Numeric vector of standard errors for each sequential stage
+#' @param n Optional numeric vector of sample sizes corresponding to \code{se}.
+#'     If supplied, the expected sample size is computed
+#' @param pm Numeric scalar. Analysis prior mean. Not taken into account for
+#'     \code{type = "moment"}
+#' @param psd Non-negative numeric scalar. Analysis prior standard deviation
+#'     (\code{type = "moment"} and \code{type = "directional"}) or scale
+#'     (\code{type = "moment"})
+#' @param dpm Numeric scalar. Mean of the normal design prior
+#' @param dpsd Non-negative numeric scalar. Standard deviation of the normal
+#'     design prior. Set \code{dpsd = 0} to obtain a point prior at \code{dpm}
+#' @param type Character string; one of \itemize{ \item \code{"normal"}
+#'     (default): point null vs. normal alternative (set \code{psd = 0} to
+#'     obtain a point prior under the alternative) \item \code{"directional"}:
+#'     directional null vs. directional alternative with a marginal normal prior
+#'     \item \code{"moment"}: point null vs. normal moment alternative which is
+#'     centered around 0}
+#' @param strict Logical. If \code{TRUE}, integrate over all possible region
+#'     combinations (slow but exact). If \code{FALSE}, only integrates over the
+#'     main regions where the sign of the z-statistics does not change across
+#'     stages (faster, recommended when many interim analyses, e.g., more than
+#'     10, are performed). Defaults to \code{TRUE}
+#' @param ... Additional arguments passed to \code{mvtnorm::pmvnorm}.
+#'
+#' @return An object of class \code{"bfseqdesign"}, which is a lilst containing
+#'     the input arguments, the expected sample size (if \code{n} supplied), the
+#'     cumulative probabilities of stopping for \eqn{H_1} and \eqn{H_0} by each
+#'     stage, and the cumulative probabilities of remaining inconclusive by each
+#'     stage.
+#'
+#' @details The function constructs per-stage integration regions for cumulative
+#'     z-statistics based on the Bayes factor thresholds \code{k1} and
+#'     \code{k0}, then computes the probability of these regions under a
+#'     predictive distribution defined by \code{se} and the normal design prior
+#'     with \code{dpm} and \code{dpsd}. Integration is performed via
+#'     \code{mvtnorm::pmvnorm}.
+#'
+#' @examples
+#' n <- seq(50, 200, 50) # sample size per stage
+#' se <- sqrt(2/n) # standard errors per stage
+#' res <- pbf01seq(k1 = 1/10, k0 = 3, se = se, n = n, pm = 0, psd = 1,
+#'                 dpm = 0.5, dpsd = 0.05, type = "normal")
+#' res # print summary
+#' plot(res) # plot summary
+#' res$cumpH1 # cumulative probability to stop for H1 by each stage
+#' res$cumpH0 # cumulative probability to stop for H0 by each stage
+#' res$EN # expected sample size
+#'
+#' @author Samuel Pawel
+#'
+#' @export
+pbf01seq <- function(k1, k0 = 1/k1, se, n = NULL, pm, psd, dpm = pm, dpsd = psd,
+                     type = c("normal", "directional", "moment"),
+                     strict = TRUE, ...) {
+
+    ## input checks
+    stopifnot(
+        length(k1) == 1,
+        is.numeric(k1),
+        is.finite(k1),
+        k1 <= 1,
+
+        length(k0) == 1,
+        is.numeric(k0),
+        is.finite(k0),
+        k0 >= 1,
+
+        length(se) >= 1,
+        is.numeric(se),
+        all(is.finite(se)),
+        all(se > 0)
+    )
+    if (!is.null(n)) {
+        stopifnot(
+            is.numeric(n),
+            length(n) == length(se),
+            all(is.finite(n)),
+            all(n >= 1)
+        )
+    }
+    type <- match.arg(type)
+    if (type != "moment") {
+        stopifnot(
+            length(pm) == 1,
+            is.numeric(pm),
+            is.finite(pm)
+        )
+    }
+    stopifnot(
+
+        length(psd) == 1,
+        is.numeric(psd),
+        is.finite(psd),
+        psd >= 0,
+
+        length(dpm) == 1,
+        is.numeric(dpm),
+        is.finite(dpm),
+
+        length(dpsd) == 1,
+        is.numeric(dpsd),
+        is.finite(dpsd),
+        dpsd >= 0,
+
+        length(strict) == 1,
+        is.logical(strict),
+        !is.na(strict)
+
+    )
+    if (type != "normal") {
+        stopifnot(psd > 0)
+    }
+
+
+    m <- length(se) # number of analyses
+    inf <- 1/se^2 # information levels
+
+    ## construct marginal mean and covariance matrix
+    mean <- dpm/se
+    sigma <- matrix(nrow = m, ncol = m)
+    for (i in seq_len(m)) {
+        for (j in seq_len(m)) {
+            sigma[i,j] <- sqrt(pmin(inf[i], inf[j])/pmax(inf[i], inf[j]))
+        }
+    }
+    sigma <- sigma + dpsd^2 * inf %*% t(inf)
+
+    ## get integration regions based on BFs with one critical value
+    if ((type == "normal" & psd == 0) | type == "directional") {
+        ## get region where evidence for H1 in each stage
+        zk0 <- zcrit(k = k0, se = se, mu = pm, tau = psd, type = type)
+        zk1 <- zcrit(k = k1, se = se, mu = pm, tau = psd, type = type)
+        intregions <- genregions1(zcrit0 = zk0, zcrit1 = zk1)
+    } else {
+        ## get integration regions based on BFs with two critical values
+        zk0 <- sapply(X = se, FUN = function(sei) {
+            zcrit(k = k0, se = sei, mu = pm, tau = psd, type = type)
+        })
+        zk1 <- sapply(X = se, FUN = function(sei) {
+            zcrit(k = k1, se = sei, mu = pm, tau = psd, type = type)
+        })
+        intregions <- genregions2(zcrit0 = zk0, zcrit1 = zk1, strict = strict)
+    }
+
+    ## compute stage-wise stopping probabilities
+    pH1 <- intstages(intregions = intregions$H1, mean = mean, sigma = sigma,
+                     ... = ...)
+    pH0 <- intstages(intregions = intregions$H0, mean = mean, sigma = sigma,
+                     ... = ...)
+
+    ## compute cumulate stopping probabilities
+    cumpH1 <- cumsum(pH1)
+    cumpH0 <- cumsum(pH0)
+    cumpInc <- 1 - cumpH1 - cumpH0 # inconclusive evidence
+
+    ## compute expected sample size
+    if (!is.null(n)) {
+    EN <- sum((pH1 + pH0)*n) + # stopping evidence for H0/H1 in stage n
+        (1 - sum(pH1 + pH0))*max(n) # no evidence until last stage
+    } else {
+        EN <- NA
+    }
+
+    ## put everything together
+    out <- structure(list("k1" = k1, "k0" = k0, "se" = se, "n" = n, "pm" = pm,
+                          "psd" = psd, "dpm" = dpm, "dpsd" = dpsd,
+                          "type" = type, "strict" = strict, "EN" = EN,
+                          "cumpH1" = cumpH1, "cumpH0" = cumpH0,
+                          "cumpInc" = cumpInc),
+                     class = "bfseqdesign")
+    return(out)
+}
+
+#' Print method for class \code{"bfseqdesign"}
+#' @method print bfseqdesign
+#'
+#' @param x Object of class \code{"bfseqdesign"}
+#' @param digits Number of digits for formatting of numbers
+#' @param ... Other arguments (for consistency with the generic)
+#'
+#' @return Prints text summary in the console and invisibly returns the
+#'     \code{"bfseqdesign"} object
+#'
+#' @author Samuel Pawel
+#'
+#' @seealso \link{pbf01seq}
+#'
+#' @examples
+#' n <- seq(50, 300, 50) # sample size per stage
+#' se <- sqrt(2/n) # standard errors per stage
+#' res <- pbf01seq(k1 = 1/10, k0 = 5, se = se, n = n, pm = 0, psd = 1,
+#'                 dpm = 0.5, dpsd = 0.1, type = "normal")
+#' res
+#'
+#' @export
+print.bfseqdesign <- function(x, digits = max(3L, getOption("digits") - 3L), ...) {
+
+    cat("\nSequential Bayes Factor Design\n")
+    cat("--------------------------------\n")
+
+    ## Hypotheses
+    if (x$type %in% c("normal", "moment")) {
+            cat("H0:               parameter  = 0\n")
+            cat("H1:               parameter != 0\n")
+    }
+    if (x$type == "directional") {
+            cat("H0:               parameter < 0\n")
+            cat("H1:               parameter > 0\n")
+
+    }
+
+    ## Analysis prior
+    if (x$type %in% c("normal", "directional")) {
+        if (x$psd == 0) {
+            aprior <- paste0("parameter = ", round(x$pm, digits = digits))
+        } else {
+            if (x$type == "normal") {
+                parameter <- "parameter|H1" # prior is conditional on H1
+            } else {
+                parameter <- "parameter" # prior is marginal
+            }
+            aprior <- paste0(parameter,
+                             " ~ N(mean = ", round(x$pm, digits = digits),
+                             ", sd = ", round(x$psd, digits = digits), ")")
+        }
+    } else {
+        aprior <- paste0("parameter|H1 ~ NM(location = 0, scale = ",
+                         round(x$psd, digits = digits), ")")
+    }
+    cat(paste0("Analysis prior:   ", aprior, "\n"))
+
+    ## Design prior
+    if (x$dpsd == 0) {
+            dprior <- paste0("parameter = ", round(x$dpm, digits = digits))
+        } else {
+            dprior <- paste0("parameter ~ N(mean = ", round(x$dpm, digits = digits),
+                             ", sd = ", round(x$dpsd, digits = digits), ")")
+        }
+    cat(paste0("Design prior:     ", dprior, "\n"))
+
+    ## Bayes factor thresholds
+    k1char <- paste0("1/", round(1/x$k1, digits = digits))
+    k0char <- as.character(round(x$k0, digits = digits))
+
+    cat(sprintf("BF thresholds:    H1 if BF01 <= %s, H0 if BF01 >= %s\n",
+                k1char, k0char))
+
+    ## Stages and sample sizes
+    m <- length(x$se)
+    cat(sprintf("Number of looks:  %d\n", m))
+    if (!is.null(x$n)) {
+        cat(sprintf("Sample sizes:     %s\n", paste(round(x$n, digits = digits),
+                                                    collapse = ", ")))
+    }
+
+    ## -- Stagewise results --
+    cat("\n\nStagewise cumulative probabilities:\n")
+    tab <- data.frame(
+        Stage = seq_len(m),
+        `Pr(H1 stop)` = round(x$cumpH1, digits = digits),
+        `Pr(H0 stop)` = round(x$cumpH0, digits = digits),
+        `Pr(inconclusive)` = round(x$cumpInc, digits = digits),
+        check.names = FALSE
+    )
+    print(tab, row.names = FALSE)
+
+    ## Expected sample size
+    if (!is.null(x$n) && !is.na(x$EN)) {
+        cat("\nExpected sample size (EN): ",
+            round(x$EN, digits = digits), "\n", sep = "")
+    }
+
+    ## Note
+    cat("\nNOTE:  BF01 < 1 indicates evidence for H1 over H0\n\n")
+
+    invisible(x)
+}
+
+
+#' Plot method for class \code{"bfseqdesign"}
+#' @method plot bfseqdesign
+#'
+#' @param x Object of class \code{"power.bftest"}
+#' @param plot Logical indicating whether data should be plotted. If
+#'     \code{FALSE} only the data used for plotting are returned.
+#' @param nullplot Logcal indicating whether a second plot with the stopping
+#'     probabilities computed under the null hypothesis should also be produced.
+#'     Defaults to \code{TRUE}
+#' @param digits Number of digits for formatting of numbers
+#' @param ... Other arguments (for consistency with the generic)
+#'
+#' @return Plots stopping curves (if specified) and invisibly returns a list of
+#'     data frames containing the data underlying the stopping curves
+#'
+#' @author Samuel Pawel
+#'
+#' @seealso \link{pbf01seq}
+#'
+#' @examples
+#' n <- seq(50, 500, 50) # sample size per stage
+#' se <- sqrt(2/n) # standard errors per stage
+#' res <- pbf01seq(k1 = 1/10, k0 = 10, se = se, n = n, pm = 0, psd = 0.5,
+#'                 dpm = 0.4, dpsd = 0.1, type = "normal")
+#' plot(res)
+#'
+#' @export
+plot.bfseqdesign <- function(x, plot = TRUE, nullplot = TRUE,
+                             digits = max(3L, getOption("digits") - 3L), ...) {
+    ## input checks
+    stopifnot(
+        length(plot) == 1,
+        is.logical(plot),
+        !is.na(plot),
+
+        length(nullplot) == 1,
+        is.logical(nullplot),
+        !is.na(nullplot)
+    )
+
+    ## data frame to return
+    m <- length(x$se)
+    stages <- seq_len(m)
+    if (!is.null(x$n)) {
+        xvar <- x$n
+        xlab <- "Sample size"
+    } else {
+        x$n <- rep(NA, m)
+        xvar <- stages
+        xlab <- "Stage"
+    }
+    plotDF <- data.frame(stage = stages, n = x$n, pH0 = x$cumpH0,
+                         pH1 = x$cumpH1, pInc = x$cumpInc)
+    if (nullplot == TRUE) {
+        x0 <- pbf01seq(k1 = x$k1, k0 = x$k0, se = x$se, pm = x$pm, psd = x$psd,
+                       dpm = 0, dpsd = 0, type = x$type, strict = x$strict)
+        plotDF0 <- data.frame(stage = stages, n = x$n, pH0 = x0$cumpH0,
+                              pH1 = x0$cumpH1, pInc = x0$cumpInc)
+    }
+
+    if (plot == TRUE) {
+        oldpar <- graphics::par(no.readonly = TRUE)
+        on.exit(graphics::par(oldpar))
+
+        k1char <- paste0("1/", round(1/x$k1, digits = digits))
+        k0char <- as.character(round(x$k0, digits = digits))
+
+        if (nullplot == TRUE) {
+            graphics::layout(matrix(c(1, 2, 3), ncol = 1), heights = c(1, 10, 10))
+        } else {
+            graphics::layout(matrix(c(1, 2), ncol = 1), heights = c(1, 10))
+        }
+
+        graphics::par(mar = c(0, 0, 0, 0))
+        graphics::plot.new()
+        graphics::legend("center",
+                         legend = c(bquote("Stop for" ~ italic(H)[1] ~
+                                               "(BF"["01"] <= .(k1char)*")  "),
+                                    bquote("Inconclusive  "),
+                                    bquote("Stop for" ~ italic(H)[0] ~
+                                               "(BF"["01"] >= .(k0char)*")  ")),
+                         lty = 1, pch = 20, lwd = 1.5, col = c(4, 1, 2),
+                         horiz = TRUE, xpd = TRUE, bty = "n", text.width = NA)
+
+        if (x$dpsd == 0) {
+            title <- paste0("Assuming parameter = ", round(x$dpm, digits = digits))
+        } else {
+            title <- paste0("Assuming parameter ~ N(mean = ", round(x$dpm, digits = digits),
+                            ", sd = ", round(x$dpsd, digits = digits), ")")
+        }
+        graphics::par(mar = c(5.1, 4.1, 4.1, 2.1))
+        plot(xvar, x$cumpH1, type = "n", xlab = xlab, ylab = "Probability",
+             ylim = c(0, 100), yaxt = "n",
+             panel.first = graphics::grid(lty = 3, col = "#0000001A"), main = title)
+        graphics::matlines(xvar, cbind(x$cumpH1, x$cumpInc, x$cumpH0)*100,
+                           type = "b", pch = 20, col = c(4, 1, 2), lwd = 1.5,
+                           lty = 1, cex = 1.5)
+        graphics::axis(side = 2, at = seq(0, 100, 20),
+                       labels = paste0(seq(0, 100, 20), "%"), las = 1)
+
+        if (nullplot == TRUE) {
+            x0 <- pbf01seq(k1 = x$k1, k0 = x$k0, se = x$se, pm = x$pm, psd = x$psd,
+                           dpm = 0, dpsd = 0, type = x$type, strict = x$strict)
+            plotDF0 <- data.frame(stage = stages, n = x$n, pH0 = x0$cumpH0,
+                                  pH1 = x0$cumpH1, pInc = x0$cumpInc)
+            plot(xvar, x0$cumpH1, type = "n", xlab = xlab, ylab = "Probability",
+                 ylim = c(0, 100), yaxt = "n",
+                 panel.first = graphics::grid(lty = 3, col = "#0000001A"),
+                 main = "Assuming parameter = 0")
+            graphics::matlines(xvar, cbind(x0$cumpH1, x0$cumpInc, x0$cumpH0)*100,
+                               type = "b", pch = 20, col = c(4, 1, 2), lwd = 1.5,
+                               lty = 1, cex = 1.5)
+            graphics::axis(side = 2, at = seq(0, 100, 20),
+                           labels = paste0(seq(0, 100, 20), "%"), las = 1)
+        }
+
+    }
+    ## invisibly return data frames
+    if (nullplot == TRUE) {
+        ret <- list("pDF1" = plotDF, "pDF2" = plotDF0)
+    } else {
+        ret <- list("pDF1" = plotDF)
+    }
+    invisible(ret)
+}

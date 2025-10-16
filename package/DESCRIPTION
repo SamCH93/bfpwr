@@ -1,6 +1,6 @@
 Package: bfpwr
-Version: 0.1.6
-Date: 2025-08-29
+Version: 0.2
+Date: 2025-10-16
 Authors@R:
     c(person(given = "Samuel",
            family = "Pawel",
@@ -13,10 +13,10 @@ Title: Power and Sample Size Calculations for Bayes Factor Analysis
 Description: Implements z-test, t-test, and normal moment prior Bayes factors based on summary statistics, along with functionality to perform corresponding power and sample size calculations as described in Pawel and Held (2025) <doi:10.1080/00031305.2025.2467919>.
 License: GPL-3
 Encoding: UTF-8
-Imports: lamW
+Imports: lamW, mvtnorm
 Suggests: roxygen2, tinytest, knitr
 VignetteBuilder: knitr
 NeedsCompilation: no
-RoxygenNote: 7.3.2
+RoxygenNote: 7.3.3
 URL: https://github.com/SamCH93/bfpwr
 BugReports: https://github.com/SamCH93/bfpwr/issues

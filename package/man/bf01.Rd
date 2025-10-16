@@ -2,7 +2,7 @@
 % Please edit documentation in R/bf01.R
 \name{bf01}
 \alias{bf01}
-\title{z-test Bayes factor}
+\title{Point null z-test Bayes factor}
 \usage{
 bf01(estimate, se, null = 0, pm, psd, log = FALSE)
 }

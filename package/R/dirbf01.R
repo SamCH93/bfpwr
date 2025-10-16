@@ -1,4 +1,4 @@
-bf01. <- function(estimate, se, null = 0, pm, psd, log = FALSE) {
+dirbf01. <- function(estimate, se, null = 0, pm, psd, log = FALSE) {
     ## input checks
     stopifnot(
         length(estimate) == 1,
@@ -21,37 +21,42 @@ bf01. <- function(estimate, se, null = 0, pm, psd, log = FALSE) {
         length(psd) == 1,
         is.numeric(psd),
         is.finite(psd),
-        0 <= psd,
+        0 < psd,
 
         length(log) == 1,
         is.logical(log),
         !is.na(log)
     )
 
-    logbf <- stats::dnorm(x = estimate, mean = null, sd = se, log = TRUE) -
-        stats::dnorm(x = estimate, mean = pm, sd = sqrt(se^2 + psd^2), log = TRUE)
-    if (log) return(logbf)
-    else return(exp(logbf))
+    postsd <- 1/sqrt(1/se^2 + 1/psd^2)
+    postm <- (estimate/se^2 + pm/psd^2)*postsd^2
+
+    priorodds <- 1/stats::pnorm(q = (pm - null)/psd) - 1
+    postodds <- 1/stats::pnorm(q = (postm - null)/postsd) - 1
+
+    bf <- postodds/priorodds
+
+    if (log) return(log(bf))
+    else return(bf)
 }
 
 
-#' @title Point null z-test Bayes factor
+#' @title Directional z-test Bayes factor
 #'
 #' @description This function computes the Bayes factor that quantifies the
 #'     evidence that the data (in the form of an asymptotically normally
-#'     distributed parameter estimate with standard error) provide for a point
-#'     null hypothesis with a normal prior assigned to the parameter under the
-#'     alternative. The standard error is assumed to be known.
+#'     distributed parameter estimate with standard error) provide for a
+#'     directional null hypothesis that the the parameter value is less than the
+#'     null value against the alternative that it is greater than the null
+#'     value. A marginal normal prior is assigned to the parameter. The standard
+#'     error is assumed to be known.
 #'
 #' @param estimate Parameter estimate
 #' @param se Standard error of the parameter estimate
-#' @param null Parameter value under the point null hypothesis. Defaults to
-#'     \code{0}
-#' @param pm Mean of the normal prior assigned to the parameter under the
-#'     alternative
+#' @param null Null value that separates the null from the alternative
+#'     hypothesis. Defaults to \code{0}
+#' @param pm Mean of the normal prior assigned to the parameter
 #' @param psd Standard deviation of the normal prior assigned to the parameter
-#'     under the alternative. Set to \code{0} to obtain a point prior at the
-#'     prior mean
 #' @param log Logical indicating whether the natural logarithm of the Bayes
 #'     factor should be returned. Defaults to \code{FALSE}
 #'
@@ -63,7 +68,7 @@ bf01. <- function(estimate, se, null = 0, pm, psd, log = FALSE) {
 #' @author Samuel Pawel
 #'
 #' @examples
-#' bf01(estimate = 0.2, se = 0.05, null = 0, pm = 0, psd = 2)
+#' dirbf01(estimate = 0.2, se = 0.2, null = 0, pm = 0, psd = 2)
 #'
 #' @export
-bf01 <- Vectorize(FUN = bf01.)
+dirbf01 <- Vectorize(FUN = dirbf01.)
