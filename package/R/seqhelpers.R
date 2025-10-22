@@ -53,6 +53,10 @@ intstages <- function(intregions, mean, sigma, ...) {
     m <- length(mean)
     probs <- numeric(m)
 
+    ## for more stable multivariate normal integration
+    C <- t(chol(sigma))
+    Ct <- mvtnorm::ltMatrices(C[lower.tri(C, diag = TRUE)], diag = TRUE)
+
     for (i in seq_len(m)) {
         stageregions <- intregions[[i]]
         stopifnot(is.list(stageregions))
@@ -64,12 +68,18 @@ intstages <- function(intregions, mean, sigma, ...) {
             if (any(is.nan(region))) {
                 p <- 0
             } else {
-                p <- mvtnorm::pmvnorm(lower = region[1, ],
-                                      upper = region[2, ],
-                                      mean  = mean[1:i],
-                                      sigma = sigma[1:i, 1:i],
-                                      keepAttr = FALSE,
-                                      ...)
+                ## p <- mvtnorm::pmvnorm(lower = region[1, ],
+                ##                       upper = region[2, ],
+                ##                       mean  = mean[1:i],
+                ##                       sigma = sigma[1:i, 1:i],
+                ##                       keepAttr = FALSE,
+                ##                       ...)
+                p <-  exp(mvtnorm::lpmvnorm(lower = region[1, ],
+                                            upper = region[2, ],
+                                            mean = mean[1:i],
+                                            chol = Ct[,1:i],
+                                            M = 2000,
+                                            ...))
             }
             return(p)
         })
@@ -267,12 +277,14 @@ genregions2 <- function(zcrit0, zcrit1, strict = FALSE) {
             ## probability of regions where the sign of z_i flips is almost
             ## zero), hence, only take the two regions where the sign of z_i
             ## doesn't flip (the first and last)
-            combosH1i <- rbind(rep(1, length(H1i)), sapply(H1i, length))
+            combosH1i <- rbind(rep(1, length(H1i)),
+                               sapply(H1i, length))
             if (i <= 1 + sum(H0nan)) {
                 ## only one H0 region in the first non-NaN stage
                 combosH0i <- matrix(rep(1, length(H0i)), nrow = 1)
             } else {
-                combosH0i <- rbind(rep(1, length(H0i)), sapply(H0i, length))
+                combosH0i <- rbind(rep(1, length(H0i)),
+                                   sapply(H0i, length))
             }
         }
 
@@ -366,4 +378,151 @@ zcrit <- function(k, se, mu = NULL, tau, type = c("normal", "directional", "mome
     }
 
     return(zcrit)
+}
+
+
+
+#' @title Compute Critical T-Values for T-Test Bayes Factors
+#'
+#' @description Computes critical t-values for T-Test Bayes factors
+#'
+#' @param k Positive numeric. Bayes factor threshold (BF01 oriented in favor of
+#'     H0)
+#' @param n1 Sample size in group 1
+#' @param n2 Sample size in group 2 (is ignored for one-sample \eqn{t}-tests)
+#' @param plocation \eqn{t} prior location
+#' @param pscale \eqn{t} prior scale
+#' @param pdf \eqn{t} prior degrees of freedom
+#' @param type Type of \eqn{t}-test. Can be \code{"two.sample"},
+#'     \code{"one.sample"}, or \code{"paired"}
+#' @param alternative Direction of the test. Can be either \code{"two.sided"},
+#'     \code{"less"}, or \code{"greater"}. The latter two truncate the analysis
+#'     prior to negative and positive effects, respectively
+#' @param drange Numerical search strategy. Can be either \code{"adaptive"}
+#'     (default) or an interval
+#' @param ... Other arguments passed to \code{stats::uniroot}
+#'
+#' @return Numeric vector of critical t-value(s)
+#'
+#' @examples
+#' tseq <- seq(-10, 10, length.out = 100)
+#' n1 <- 50
+#' n2 <- 60
+#' type <- "two.sample"
+#' alternative <- "two.sided"
+#' plocation <- 0
+#' pscale <- 1/sqrt(2)
+#' pdf <- 1
+#' k <- 3
+#' tcrit1 <- tcrit(k = k, n1 = n1, n2 = n2, plocation = plocation, pscale = pscale,
+#'                 pdf = pdf, alternative = alternative, type = type)
+#' plot(tseq, tbf01(t = tseq, n1 = n1, n2 = n2, plocation = plocation,
+#'                  pscale = pscale, pdf = pdf, alternative = alternative,
+#'                  type = type),
+#'      type = "l", xlab = "t-statistic", ylab = bquote("BF"["01"]), log = "y")
+#' abline(h = k, lty = 2)
+#' abline(v = tcrit1, lty = 2)
+#'
+#' n1 <- n2 <- 100
+#' alternative <- "greater"
+#' k <- 6
+#' tcrit2 <- tcrit(k = k, n1 = n1, n2 = n2, plocation = plocation, pscale = pscale,
+#'                 pdf = pdf, alternative = alternative, type = type)
+#' plot(tseq, tbf01(t = tseq, n1 = n1, n2 = n2, plocation = plocation,
+#'                  pscale = pscale, pdf = pdf, alternative = alternative,
+#'                  type = type),
+#'      type = "l", xlab = "t-statistic", ylab = bquote("BF"["01"]), log = "y")
+#' abline(h = k, lty = 2)
+#' abline(v = tcrit2, lty = 2)
+#'
+#' @noRd
+#'
+#' @keywords internal
+tcrit <- function(k, n1, n2, plocation, pscale, pdf, type, alternative,
+                  drange = "adaptive", ...) {
+
+    ## determine t-statistic for which BF = k
+    rootFun <- function(t) {
+        tbf01(t = t, n1 = n1, n2 = n2, plocation = plocation, pscale = pscale,
+              pdf = pdf, type = type, alternative = alternative,
+              log = TRUE) - log(k)
+    }
+
+    if (k > 1) {
+        ## find maximum BF to see whether BF = k is possible
+        opt <- stats::optim(par = 0, fn = rootFun, control = list(fnscale = -1),
+                            method = "BFGS")
+        if (opt$convergence != 0) {
+            warning("numerical problems finding maximum BF")
+            return(NaN)
+        } else {
+            if (opt$value < 0) {
+                warning("maximum BF is less than k; BF01 = k impossible")
+                if (alternative == "two.sided") {
+                    return(c(NaN, NaN))
+                } else {
+                    return(NaN)
+                }
+            }
+        }
+    }
+
+    if (alternative == "two.sided") {
+        ## guess search range based on search range from z-test BF
+        if (!is.numeric(drange) && drange == "adaptive") {
+            if (type == "two.sample") {
+                neff <- 1/(1/n1 + 1/n2)
+            } else {
+                neff <- n1
+            }
+            se <- 1/sqrt(neff)
+            X <- (plocation^2/pscale^2 + log(1 + pscale^2/se^2) -
+                  log(k^2))*(1 + se^2/pscale^2)
+            if (X <= 0) {
+                X <- 5/k
+            }
+            zcrit <- -plocation*se/pscale^2 + c(-1, 1)*sqrt(X)
+            searchint <- c(zcrit[1] - 2, zcrit[2] + 2)
+        } else {
+            searchint <- drange
+        }
+        ## search for critical values
+        rootres <- try(rootSolve::uniroot.all(f = rootFun, interval = searchint))
+        tcrit <- c(NaN, NaN)
+        if (!inherits(rootres, "try-error")) {
+            if (length(rootres) == 2) {
+                tcrit <- rootres
+            } else {
+                warning("Numerical problems: Could not find 2 t-roots")
+            }
+        }
+    } else { # one-sided cases
+        if (!is.numeric(drange) && drange == "adaptive") {
+            ## extend the search range if critical value not contained
+            if (alternative == "greater") {
+                ## want to first find the critical value on the positive side
+                searchint <- c(0, 0.1)
+            } else {
+                ## want to first find the critical value on the negative side
+                searchint <- c(-0.1, 0)
+            }
+            extend <- "yes"
+        } else {
+            searchint <- drange
+            extend <- "no"
+
+        }
+        suppressWarnings({
+            res <- try(stats::uniroot(f = rootFun, interval = searchint,
+                                      extendInt = extend, ...)$root,
+                       silent = TRUE)
+        })
+        if (inherits(res, "try-error")) {
+            warning("Numerical problems finding critical value")
+            tcrit <- NaN
+        } else {
+            tcrit <- res
+        }
+    }
+    return(tcrit)
 }

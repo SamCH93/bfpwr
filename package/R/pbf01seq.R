@@ -1,51 +1,57 @@
-#' @title Sequential Bayes Factor Design Evaluation
+#' @title Sequential Bayes Factor Design
 #'
-#' @description Computes cumulative probabilities of observing Bayes factors
-#'     that provide evidence for \eqn{H_0}, \eqn{H_1}, or remain inconclusive in
-#'     a sequential design. Optionally computes also the expected sample size.
+#' @description Computes cumulative probabilities of observing \eqn{z}-test
+#'     Bayes factors that provide evidence for the null hypothesis
+#'     \eqn{H_0}{H0}, the alternative hypothesis \eqn{H_1}{H1}, or remain
+#'     inconclusive in a sequential design. Optionally, also computes the
+#'     expected sample size.
 #'
-#' @param k1 Positive numeric scalar. Bayes factor threshold in favor of
-#'     \eqn{H_1} (i.e., \eqn{\text{BF}_{01} \leq k_1 < 1}{BF01 < k1 < 1} implies
+#' @param k1 Bayes factor threshold in favor of \eqn{H_1}{H1} (i.e.,
+#'     \eqn{\text{BF}_{01} \leq \code{k1} < 1}{BF01 < \code{k1} < 1} implies
 #'     evidence for \eqn{H_1})
-#' @param k0 Positive numeric scalar. Bayes factor threshold in favor of
-#'     \eqn{H_0} (i.e., \eqn{\text{BF}_{01} \geq k_0 > 1}{BF01 > k0 > 1} implies
+#' @param k0 Bayes factor threshold in favor of \eqn{H_0}{H0} (i.e.,
+#'     \eqn{\text{BF}_{01} \geq \code{k0} > 1}{BF01 > \code{k0} > 1} implies
 #'     evidence for \eqn{H_1})
 #' @param se Numeric vector of standard errors for each sequential stage
 #' @param n Optional numeric vector of sample sizes corresponding to \code{se}.
 #'     If supplied, the expected sample size is computed
-#' @param pm Numeric scalar. Analysis prior mean. Not taken into account for
-#'     \code{type = "moment"}
-#' @param psd Non-negative numeric scalar. Analysis prior standard deviation
-#'     (\code{type = "moment"} and \code{type = "directional"}) or scale
-#'     (\code{type = "moment"})
-#' @param dpm Numeric scalar. Mean of the normal design prior
-#' @param dpsd Non-negative numeric scalar. Standard deviation of the normal
-#'     design prior. Set \code{dpsd = 0} to obtain a point prior at \code{dpm}
-#' @param type Character string; one of \itemize{ \item \code{"normal"}
-#'     (default): point null vs. normal alternative (set \code{psd = 0} to
-#'     obtain a point prior under the alternative) \item \code{"directional"}:
-#'     directional null vs. directional alternative with a marginal normal prior
-#'     \item \code{"moment"}: point null vs. normal moment alternative which is
-#'     centered around 0}
-#' @param strict Logical. If \code{TRUE}, integrate over all possible region
-#'     combinations (slow but exact). If \code{FALSE}, only integrates over the
-#'     main regions where the sign of the z-statistics does not change across
-#'     stages (faster, recommended when many interim analyses, e.g., more than
-#'     10, are performed). Defaults to \code{TRUE}
-#' @param ... Additional arguments passed to \code{mvtnorm::pmvnorm}.
+#' @param pm Analysis prior mean. Not taken into account for \code{type =
+#'     "moment"}
+#' @param psd Analysis prior standard deviation (\code{type = "moment"} and
+#'     \code{type = "directional"}) or scale (\code{type = "moment"})
+#' @param dpm Mean of the normal design prior
+#' @param dpsd Standard deviation of the normal design prior. Set \code{dpsd =
+#'     0} to obtain a point prior at \code{dpm}
 #'
-#' @return An object of class \code{"bfseqdesign"}, which is a lilst containing
+#' @param type Character string. One of \itemize{
+#' \item \code{"normal"}
+#'     (default): point null vs. normal alternative (set \code{psd = 0} to
+#'     obtain a point alternative) \item \code{"directional"}: directional null
+#'     vs. directional alternative with a marginal normal prior \item
+#'     \code{"moment"}: point null vs. normal moment alternative which is
+#'     centered around 0
+#' }
+#'
+#' @param strict Logical. If \code{TRUE} and there are more than two critical
+#'     values per stage, integrate over all possible region combinations (slow
+#'     but exact). If \code{FALSE}, only integrates over the main regions where
+#'     the sign of the z-statistics does not change across stages (faster,
+#'     recommended when many interim analyses, e.g., more than 10, are
+#'     performed). Defaults to \code{TRUE}
+#' @param ... Additional arguments passed to \code{mvtnorm::lpmvnorm}
+#'
+#' @return An object of class \code{"bfseqdesign"}, which is a list containing
 #'     the input arguments, the expected sample size (if \code{n} supplied), the
-#'     cumulative probabilities of stopping for \eqn{H_1} and \eqn{H_0} by each
-#'     stage, and the cumulative probabilities of remaining inconclusive by each
-#'     stage.
+#'     cumulative probabilities of stopping for \eqn{H_1}{H1} and \eqn{H_0}{H0}
+#'     by each stage, and the cumulative probabilities of remaining inconclusive
+#'     by each stage.
 #'
 #' @details The function constructs per-stage integration regions for cumulative
 #'     z-statistics based on the Bayes factor thresholds \code{k1} and
 #'     \code{k0}, then computes the probability of these regions under a
 #'     predictive distribution defined by \code{se} and the normal design prior
 #'     with \code{dpm} and \code{dpsd}. Integration is performed via
-#'     \code{mvtnorm::pmvnorm}.
+#'     \code{mvtnorm::lpmvnorm}.
 #'
 #' @examples
 #' n <- seq(50, 200, 50) # sample size per stage
@@ -156,9 +162,9 @@ pbf01seq <- function(k1, k0 = 1/k1, se, n = NULL, pm = NULL, psd, dpm = pm,
 
     ## compute stage-wise stopping probabilities
     pH1 <- intstages(intregions = intregions$H1, mean = mean, sigma = sigma,
-                     ... = ...)
+                     ...)
     pH0 <- intstages(intregions = intregions$H0, mean = mean, sigma = sigma,
-                     ... = ...)
+                     ...)
 
     ## compute cumulate stopping probabilities
     cumpH1 <- cumsum(pH1)
@@ -176,12 +182,66 @@ pbf01seq <- function(k1, k0 = 1/k1, se, n = NULL, pm = NULL, psd, dpm = pm,
     ## put everything together
     out <- structure(list("k1" = k1, "k0" = k0, "se" = se, "n" = n, "pm" = pm,
                           "psd" = psd, "dpm" = dpm, "dpsd" = dpsd,
-                          "type" = type, "strict" = strict, "EN" = EN,
-                          "cumpH1" = cumpH1, "cumpH0" = cumpH0,
-                          "cumpInc" = cumpInc),
+                          "type" = type, "strict" = strict, "test" = "z",
+                          "zk1" = zk1,
+                          "zk0" = zk0, "EN" = EN, "cumpH1" = cumpH1,
+                          "cumpH0" = cumpH0, "cumpInc" = cumpInc),
                      class = "bfseqdesign")
     return(out)
 }
+
+## ## compare to simulation-based probabilities
+## ## TODO implement as real tests
+## set.seed(142)
+## n <- seq(10, 50, 5) # sample size per stage
+## se <- sqrt(2/n) # standard errors per stage
+## dpm <- 0.3
+## dpsd <- 0.1
+## pm <- 0.3
+## psd <- 0.5
+## type <- "normal"
+## k0 <- 6
+## k1 <- 1/30
+## nsim <- 10000
+## results <- replicate(n = nsim, expr = {
+##     smd <- rnorm(n = 1, mean = dpm, sd = dpsd)
+##     y1 <- rnorm(n = max(n), mean = 0, sd = 1)
+##     y2 <- rnorm(n = max(n), mean = smd, sd = 1)
+##     smd <- sapply(seq_along(n), FUN = function(i) {
+##         (mean(y2[1:n[i]]) - mean(y1[1:n[i]]))
+##     })
+##     se <- sapply(seq_along(n), FUN = function(i) {
+##         sqrt(2/n[i])
+##     })
+##     bf <- sapply(seq_along(n), FUN = function(i) {
+##         if (type == "normal") {
+##             bf01(estimate = smd[i], se = se[i], null = 0, pm = pm, psd = psd)
+##         } else if (type == "directional") {
+##             dirbf01(estimate = smd[i], se = se[i], null = 0, pm = pm, psd = psd)
+##         } else {
+##             nmbf01(estimate = smd[i], se = se[i], null = 0, psd = psd)
+##         }
+##     })
+##     result <- "inconclusive"
+##     for (i in seq_along(bf)) {
+##         if (bf[i] >= k0) {
+##             result <- "H0"
+##             break
+##         }
+##         if (bf[i] <= k1) {
+##         ## if ((bf[i] < k1) & t[i] > 0) {
+##             result <- "H1"
+##             break
+##         }
+##     }
+##     result
+## })
+
+## pbf01seq(k1 = k1, k0 = k0, se = se, n = n, pm = pm, psd = psd, dpm = dpm,
+##          dpsd = dpsd, type = type, strict = TRUE)
+## mean(results == "H1")
+## mean(results == "H0")
+## mean(results == "inconclusive")
 
 
 ## ## checks: sequential with one stage should give the same as the fixed N functions
@@ -240,18 +300,50 @@ print.bfseqdesign <- function(x, digits = max(3L, getOption("digits") - 3L), ...
     cat("--------------------------------\n")
 
     ## Hypotheses
-    if (x$type %in% c("normal", "moment")) {
-            cat("H0:               parameter  = 0\n")
-            cat("H1:               parameter != 0\n")
-    }
-    if (x$type == "directional") {
-            cat("H0:               parameter < 0\n")
-            cat("H1:               parameter > 0\n")
+    if (x$test == "t") {
+        null <- " ="
+        if (x$alternative == "two.sided") {
+            alt <- "!="
+        } else if (x$alternative == "greater") {
+            alt <- " >"
+        } else {
+            alt <- " <"
+        }
+        if (x$type == "one.sample") {
+            parlong <- "SM (stand. mean)"
+            par <- "SM"
+        } else {
+            parlong <- "SMD (stand. mean diff.)"
+            par <- "SMD"
+        }
 
+    } else {
+        par <- parlong <- "parameter"
+        if (x$type %in% c("normal", "moment")) {
+            null <- " ="
+            alt <- "!="
+        }
+        if (x$type == "directional") {
+            null <- " <"
+            alt <- " >"
+        }
     }
+    cat(paste0("H0:               ", parlong,  " ", null, " 0\n"))
+    cat(paste0("H1:               ", parlong, " ", alt, " 0\n"))
 
     ## Analysis prior
-    if (x$type %in% c("normal", "directional")) {
+    if (x$test == "t") {
+        aprior <- paste0(par,
+                         "|H1 ~ t(location = ", round(x$plocation, digits = digits),
+                         ", scale = ",round(x$pscale, digits = digits),
+                         ", df = ", round(x$pdf, digits = digits), ")")
+        if (x$alternative == "greater") {
+            aprior <- paste0(aprior, "_+")
+        }
+        if (x$alternative == "less") {
+            aprior <- paste0(aprior, "_-")
+        }
+    } else if (x$type %in% c("normal", "directional")) {
         if (x$psd == 0) {
             aprior <- paste0("parameter = ", round(x$pm, digits = digits))
         } else {
@@ -272,9 +364,9 @@ print.bfseqdesign <- function(x, digits = max(3L, getOption("digits") - 3L), ...
 
     ## Design prior
     if (x$dpsd == 0) {
-            dprior <- paste0("parameter = ", round(x$dpm, digits = digits))
+            dprior <- paste0(par, " = ", round(x$dpm, digits = digits))
         } else {
-            dprior <- paste0("parameter ~ N(mean = ", round(x$dpm, digits = digits),
+            dprior <- paste0(par, " ~ N(mean = ", round(x$dpm, digits = digits),
                              ", sd = ", round(x$dpsd, digits = digits), ")")
         }
     cat(paste0("Design prior:     ", dprior, "\n"))
@@ -287,14 +379,28 @@ print.bfseqdesign <- function(x, digits = max(3L, getOption("digits") - 3L), ...
                 k1char, k0char))
 
     ## Stages and sample sizes
-    m <- length(x$se)
-    cat(sprintf("Number of looks:  %d\n", m))
-    if (!is.null(x$n)) {
-        cat(sprintf("Sample sizes:     %s\n", paste(round(x$n, digits = digits),
-                                                    collapse = ", ")))
+    if (x$test == "t") {
+        m <- length(x$n1)
+        cat(sprintf("Number of looks:  %d\n", m))
+        if (x$type != "two.sample") {
+            cat(sprintf("Sample sizes:     %s\n",
+                        paste(round(x$n1, digits = digits), collapse = ", ")))
+        } else {
+            cat(sprintf("Sample sizes 1:   %s\n",
+                        paste(round(x$n1, digits = digits), collapse = ", ")))
+            cat(sprintf("Sample sizes 2:   %s\n",
+                        paste(round(x$n2, digits = digits), collapse = ", ")))
+        }
+    } else {
+        m <- length(x$se)
+        cat(sprintf("Number of looks:  %d\n", m))
+        if (!is.null(x$n)) {
+            cat(sprintf("Sample sizes:     %s\n", paste(round(x$n, digits = digits),
+                                                        collapse = ", ")))
+        }
     }
 
-    ## -- Stagewise results --
+    ## Stagewise results
     cat("\n\nStagewise cumulative probabilities:\n")
     tab <- data.frame(
         Stage = seq_len(m),
@@ -306,11 +412,22 @@ print.bfseqdesign <- function(x, digits = max(3L, getOption("digits") - 3L), ...
     print(tab, row.names = FALSE)
 
     ## Expected sample size
-    if (!is.null(x$n) && !is.na(x$EN)) {
-        cat("\nExpected sample size (EN): ",
-            round(x$EN, digits = digits), "\n", sep = "")
+    if (x$test == "t") {
+        if (x$type != "two.sample") {
+            cat("\nExpected sample size: ",
+                round(x$EN1, digits = digits), "\n", sep = "")
+        } else {
+            cat("\nExpected sample size 1: ",
+                round(x$EN1, digits = digits), "\n", sep = "")
+            cat("Expected sample size 2: ",
+                round(x$EN2, digits = digits), "\n", sep = "")
+        }
+    } else {
+        if (!is.null(x$n) && !is.na(x$EN)) {
+            cat("\nExpected sample size: ",
+                round(x$EN, digits = digits), "\n", sep = "")
+        }
     }
-
     ## Note
     cat("\nNOTE:  BF01 < 1 indicates evidence for H1 over H0\n\n")
 
@@ -359,21 +476,42 @@ plot.bfseqdesign <- function(x, plot = TRUE, nullplot = TRUE,
     )
 
     ## data frame to return
-    m <- length(x$se)
-    stages <- seq_len(m)
-    if (!is.null(x$n)) {
-        xvar <- x$n
-        xlab <- "Sample size"
+    if (x$test == "t") {
+        m <- length(x$n1)
+        stages <- seq_len(m)
+        xvar <- x$n1
+        x$n <- x$n1
+        if (x$type == "two.sample") {
+            xlab <- "Sample size (group 1)"
+        } else {
+            xlab <- "Sample size"
+        }
     } else {
-        x$n <- rep(NA, m)
-        xvar <- stages
-        xlab <- "Stage"
+        m <- length(x$se)
+        stages <- seq_len(m)
+        if (!is.null(x$n)) {
+            xvar <- x$n
+            xlab <- "Sample size"
+        } else {
+            x$n <- rep(NA, m)
+            xvar <- stages
+            xlab <- "Stage"
+        }
     }
     plotDF <- data.frame(stage = stages, n = x$n, pH0 = x$cumpH0,
                          pH1 = x$cumpH1, pInc = x$cumpInc)
     if (nullplot == TRUE) {
-        x0 <- pbf01seq(k1 = x$k1, k0 = x$k0, se = x$se, pm = x$pm, psd = x$psd,
-                       dpm = 0, dpsd = 0, type = x$type, strict = x$strict)
+        if (x$test == "t") {
+            x0 <- ptbf01seq(k1 = x$k1, k0 = x$k0, n1 = x$n1, n2 = x$n2,
+                            plocation = x$plocation, pscale = x$pscale,
+                            pdf = x$pdf, dpm = 0, dpsd = 0, type = x$type,
+                            alternative = x$alternative, drange = x$drange,
+                            strict = x$strict)
+        } else {
+            x0 <- pbf01seq(k1 = x$k1, k0 = x$k0, se = x$se, pm = x$pm,
+                           psd = x$psd, dpm = 0, dpsd = 0, type = x$type,
+                           strict = x$strict)
+        }
         plotDF0 <- data.frame(stage = stages, n = x$n, pH0 = x0$cumpH0,
                               pH1 = x0$cumpH1, pInc = x0$cumpInc)
     }
@@ -391,6 +529,16 @@ plot.bfseqdesign <- function(x, plot = TRUE, nullplot = TRUE,
             graphics::layout(matrix(c(1, 2), ncol = 1), heights = c(1, 10))
         }
 
+        if (x$test != "t") {
+            parameter <- "Assuming parameter"
+        } else {
+            if (x$type == "one.sample") {
+                parameter <- "Assuming standardized mean"
+            } else {
+                parameter <- "Assuming standardized mean difference"
+            }
+        }
+
         graphics::par(mar = c(0, 0, 0, 0))
         graphics::plot.new()
         graphics::legend("center",
@@ -403,9 +551,10 @@ plot.bfseqdesign <- function(x, plot = TRUE, nullplot = TRUE,
                          horiz = TRUE, xpd = TRUE, bty = "n", text.width = NA)
 
         if (x$dpsd == 0) {
-            title <- paste0("Assuming parameter = ", round(x$dpm, digits = digits))
+            title <- paste0(parameter, " = ", round(x$dpm, digits = digits))
         } else {
-            title <- paste0("Assuming parameter ~ N(mean = ", round(x$dpm, digits = digits),
+            title <- paste0(parameter,
+                            " ~ N(mean = ", round(x$dpm, digits = digits),
                             ", sd = ", round(x$dpsd, digits = digits), ")")
         }
         graphics::par(mar = c(5.1, 4.1, 4.1, 2.1))
@@ -419,14 +568,10 @@ plot.bfseqdesign <- function(x, plot = TRUE, nullplot = TRUE,
                        labels = paste0(seq(0, 100, 20), "%"), las = 1)
 
         if (nullplot == TRUE) {
-            x0 <- pbf01seq(k1 = x$k1, k0 = x$k0, se = x$se, pm = x$pm, psd = x$psd,
-                           dpm = 0, dpsd = 0, type = x$type, strict = x$strict)
-            plotDF0 <- data.frame(stage = stages, n = x$n, pH0 = x0$cumpH0,
-                                  pH1 = x0$cumpH1, pInc = x0$cumpInc)
             plot(xvar, x0$cumpH1, type = "n", xlab = xlab, ylab = "Probability",
                  ylim = c(0, 100), yaxt = "n",
                  panel.first = graphics::grid(lty = 3, col = "#0000001A"),
-                 main = "Assuming parameter = 0")
+                 main = paste0(parameter, " = 0"))
             graphics::matlines(xvar, cbind(x0$cumpH1, x0$cumpInc, x0$cumpH0)*100,
                                type = "b", pch = 20, col = c(4, 1, 2), lwd = 1.5,
                                lty = 1, cex = 1.5)
