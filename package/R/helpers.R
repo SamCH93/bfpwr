@@ -35,7 +35,7 @@ searchN <- function(rootFun, nrange, ...) {
         n <- NaN
     } else {
         ## perform root-finding
-        res <- try(stats::uniroot(f = rootFun, interval = nrange, ... = ...)$root)
+        res <- try(stats::uniroot(f = rootFun, interval = nrange, ...)$root)
         if (inherits(res, "try-error")) {
             warning("problems while running uniroot")
             n <- NaN
@@ -77,7 +77,7 @@ searchNoscil <- function(rootFun, nrange, nextend = 10, maxcycles = 5, ...) {
     cycles <- 0
     nrangei <- nrange
     while (cycles <= maxcycles) {
-        ni <- searchN(rootFun = rootFun, nrange = nrangei, ... = ...)
+        ni <- searchN(rootFun = rootFun, nrange = nrangei, ...)
         nextendi <- seq(ni, ni + nextend, 1)
         rootextendi <- rootFun(nextendi)
         if (all(rootextendi >= 0)) {

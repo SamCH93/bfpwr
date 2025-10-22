@@ -70,11 +70,11 @@ ntbf01. <- function(k, power, null = 0, plocation = 0, pscale = 1/sqrt(2),
             ptbf01(k = k, n = n, null = null, plocation = plocation,
                    pscale = pscale, pdf = pdf, dpm = dpm, dpsd = dpsd,
                    type = type, alternative = alternative,
-                   lower.tail = lower.tail, ... = ...) - power
+                   lower.tail = lower.tail, ...) - power
         })
     }
 
-    n <- searchN(rootFun = rootFun, nrange = nrange, ... = ...)
+    n <- searchN(rootFun = rootFun, nrange = nrange, ...)
 
     if (integer) return(ceiling(n))
     else return(n)

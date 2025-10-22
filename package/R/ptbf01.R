@@ -123,10 +123,10 @@ ptbf01. <- function(k, n, n1 = n, n2 = n, null = 0, plocation = 0,
         }
         ## search for critical values
         upper <- try(stats::uniroot(f = rootFun, interval = searchIntUp,
-                                    extendInt = "yes", ... = ...)$root,
+                                    extendInt = "yes", ...)$root,
                      silent = TRUE)
         lower <- try(stats::uniroot(f = rootFun, interval = searchIntLow,
-                                    extendInt = "yes", ... = ...)$root,
+                                    extendInt = "yes", ...)$root,
                      silent = TRUE)
 
         ## compute power
@@ -175,11 +175,11 @@ ptbf01. <- function(k, n, n1 = n, n2 = n, null = 0, plocation = 0,
             ## extend the search range if critical value not contained
             searchRange <- c(null - 0.1, null + 0.1)
             crit <- try(stats::uniroot(f = rootFun, interval = searchRange,
-                                       extendInt = "yes", ... = ...)$root,
+                                       extendInt = "yes", ...)$root,
                         silent = TRUE)
         } else {
             crit <- try(stats::uniroot(f = rootFun, interval = drange,
-                                       extendInt = "no", ... = ...)$root,
+                                       extendInt = "no", ...)$root,
                         silent = TRUE)
         }
         if (inherits(crit, "try-error")) {
@@ -245,7 +245,8 @@ ptbf01. <- function(k, n, n1 = n, n2 = n, null = 0, plocation = 0,
 #' ptbf01(k = 6, n = 146, dpm = 0, dpsd = 0, lower.tail = FALSE)
 #'
 #' ## one-sample test
-#' ptbf01(k = 1/6, n = 146, dpm = 0.5, dpsd = 0, alternative = "greater", type = "one.sample")
+#' ptbf01(k = 1/6, n = 146, dpm = 0.5, dpsd = 0, alternative = "greater",
+#'        type = "one.sample")
 #'
 #' @export
 ptbf01 <- Vectorize(FUN = ptbf01.,

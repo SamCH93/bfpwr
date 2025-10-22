@@ -91,7 +91,8 @@ ptbf01(k = 1/6, n = 146, dpm = 0.5, dpsd = 0)
 ptbf01(k = 6, n = 146, dpm = 0, dpsd = 0, lower.tail = FALSE)
 
 ## one-sample test
-ptbf01(k = 1/6, n = 146, dpm = 0.5, dpsd = 0, alternative = "greater", type = "one.sample")
+ptbf01(k = 1/6, n = 146, dpm = 0.5, dpsd = 0, alternative = "greater",
+       type = "one.sample")
 
 }
 \seealso{

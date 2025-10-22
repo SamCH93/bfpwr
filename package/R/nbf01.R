@@ -106,7 +106,7 @@ nbf01. <- function(k, power, usd, null = 0, pm, psd, dpm = pm, dpsd = psd,
                   dpsd = dpsd, lower.tail = lower.tail) - power
         }
 
-        n <- searchN(rootFun = rootFun, nrange = nrange, ... = ...)
+        n <- searchN(rootFun = rootFun, nrange = nrange, ...)
     }
     if (integer) return(ceiling(n))
     else return(n)

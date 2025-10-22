@@ -2,7 +2,7 @@
 % Please edit documentation in R/pbf01seq.R
 \name{pbf01seq}
 \alias{pbf01seq}
-\title{Sequential Bayes Factor Design Evaluation}
+\title{Sequential Bayes Factor Design}
 \usage{
 pbf01seq(
   k1,
@@ -19,12 +19,12 @@ pbf01seq(
 )
 }
 \arguments{
-\item{k1}{Positive numeric scalar. Bayes factor threshold in favor of
-\eqn{H_1} (i.e., \eqn{\text{BF}_{01} \leq k_1 < 1}{BF01 < k1 < 1} implies
+\item{k1}{Bayes factor threshold in favor of \eqn{H_1}{H1} (i.e.,
+\eqn{\text{BF}_{01} \leq \code{k1} < 1}{BF01 < \code{k1} < 1} implies
 evidence for \eqn{H_1})}
 
-\item{k0}{Positive numeric scalar. Bayes factor threshold in favor of
-\eqn{H_0} (i.e., \eqn{\text{BF}_{01} \geq k_0 > 1}{BF01 > k0 > 1} implies
+\item{k0}{Bayes factor threshold in favor of \eqn{H_0}{H0} (i.e.,
+\eqn{\text{BF}_{01} \geq \code{k0} > 1}{BF01 > \code{k0} > 1} implies
 evidence for \eqn{H_1})}
 
 \item{se}{Numeric vector of standard errors for each sequential stage}
@@ -32,44 +32,48 @@ evidence for \eqn{H_1})}
 \item{n}{Optional numeric vector of sample sizes corresponding to \code{se}.
 If supplied, the expected sample size is computed}
 
-\item{pm}{Numeric scalar. Analysis prior mean. Not taken into account for
-\code{type = "moment"}}
+\item{pm}{Analysis prior mean. Not taken into account for \code{type =
+"moment"}}
 
-\item{psd}{Non-negative numeric scalar. Analysis prior standard deviation
-(\code{type = "moment"} and \code{type = "directional"}) or scale
-(\code{type = "moment"})}
+\item{psd}{Analysis prior standard deviation (\code{type = "moment"} and
+\code{type = "directional"}) or scale (\code{type = "moment"})}
 
-\item{dpm}{Numeric scalar. Mean of the normal design prior}
+\item{dpm}{Mean of the normal design prior}
 
-\item{dpsd}{Non-negative numeric scalar. Standard deviation of the normal
-design prior. Set \code{dpsd = 0} to obtain a point prior at \code{dpm}}
+\item{dpsd}{Standard deviation of the normal design prior. Set \code{dpsd =
+0} to obtain a point prior at \code{dpm}}
 
-\item{type}{Character string; one of \itemize{ \item \code{"normal"}
-(default): point null vs. normal alternative (set \code{psd = 0} to
-obtain a point prior under the alternative) \item \code{"directional"}:
-directional null vs. directional alternative with a marginal normal prior
-\item \code{"moment"}: point null vs. normal moment alternative which is
-centered around 0}}
+\item{type}{Character string. One of \itemize{
+\item \code{"normal"}
+    (default): point null vs. normal alternative (set \code{psd = 0} to
+    obtain a point alternative) \item \code{"directional"}: directional null
+    vs. directional alternative with a marginal normal prior \item
+    \code{"moment"}: point null vs. normal moment alternative which is
+    centered around 0
+}}
 
-\item{strict}{Logical. If \code{TRUE}, integrate over all possible region
-combinations (slow but exact). If \code{FALSE}, only integrates over the
-main regions where the sign of the z-statistics does not change across
-stages (faster, recommended when many interim analyses, e.g., more than
-10, are performed). Defaults to \code{TRUE}}
+\item{strict}{Logical. If \code{TRUE} and there are more than two critical
+values per stage, integrate over all possible region combinations (slow
+but exact). If \code{FALSE}, only integrates over the main regions where
+the sign of the z-statistics does not change across stages (faster,
+recommended when many interim analyses, e.g., more than 10, are
+performed). Defaults to \code{TRUE}}
 
-\item{...}{Additional arguments passed to \code{mvtnorm::pmvnorm}.}
+\item{...}{Additional arguments passed to \code{mvtnorm::lpmvnorm}}
 }
 \value{
-An object of class \code{"bfseqdesign"}, which is a lilst containing
+An object of class \code{"bfseqdesign"}, which is a list containing
     the input arguments, the expected sample size (if \code{n} supplied), the
-    cumulative probabilities of stopping for \eqn{H_1} and \eqn{H_0} by each
-    stage, and the cumulative probabilities of remaining inconclusive by each
-    stage.
+    cumulative probabilities of stopping for \eqn{H_1}{H1} and \eqn{H_0}{H0}
+    by each stage, and the cumulative probabilities of remaining inconclusive
+    by each stage.
 }
 \description{
-Computes cumulative probabilities of observing Bayes factors
-    that provide evidence for \eqn{H_0}, \eqn{H_1}, or remain inconclusive in
-    a sequential design. Optionally computes also the expected sample size.
+Computes cumulative probabilities of observing \eqn{z}-test
+    Bayes factors that provide evidence for the null hypothesis
+    \eqn{H_0}{H0}, the alternative hypothesis \eqn{H_1}{H1}, or remain
+    inconclusive in a sequential design. Optionally, also computes the
+    expected sample size.
 }
 \details{
 The function constructs per-stage integration regions for cumulative
@@ -77,7 +81,7 @@ The function constructs per-stage integration regions for cumulative
     \code{k0}, then computes the probability of these regions under a
     predictive distribution defined by \code{se} and the normal design prior
     with \code{dpm} and \code{dpsd}. Integration is performed via
-    \code{mvtnorm::pmvnorm}.
+    \code{mvtnorm::lpmvnorm}.
 }
 \examples{
 n <- seq(50, 200, 50) # sample size per stage

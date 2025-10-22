@@ -26,7 +26,7 @@ nbinbf01. <- function(k, power, p0 = 0.5, type = c("point", "direction"), a = 1,
     }
 
     n <- searchNoscil(rootFun = rootFun, nrange = nrange, nextend = 10,
-                      maxcycles = 5, ... = ...)
+                      maxcycles = 5, ...)
     return(ceiling(n))
 }
 

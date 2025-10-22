@@ -58,7 +58,7 @@ nnmbf01. <- function(k, power, usd, null = 0, psd, dpm, dpsd,
     }
 
     ## determine sample size numerically
-    n <- searchN(rootFun = rootFun, nrange = nrange, ... = ...)
+    n <- searchN(rootFun = rootFun, nrange = nrange, ...)
     if (integer) return(ceiling(n))
     else return(n)
 }

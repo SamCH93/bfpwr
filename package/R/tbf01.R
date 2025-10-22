@@ -80,7 +80,7 @@ tbf01. <- function(t, n, n1 = n, n2 = n, plocation = 0, pscale = 1/sqrt(2),
         })
     }
     f1 <- try(stats::integrate(f = intFun, lower = lower, upper = upper,
-                               ... = ...)$value, silent = TRUE)
+                               ...)$value, silent = TRUE)
 
     ## compute Bayes factor
     if (inherits(f1, "try-error")) {
