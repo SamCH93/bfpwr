@@ -116,19 +116,11 @@ ptbf01seq <- function(k1, k0 = 1/k1, n, n1 = n, n2 = n, plocation = 0,
         neff <- n1
     }
 
+    ## get marginal mean and covariance matrix
     se <- 1/sqrt(neff) # standard error of SMD assuming variance is known
-    inf <- 1/se^2 # information levels
-    m <- length(n1) # number of analyses
-
-    ## construct marginal mean and covariance matrix
-    mean <- dpm/se
-    sigma <- matrix(nrow = m, ncol = m)
-    for (i in seq_len(m)) {
-        for (j in seq_len(m)) {
-            sigma[i,j] <- sqrt(pmin(inf[i], inf[j])/pmax(inf[i], inf[j]))
-        }
-    }
-    sigma <- sigma + dpsd^2 * sqrt(inf) %*% t(sqrt(inf))
+    pars <- predpars(se = se, dpm = dpm, dpsd = dpsd)
+    mean <- pars$mean
+    sigma <- pars$sigma
 
     ## get integration regions
     suppressWarnings({

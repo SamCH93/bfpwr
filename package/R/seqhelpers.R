@@ -1,6 +1,40 @@
 ## Helper functions for sequential BF design calculations
 ## -----------------------------------------------------------------------------
 
+#' @title Predictive Distribution Parameters
+#'
+#' @description Compute mean vector and covariance matrix and covariance of
+#'     predictive distribution of z-statistics
+#'
+#' @param se Vector of standard errors
+#' @param dpm Design prior mean
+#' @param dpsd Design prior standard deviation
+#'
+#' @return A list with the predictive mean vector and covariance matrix
+#'
+#' @author Samuel Pawel
+#'
+#' @noRd
+#'
+#' @keywords internal
+#'
+#' @examples
+#' ## regions to stop with two-sided p < 0.05 in first or second stage
+#' predpars(se = sqrt(2/seq(10, 50, 10)), dpm = 0.5, dpsd = 0.1)
+predpars <- function(se, dpm, dpsd) {
+    m <- length(se)
+    inf <- 1/se^2 # information levels
+    mean <- dpm/se # mean vector
+    sigma <- matrix(nrow = m, ncol = m)
+    for (i in seq_len(m)) {
+        for (j in seq_len(m)) {
+            sigma[i,j] <- sqrt(pmin(inf[i], inf[j])/pmax(inf[i], inf[j]))
+        }
+    }
+    sigma <- sigma + dpsd^2 * sqrt(inf) %*% t(sqrt(inf))
+    list("mean" = mean, "sigma" = sigma)
+}
+
 #' @title Integrate Success Regions of Cumulative Z-statistics
 #'
 #' @description Compute per-stage probabilities that cumulative z-statistics

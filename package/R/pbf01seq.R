@@ -129,19 +129,11 @@ pbf01seq <- function(k1, k0 = 1/k1, se, n = NULL, pm = NULL, psd, dpm = pm,
         stopifnot(psd > 0)
     }
 
+    ## get marginal mean and covariance matrix
+    pars <- predpars(se = se, dpm = dpm, dpsd = dpsd)
+    mean <- pars$mean
+    sigma <- pars$sigma
 
-    m <- length(se) # number of analyses
-    inf <- 1/se^2 # information levels
-
-    ## construct marginal mean and covariance matrix
-    mean <- dpm/se
-    sigma <- matrix(nrow = m, ncol = m)
-    for (i in seq_len(m)) {
-        for (j in seq_len(m)) {
-            sigma[i,j] <- sqrt(pmin(inf[i], inf[j])/pmax(inf[i], inf[j]))
-        }
-    }
-    sigma <- sigma + dpsd^2 * sqrt(inf) %*% t(sqrt(inf))
 
     ## get integration regions based on BFs with one critical value
     if ((type == "normal" & psd == 0) | type == "directional") {
