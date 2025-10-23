@@ -264,9 +264,9 @@ genregions2 <- function(zcrit0, zcrit1, strict = FALSE) {
         nrow(zcrit0) == 2
     )
 
-    if (strict == TRUE & ncol(zcrit0) > 10) {
-        warning("strict = TRUE with many stages may cause numerical problems")
-    }
+    ## if (strict == TRUE & ncol(zcrit0) > 10) {
+    ##     warning("strict = TRUE with many stages may cause numerical problems")
+    ## }
 
     m <- ncol(zcrit0)
     intregionsH1 <- vector("list", m)

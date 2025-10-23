@@ -20,7 +20,7 @@
 #'     \code{dpsd}. Integration is performed via \code{mvtnorm::lpmvnorm}.
 #'
 #' @examples
-#' ## sequential example from Schönbrodt and Wagenmakers (2018, p. 138)
+#' ## similar to example from Schönbrodt and Wagenmakers (2018, p. 138)
 #' k0 <- 6
 #' k1 <- 1/30
 #' dpm <- 0.5
@@ -28,15 +28,15 @@
 #' plocation <- 0
 #' pscale <- 1/sqrt(2)
 #' pdf <- 1
-#' alternative <- "greater"
 #' type <- "two.sample"
-#' n <- seq(40, 100, 10) # sample size (per group) per stage
 #' alternative <- "greater"
+#' n <- seq(40, 100, 10) # sample size (per group) per stage
 #' res <- ptbf01seq(k1 = k1, k0 = k0, n = n, plocation = plocation,
 #'                  pscale = pscale, pdf = pdf, dpm = dpm, dpsd = dpsd,
 #'                  alternative = alternative, type = type)
 #' res
-#' plot(res)
+#' plot(res) # show stopping probabilities
+#' plot(res, zplot = TRUE) # show critical z-values
 #'
 #'
 #' @author Samuel Pawel
@@ -102,7 +102,7 @@ ptbf01seq <- function(k1, k0 = 1/k1, n, n1 = n, n2 = n, plocation = 0,
     type <- match.arg(type)
     alternative <- match.arg(alternative)
     if (type != "two.sample") {
-        if (n1 != n2) {
+        if (all(n1 != n2)) {
             warning(paste0('different n1 and n2 supplied but type set to "', type,
                            '", using n = n1'))
             n2 <- n1
@@ -167,8 +167,8 @@ ptbf01seq <- function(k1, k0 = 1/k1, n, n1 = n, n2 = n, plocation = 0,
                           "dpm" = dpm, "dpsd" = dpsd, "plocation" = plocation,
                           "pscale" = pscale, "pdf" = pdf,
                           "alternative" = alternative, "type" = type,
-                          "drange" = drange, "test" = "t", "zk1" = zk1,
-                          "zk0" = zk0, "EN1" = EN1, "EN2" = EN2,
+                          "drange" = drange, "strict" = strict, "test" = "t",
+                          "zk1" = zk1, "zk0" = zk0, "EN1" = EN1, "EN2" = EN2,
                           "cumpH1" = cumpH1, "cumpH0" = cumpH0,
                           "cumpInc" = cumpInc),
                      class = "bfseqdesign")

@@ -41,7 +41,7 @@
 #' @param ... Additional arguments passed to \code{mvtnorm::lpmvnorm}
 #'
 #' @return An object of class \code{"bfseqdesign"}, which is a list containing
-#'     the input arguments, the expected sample size (if \code{n} supplied), the
+#'     the input arguments, the critical z-values, the expected sample size, the
 #'     cumulative probabilities of stopping for \eqn{H_1}{H1} and \eqn{H_0}{H0}
 #'     by each stage, and the cumulative probabilities of remaining inconclusive
 #'     by each stage.
@@ -436,6 +436,8 @@ print.bfseqdesign <- function(x, digits = max(3L, getOption("digits") - 3L), ...
 #' @param nullplot Logcal indicating whether a second plot with the stopping
 #'     probabilities computed under the null hypothesis should also be produced.
 #'     Defaults to \code{TRUE}
+#' @param zplot Logcal indicating whether a plot of the critical z-values should
+#'     be produced
 #' @param digits Number of digits for formatting of numbers
 #' @param ... Other arguments (for consistency with the generic)
 #'
@@ -446,21 +448,28 @@ print.bfseqdesign <- function(x, digits = max(3L, getOption("digits") - 3L), ...
 #'
 #' @seealso \link{pbf01seq}
 #'
+#'
 #' @examples
-#' n <- seq(50, 500, 50) # sample size per stage
+#' n <- seq(25, 150, 25) # sample size per stage
 #' se <- sqrt(2/n) # standard errors per stage
-#' res <- pbf01seq(k1 = 1/10, k0 = 10, se = se, n = n, pm = 0, psd = 0.5,
-#'                 dpm = 0.4, dpsd = 0.1, type = "normal")
-#' plot(res)
+#' res <- pbf01seq(k1 = 1/10, k0 = 3, se = se, n = n, pm = 0, psd = 1,
+#'                 dpm = 0.5, dpsd = 0.1, type = "moment")
+#' plot(res, nullplot = FALSE) # only under design prior
+#' plot(res, nullplot = TRUE) # also plot under null hypothesis
+#' plot(res, zplot = TRUE) # show critical z-values
 #'
 #' @export
-plot.bfseqdesign <- function(x, plot = TRUE, nullplot = TRUE,
+plot.bfseqdesign <- function(x, plot = TRUE, nullplot = TRUE, zplot = FALSE,
                              digits = max(3L, getOption("digits") - 3L), ...) {
     ## input checks
     stopifnot(
         length(plot) == 1,
         is.logical(plot),
         !is.na(plot),
+
+        length(nullplot) == 1,
+        is.logical(nullplot),
+        !is.na(nullplot),
 
         length(nullplot) == 1,
         is.logical(nullplot),
@@ -490,24 +499,33 @@ plot.bfseqdesign <- function(x, plot = TRUE, nullplot = TRUE,
             xlab <- "Stage"
         }
     }
-    plotDF <- data.frame(stage = stages, n = x$n, pH0 = x$cumpH0,
-                         pH1 = x$cumpH1, pInc = x$cumpInc)
-    if (nullplot == TRUE) {
-        if (x$test == "t") {
-            x0 <- ptbf01seq(k1 = x$k1, k0 = x$k0, n1 = x$n1, n2 = x$n2,
-                            plocation = x$plocation, pscale = x$pscale,
-                            pdf = x$pdf, dpm = 0, dpsd = 0, type = x$type,
-                            alternative = x$alternative, drange = x$drange,
-                            strict = x$strict)
-        } else {
-            x0 <- pbf01seq(k1 = x$k1, k0 = x$k0, se = x$se, pm = x$pm,
-                           psd = x$psd, dpm = 0, dpsd = 0, type = x$type,
-                           strict = x$strict)
+    if (zplot == FALSE) {
+        plotDF <- data.frame(stage = stages, n = x$n, pH0 = x$cumpH0,
+                             pH1 = x$cumpH1, pInc = x$cumpInc)
+        if (nullplot == TRUE) {
+            if (x$test == "t") {
+                x0 <- ptbf01seq(k1 = x$k1, k0 = x$k0, n1 = x$n1, n2 = x$n2,
+                                plocation = x$plocation, pscale = x$pscale,
+                                pdf = x$pdf, dpm = 0, dpsd = 0, type = x$type,
+                                alternative = x$alternative, drange = x$drange,
+                                strict = x$strict)
+            } else {
+                x0 <- pbf01seq(k1 = x$k1, k0 = x$k0, se = x$se, pm = x$pm,
+                               psd = x$psd, dpm = 0, dpsd = 0, type = x$type,
+                               strict = x$strict)
+            }
+            plotDF0 <- data.frame(stage = stages, n = x$n, pH0 = x0$cumpH0,
+                                  pH1 = x0$cumpH1, pInc = x0$cumpInc)
         }
-        plotDF0 <- data.frame(stage = stages, n = x$n, pH0 = x0$cumpH0,
-                              pH1 = x0$cumpH1, pInc = x0$cumpInc)
+    } else {
+        zvals <- t(rbind(x$zk1, x$zk0))
+        if (ncol(zvals) == 2) {
+            colnames(zvals) <- c("zH1", "zH0")
+        } else {
+            colnames(zvals) <- c("zH1.1", "zH1.2", "zH0.1", "zH0.2")
+        }
+        plotDF <- data.frame(stage = stages, n = x$n, zvals)
     }
-
     if (plot == TRUE) {
         oldpar <- graphics::par(no.readonly = TRUE)
         on.exit(graphics::par(oldpar))
@@ -515,65 +533,93 @@ plot.bfseqdesign <- function(x, plot = TRUE, nullplot = TRUE,
         k1char <- paste0("1/", round(1/x$k1, digits = digits))
         k0char <- as.character(round(x$k0, digits = digits))
 
-        if (nullplot == TRUE) {
-            graphics::layout(matrix(c(1, 2, 3), ncol = 1), heights = c(1, 10, 10))
-        } else {
+        if (zplot == TRUE) {
             graphics::layout(matrix(c(1, 2), ncol = 1), heights = c(1, 10))
-        }
+            graphics::par(mar = c(0, 0, 0, 0))
+            graphics::plot.new()
+            graphics::legend("center",
+                             legend = c(bquote("Stop for" ~ italic(H)[1] ~
+                                                   "(BF"["01"] <= .(k1char)*")  "),
+                                        bquote("Stop for" ~ italic(H)[0] ~
+                                                   "(BF"["01"] >= .(k0char)*")  ")),
+                             lty = 1, pch = 20, lwd = 1.5, col = c(4, 2),
+                             horiz = TRUE, xpd = TRUE, bty = "n", text.width = NA)
 
-        if (x$test != "t") {
-            parameter <- "Assuming parameter"
+            graphics::par(mar = c(5.1, 4.1, 4.1, 2.1))
+            plot(xvar, zvals[,1], type = "n", xlab = xlab,
+                 ylab = bquote("Critical" ~ italic(z) * "-value"),
+                 ylim = c(min(c(zvals, 0), na.rm = TRUE), max(c(zvals, 0), na.rm = TRUE)),
+                 las = 1,
+                 panel.first = graphics::grid(lty = 3, col = "#0000001A"))
+            graphics::matlines(xvar, zvals, type = "b", pch = 20, lwd = 1.5,
+                               lty = 1, cex = 1.5,
+                               col = c(rep(4, ncol(zvals)/2), rep(2, ncol(zvals)/2)))
         } else {
-            if (x$type == "one.sample") {
-                parameter <- "Assuming standardized mean"
+
+
+            if (nullplot == TRUE) {
+                graphics::layout(matrix(c(1, 2, 3), ncol = 1), heights = c(1, 10, 10))
             } else {
-                parameter <- "Assuming standardized mean difference"
+                graphics::layout(matrix(c(1, 2), ncol = 1), heights = c(1, 10))
             }
-        }
 
-        graphics::par(mar = c(0, 0, 0, 0))
-        graphics::plot.new()
-        graphics::legend("center",
-                         legend = c(bquote("Stop for" ~ italic(H)[1] ~
-                                               "(BF"["01"] <= .(k1char)*")  "),
-                                    bquote("Inconclusive  "),
-                                    bquote("Stop for" ~ italic(H)[0] ~
-                                               "(BF"["01"] >= .(k0char)*")  ")),
-                         lty = 1, pch = 20, lwd = 1.5, col = c(4, 1, 2),
-                         horiz = TRUE, xpd = TRUE, bty = "n", text.width = NA)
+            if (x$test != "t") {
+                parameter <- "Assuming parameter"
+            } else {
+                if (x$type == "one.sample") {
+                    parameter <- "Assuming standardized mean"
+                } else {
+                    parameter <- "Assuming standardized mean difference"
+                }
+            }
 
-        if (x$dpsd == 0) {
-            title <- paste0(parameter, " = ", round(x$dpm, digits = digits))
-        } else {
-            title <- paste0(parameter,
-                            " ~ N(mean = ", round(x$dpm, digits = digits),
-                            ", sd = ", round(x$dpsd, digits = digits), ")")
-        }
-        graphics::par(mar = c(5.1, 4.1, 4.1, 2.1))
-        plot(xvar, x$cumpH1, type = "n", xlab = xlab, ylab = "Probability",
-             ylim = c(0, 100), yaxt = "n",
-             panel.first = graphics::grid(lty = 3, col = "#0000001A"), main = title)
-        graphics::matlines(xvar, cbind(x$cumpH1, x$cumpInc, x$cumpH0)*100,
-                           type = "b", pch = 20, col = c(4, 1, 2), lwd = 1.5,
-                           lty = 1, cex = 1.5)
-        graphics::axis(side = 2, at = seq(0, 100, 20),
-                       labels = paste0(seq(0, 100, 20), "%"), las = 1)
+            graphics::par(mar = c(0, 0, 0, 0))
+            graphics::plot.new()
+            graphics::legend("center",
+                             legend = c(bquote("Stop for" ~ italic(H)[1] ~
+                                                   "(BF"["01"] <= .(k1char)*")  "),
+                                        bquote("Inconclusive  "),
+                                        bquote("Stop for" ~ italic(H)[0] ~
+                                                   "(BF"["01"] >= .(k0char)*")  ")),
+                             pch = 20, lwd = 1.5, lty = 1, col = c(4, 1, 2),
+                             horiz = TRUE, xpd = TRUE, bty = "n",
+                             text.width = NA)
 
-        if (nullplot == TRUE) {
-            plot(xvar, x0$cumpH1, type = "n", xlab = xlab, ylab = "Probability",
+            if (x$dpsd == 0) {
+                title <- paste0(parameter, " = ", round(x$dpm, digits = digits))
+            } else {
+                title <- paste0(parameter,
+                                " ~ N(mean = ", round(x$dpm, digits = digits),
+                                ", sd = ", round(x$dpsd, digits = digits), ")")
+            }
+            graphics::par(mar = c(5.1, 4.1, 4.1, 2.1))
+            plot(xvar, x$cumpH1, type = "n", xlab = xlab, ylab = "Probability",
                  ylim = c(0, 100), yaxt = "n",
-                 panel.first = graphics::grid(lty = 3, col = "#0000001A"),
-                 main = paste0(parameter, " = 0"))
-            graphics::matlines(xvar, cbind(x0$cumpH1, x0$cumpInc, x0$cumpH0)*100,
+                 panel.first = graphics::grid(lty = 3, col = "#0000001A"), main = title)
+            graphics::matlines(xvar, cbind(x$cumpH1, x$cumpInc, x$cumpH0)*100,
                                type = "b", pch = 20, col = c(4, 1, 2), lwd = 1.5,
                                lty = 1, cex = 1.5)
             graphics::axis(side = 2, at = seq(0, 100, 20),
                            labels = paste0(seq(0, 100, 20), "%"), las = 1)
+
+            if (nullplot == TRUE) {
+                plot(xvar, x0$cumpH1, type = "n", xlab = xlab, ylab = "Probability",
+                     ylim = c(0, 100), yaxt = "n",
+                     panel.first = graphics::grid(lty = 3, col = "#0000001A"),
+                     main = paste0(parameter, " = 0"))
+                graphics::matlines(xvar, cbind(x0$cumpH1, x0$cumpInc, x0$cumpH0)*100,
+                                   type = "b", pch = 20, col = c(4, 1, 2), lwd = 1.5,
+                                   lty = 1, cex = 1.5)
+                graphics::axis(side = 2, at = seq(0, 100, 20),
+                               labels = paste0(seq(0, 100, 20), "%"), las = 1)
+            }
         }
 
     }
     ## invisibly return data frames
-    if (nullplot == TRUE) {
+    if (zplot == TRUE) {
+        ret <- list("zDF" = plotDF)
+    } else if (nullplot == TRUE) {
         ret <- list("pDF1" = plotDF, "pDF2" = plotDF0)
     } else {
         ret <- list("pDF1" = plotDF)

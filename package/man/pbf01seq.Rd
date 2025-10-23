@@ -63,7 +63,7 @@ performed). Defaults to \code{TRUE}}
 }
 \value{
 An object of class \code{"bfseqdesign"}, which is a list containing
-    the input arguments, the expected sample size (if \code{n} supplied), the
+    the input arguments, the critical z-values, the expected sample size, the
     cumulative probabilities of stopping for \eqn{H_1}{H1} and \eqn{H_0}{H0}
     by each stage, and the cumulative probabilities of remaining inconclusive
     by each stage.

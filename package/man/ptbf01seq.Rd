@@ -78,7 +78,7 @@ adaptive way from the other input parameters}
 }
 \value{
 An object of class \code{"bfseqdesign"}, which is a list containing
-    the input arguments, the expected sample size (if \code{n} supplied), the
+    the input arguments, the critical z-values, the expected sample size, the
     cumulative probabilities of stopping for \eqn{H_1}{H1} and \eqn{H_0}{H0}
     by each stage, and the cumulative probabilities of remaining inconclusive
     by each stage.
@@ -99,7 +99,7 @@ The function constructs per-stage integration regions for cumulative
     \code{dpsd}. Integration is performed via \code{mvtnorm::lpmvnorm}.
 }
 \examples{
-## sequential example from Schönbrodt and Wagenmakers (2018, p. 138)
+## similar to example from Schönbrodt and Wagenmakers (2018, p. 138)
 k0 <- 6
 k1 <- 1/30
 dpm <- 0.5
@@ -107,15 +107,15 @@ dpsd <- 0.1
 plocation <- 0
 pscale <- 1/sqrt(2)
 pdf <- 1
-alternative <- "greater"
 type <- "two.sample"
-n <- seq(40, 100, 10) # sample size (per group) per stage
 alternative <- "greater"
+n <- seq(40, 100, 10) # sample size (per group) per stage
 res <- ptbf01seq(k1 = k1, k0 = k0, n = n, plocation = plocation,
                  pscale = pscale, pdf = pdf, dpm = dpm, dpsd = dpsd,
                  alternative = alternative, type = type)
 res
-plot(res)
+plot(res) # show stopping probabilities
+plot(res, zplot = TRUE) # show critical z-values
 
 
 }

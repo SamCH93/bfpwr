@@ -8,6 +8,7 @@
   x,
   plot = TRUE,
   nullplot = TRUE,
+  zplot = FALSE,
   digits = max(3L, getOption("digits") - 3L),
   ...
 )
@@ -22,6 +23,9 @@
 probabilities computed under the null hypothesis should also be produced.
 Defaults to \code{TRUE}}
 
+\item{zplot}{Logcal indicating whether a plot of the critical z-values should
+be produced}
+
 \item{digits}{Number of digits for formatting of numbers}
 
 \item{...}{Other arguments (for consistency with the generic)}
@@ -34,11 +38,13 @@ Plots stopping curves (if specified) and invisibly returns a list of
 Plot method for class \code{"bfseqdesign"}
 }
 \examples{
-n <- seq(50, 500, 50) # sample size per stage
+n <- seq(25, 150, 25) # sample size per stage
 se <- sqrt(2/n) # standard errors per stage
-res <- pbf01seq(k1 = 1/10, k0 = 10, se = se, n = n, pm = 0, psd = 0.5,
-                dpm = 0.4, dpsd = 0.1, type = "normal")
-plot(res)
+res <- pbf01seq(k1 = 1/10, k0 = 3, se = se, n = n, pm = 0, psd = 1,
+                dpm = 0.5, dpsd = 0.1, type = "moment")
+plot(res, nullplot = FALSE) # only under design prior
+plot(res, nullplot = TRUE) # also plot under null hypothesis
+plot(res, zplot = TRUE) # show critical z-values
 
 }
 \seealso{
