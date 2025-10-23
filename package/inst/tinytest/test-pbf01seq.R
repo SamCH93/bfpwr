@@ -7,7 +7,7 @@
 ##     smd <- rnorm(n = nsim, mean = dpm, sd = dpsd)
 ##     bfmat <- sapply(X = smd, FUN = function(smdi) {
 ##         y1 <- rnorm(n = max(n), mean = 0, sd = usd)
-##         y2 <- rnorm(n = max(n), mean = smdi, sd = usd)
+##         y2 <- rnorm(n = max(n), mean = smdi*usd, sd = usd)
 ##         est <- sapply(seq_along(n), FUN = function(i) {
 ##             (mean(y2[1:n[i]]) - mean(y1[1:n[i]]))/usd
 ##         })
