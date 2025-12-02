@@ -458,6 +458,17 @@ print.bfseqdesign <- function(x, digits = max(3L, getOption("digits") - 3L), ...
 #' plot(res, nullplot = TRUE) # also plot under null hypothesis
 #' plot(res, zplot = TRUE) # show critical z-values
 #'
+#' ## case which causes trouble
+#' pm <- 0
+#' psd <- 5
+#' dpm <- 24
+#' dpsd <- 0
+#' seseq <- c(12.030479, 8.506833, 6.945800, 6.015239, 5.380194, 4.911422, 4.547094,
+#'            4.253417, 4.010160, 3.804371)
+#' nseq <- seq(2, 20, 2)
+#' pbf01seq(k1 = 1/10, k0 = 3, se = seseq, n = nseq, pm = pm, psd = psd,
+#'          dpm = dpm, dpsd = dpsd, type = "directional")
+#'
 #' @export
 plot.bfseqdesign <- function(x, plot = TRUE, nullplot = TRUE, zplot = FALSE,
                              digits = max(3L, getOption("digits") - 3L), ...) {
@@ -626,3 +637,16 @@ plot.bfseqdesign <- function(x, plot = TRUE, nullplot = TRUE, zplot = FALSE,
     }
     invisible(ret)
 }
+
+#' ## problematic example (-> now fixed with specified integration grid)
+#' k1 <- 1/10
+#' k0 <- 3
+#' pm <- 0
+#' psd <- 5
+#' dpm <- 23.5
+#' dpsd <- 0
+#' nseq <- seq(2, 20, 2)
+#' type <- "directional"
+#' se <- c(12.03, 8.51, 6.94, 6.01, 5.38, 4.91, 4.54, 4.25, 4.01, 3.80)
+#' pbf01seq(k1 = k1, k0 = k0, se = se, n = nseq, pm = pm, psd = psd, dpm = dpm,
+#' dpsd = dpsd, type = type)

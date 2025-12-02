@@ -47,7 +47,10 @@ predpars <- function(se, dpm, dpsd) {
 #'     as zero
 #' @param mean Numeric vector of means for the cumulative z-statistic
 #' @param sigma Covariance matrix of the cumulative z-statistic
-#' @param ... Other arguments passed to \code{mvtnorm::pmvnorm}
+#' @param method Method to compute the integral. Either \code{lpmvnorm}
+#'     (default) or \code{"pmvnorm"}
+#' @param ... Other arguments passed to \code{mvtnorm::lpmvnorm} or
+#'     \code{mvtnorm::pmvnorm}
 #'
 #' @return Numeric vector of per-stage probabilities
 #'
@@ -75,7 +78,7 @@ predpars <- function(se, dpm, dpsd) {
 #'                   sqrt(n1/n2), 1), nrow = 2, byrow = TRUE)
 #' intstages(intregions = intregions, mean = mean, sigma = sigma)
 
-intstages <- function(intregions, mean, sigma, ...) {
+intstages <- function(intregions, mean, sigma, method = "lpmvnorm", ...) {
     stopifnot(
         is.list(intregions),
         is.numeric(mean),
@@ -87,9 +90,16 @@ intstages <- function(intregions, mean, sigma, ...) {
     m <- length(mean)
     probs <- numeric(m)
 
-    ## for more stable multivariate normal integration
-    C <- t(chol(sigma))
-    Ct <- mvtnorm::ltMatrices(C[lower.tri(C, diag = TRUE)], diag = TRUE)
+    if (m > 1 & method == "lpmvnorm") {
+        ## for more stable multivariate normal integration
+        C <- t(chol(sigma))
+        Ct <- mvtnorm::ltMatrices(C[lower.tri(C, diag = TRUE)], diag = TRUE)
+        ## use a fixed grid instead of Monte Carlo approach
+        ngrid <- 1000
+        w <- withr::with_seed(seed = 42, code = {
+            t(qrng::ghalton(n = ngrid, d = m - 1))
+        })
+    }
 
     for (i in seq_len(m)) {
         stageregions <- intregions[[i]]
@@ -98,22 +108,31 @@ intstages <- function(intregions, mean, sigma, ...) {
         regionprobs <- vapply(stageregions,
                               FUN.VALUE = numeric(1),
                               FUN = function(region) {
-            ## NaN means critical value doesn't exist => probability = 0
+            ## NaN encodes that critical value doesn't exist => probability = 0
             if (any(is.nan(region))) {
                 p <- 0
             } else {
-                ## p <- mvtnorm::pmvnorm(lower = region[1, ],
-                ##                       upper = region[2, ],
-                ##                       mean  = mean[1:i],
-                ##                       sigma = sigma[1:i, 1:i],
-                ##                       keepAttr = FALSE,
-                ##                       ...)
-                p <-  exp(mvtnorm::lpmvnorm(lower = region[1, ],
-                                            upper = region[2, ],
-                                            mean = mean[1:i],
-                                            chol = Ct[,1:i],
-                                            M = 2000,
-                                            ...))
+                if (i == 1) {
+                    p <- diff(stats::pnorm(q = c(region[1,], region[2,]),
+                                           mean = mean[1],
+                                           sd = sqrt(sigma[1:1])))
+                } else if (method == "lpmvnorm") {
+                    p <- exp(mvtnorm::lpmvnorm(lower = region[1, ],
+                                               upper = region[2, ],
+                                               mean = mean[1:i],
+                                               chol = Ct[,1:i],
+                                               M = ngrid,
+                                               w = w[1:(i - 1),,drop = FALSE],
+                                               ...))
+                } else {
+                    p <- mvtnorm::pmvnorm(lower = region[1, ],
+                                          upper = region[2, ],
+                                          mean  = mean[1:i],
+                                          sigma = sigma[1:i, 1:i],
+                                          seed = 42,
+                                          keepAttr = FALSE,
+                                          ...)
+                }
             }
             return(p)
         })

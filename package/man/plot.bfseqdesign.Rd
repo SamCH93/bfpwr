@@ -46,6 +46,17 @@ plot(res, nullplot = FALSE) # only under design prior
 plot(res, nullplot = TRUE) # also plot under null hypothesis
 plot(res, zplot = TRUE) # show critical z-values
 
+## case which causes trouble
+pm <- 0
+psd <- 5
+dpm <- 24
+dpsd <- 0
+seseq <- c(12.030479, 8.506833, 6.945800, 6.015239, 5.380194, 4.911422, 4.547094,
+           4.253417, 4.010160, 3.804371)
+nseq <- seq(2, 20, 2)
+pbf01seq(k1 = 1/10, k0 = 3, se = seseq, n = nseq, pm = pm, psd = psd,
+         dpm = dpm, dpsd = dpsd, type = "directional")
+
 }
 \seealso{
 \link{pbf01seq}

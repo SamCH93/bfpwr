@@ -117,7 +117,6 @@ res
 plot(res) # show stopping probabilities
 plot(res, zplot = TRUE) # show critical z-values
 
-
 }
 \author{
 Samuel Pawel
