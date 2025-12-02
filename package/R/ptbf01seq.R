@@ -153,13 +153,18 @@ ptbf01seq <- function(k1, k0 = 1/k1, n, n1 = n, n2 = n, plocation = 0,
     cumpH0 <- cumsum(pH0)
     cumpInc <- 1 - cumpH1 - cumpH0 # inconclusive evidence
 
-    ## compute expected sample size
+    ## compute expected sample size and its variance
     EN <- function(pH1, pH0, n) {
         sum((pH1 + pH0)*n) + # stopping evidence for H0/H1 in stage n
             (1 - sum(pH1 + pH0))*max(n) # no evidence until last stage
     }
+    VarN <- function(pH1, pH0, n) {
+        EN(pH1, pH0, n^2) - EN(pH1, pH0, n)^2
+    }
     EN1 <- EN(pH1, pH0, n1)
     EN2 <- EN(pH1, pH0, n2)
+    VarN1 <- VarN(pH1, pH0, n1)
+    VarN2 <- VarN(pH1, pH0, n2)
 
     ## put everything together
     out <- structure(list("k1" = k1, "k0" = k0, "n1" = n1, "n2" = n2,
@@ -168,6 +173,7 @@ ptbf01seq <- function(k1, k0 = 1/k1, n, n1 = n, n2 = n, plocation = 0,
                           "alternative" = alternative, "type" = type,
                           "drange" = drange, "strict" = strict, "test" = "t",
                           "zk1" = zk1, "zk0" = zk0, "EN1" = EN1, "EN2" = EN2,
+                          "VarN1" = VarN1, "VarN2" = VarN2,
                           "cumpH1" = cumpH1, "cumpH0" = cumpH0,
                           "cumpInc" = cumpInc),
                      class = "bfseqdesign")

@@ -163,27 +163,30 @@ pbf01seq <- function(k1, k0 = 1/k1, se, n = NULL, pm = NULL, psd, dpm = pm,
     cumpH0 <- cumsum(pH0)
     cumpInc <- 1 - cumpH1 - cumpH0 # inconclusive evidence
 
-    ## compute expected sample size
+    ## compute expected sample size and variance of sample size
     if (!is.null(n)) {
     EN <- sum((pH1 + pH0)*n) + # stopping evidence for H0/H1 in stage n
         (1 - sum(pH1 + pH0))*max(n) # no evidence until last stage
+    EN2 <- sum((pH1 + pH0)*n^2) +
+        (1 - sum(pH1 + pH0))*max(n^2)
+    VarN <- EN2 - EN^2
     } else {
         EN <- NA
+        VarN <- NA
     }
 
     ## put everything together
     out <- structure(list("k1" = k1, "k0" = k0, "se" = se, "n" = n, "pm" = pm,
                           "psd" = psd, "dpm" = dpm, "dpsd" = dpsd,
                           "type" = type, "strict" = strict, "test" = "z",
-                          "zk1" = zk1,
-                          "zk0" = zk0, "EN" = EN, "cumpH1" = cumpH1,
-                          "cumpH0" = cumpH0, "cumpInc" = cumpInc),
+                          "zk1" = zk1, "zk0" = zk0, "EN" = EN, "VarN" = VarN,
+                          "cumpH1" = cumpH1, "cumpH0" = cumpH0,
+                          "cumpInc" = cumpInc),
                      class = "bfseqdesign")
     return(out)
 }
 
 ## ## compare to simulation-based probabilities
-## ## TODO implement as real tests
 ## set.seed(142)
 ## n <- seq(10, 50, 5) # sample size per stage
 ## se <- sqrt(2/n) # standard errors per stage
@@ -215,7 +218,9 @@ pbf01seq <- function(k1, k0 = 1/k1, se, n = NULL, pm = NULL, psd, dpm = pm,
 ##         }
 ##     })
 ##     result <- "inconclusive"
+##     nfinal <- 0
 ##     for (i in seq_along(bf)) {
+##         nfinal <- n[i]
 ##         if (bf[i] >= k0) {
 ##             result <- "H0"
 ##             break
@@ -226,15 +231,18 @@ pbf01seq <- function(k1, k0 = 1/k1, se, n = NULL, pm = NULL, psd, dpm = pm,
 ##             break
 ##         }
 ##     }
-##     result
-## })
+##     list("result" = result, "nfinal" = nfinal)
+## }, simplify = FALSE)
+## decisions <- sapply(results, function(x) x$result)
+## nfinal <- sapply(results, function(x) x$nfinal)
 
 ## pbf01seq(k1 = k1, k0 = k0, se = se, n = n, pm = pm, psd = psd, dpm = dpm,
 ##          dpsd = dpsd, type = type, strict = TRUE)
-## mean(results == "H1")
-## mean(results == "H0")
-## mean(results == "inconclusive")
-
+## mean(decisions == "H1")
+## mean(decisions == "H0")
+## mean(decisions == "inconclusive")
+## mean(nfinal)
+## var(nfinal)
 
 ## ## checks: sequential with one stage should give the same as the fixed N functions
 ## ## TODO implement as real tests
@@ -408,16 +416,26 @@ print.bfseqdesign <- function(x, digits = max(3L, getOption("digits") - 3L), ...
         if (x$type != "two.sample") {
             cat("\nExpected sample size: ",
                 round(x$EN1, digits = digits), "\n", sep = "")
+            cat("Standard deviation of sample size: ",
+                round(sqrt(x$VarN1), digits = digits), "\n", sep = "")
         } else {
             cat("\nExpected sample size 1: ",
                 round(x$EN1, digits = digits), "\n", sep = "")
             cat("Expected sample size 2: ",
                 round(x$EN2, digits = digits), "\n", sep = "")
+            cat("Standard deviation of sample size 1: ",
+                round(sqrt(x$VarN1), digits = digits), "\n", sep = "")
+            cat("Standard deviation of sample size 2: ",
+                round(sqrt(x$VarN2), digits = digits), "\n", sep = "")
         }
     } else {
         if (!is.null(x$n) && !is.na(x$EN)) {
             cat("\nExpected sample size: ",
                 round(x$EN, digits = digits), "\n", sep = "")
+        }
+        if (!is.null(x$n) && !is.na(x$VarN)) {
+            cat("Standard deviation of sample size: ",
+                round(sqrt(x$VarN), digits = digits), "\n", sep = "")
         }
     }
     ## Note
