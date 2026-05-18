@@ -536,6 +536,7 @@ tcrit <- function(k, n1, n2, plocation, pscale, pdf, type, alternative,
             }
             zcrit <- -plocation*se/pscale^2 + c(-1, 1)*sqrt(X)
             searchint <- c(zcrit[1] - 2, zcrit[2] + 2)
+            extend <- "yes"
         } else {
             searchint <- drange
         }
@@ -555,11 +556,12 @@ tcrit <- function(k, n1, n2, plocation, pscale, pdf, type, alternative,
             if (alternative == "greater") {
                 ## want to first find the critical value on the positive side
                 searchint <- c(0, 0.1)
+                extend <- "downX"
             } else {
                 ## want to first find the critical value on the negative side
                 searchint <- c(-0.1, 0)
+                extend <- "upX"
             }
-            extend <- "yes"
         } else {
             searchint <- drange
             extend <- "no"
