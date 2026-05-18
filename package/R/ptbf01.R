@@ -121,12 +121,13 @@ ptbf01. <- function(k, n, n1 = n, n2 = n, null = 0, plocation = 0,
             searchIntLow <- c(drange[1], meant)
             searchIntUp <- c(meant, drange[2])
         }
-        ## search for critical values
+        ## search for critical values. The lower and upper roots have opposite
+        ## crossing directions, so use directional interval extension.
         upper <- try(stats::uniroot(f = rootFun, interval = searchIntUp,
-                                    extendInt = "yes", ...)$root,
+                                    extendInt = "downX", ...)$root,
                      silent = TRUE)
         lower <- try(stats::uniroot(f = rootFun, interval = searchIntLow,
-                                    extendInt = "yes", ...)$root,
+                                    extendInt = "upX", ...)$root,
                      silent = TRUE)
 
         ## compute power
@@ -173,9 +174,15 @@ ptbf01. <- function(k, n, n1 = n, n2 = n, null = 0, plocation = 0,
 
         if (!is.numeric(drange) && drange == "adaptive") {
             ## extend the search range if critical value not contained
-            searchRange <- c(null - 0.1, null + 0.1)
+            if (alternative == "greater") {
+                searchRange <- c(null, null + 0.1)
+                extend <- "downX"
+            } else {
+                searchRange <- c(null - 0.1, null)
+                extend <- "upX"
+            }
             crit <- try(stats::uniroot(f = rootFun, interval = searchRange,
-                                       extendInt = "yes", ...)$root,
+                                       extendInt = extend, ...)$root,
                         silent = TRUE)
         } else {
             crit <- try(stats::uniroot(f = rootFun, interval = drange,

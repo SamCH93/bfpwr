@@ -1,3 +1,47 @@
+library(tinytest)
+library(bfpwr)
+
+## One-stage sequential designs should agree with the non-sequential t-test
+## power calculation. This also exercises the internal tcrit() root search.
+regression_n <- 9596.363636363636
+common_args <- list(n = regression_n, plocation = 0, pscale = 0.707,
+                    pdf = 1, type = "two.sample", dpm = 0, dpsd = 0)
+
+for (alt in c("greater", "less", "two.sided")) {
+    seqres <- suppressWarnings(
+        do.call(ptbf01seq, c(list(k1 = 1/10, k0 = 10, alternative = alt),
+                             common_args))
+    )
+    pH1 <- suppressWarnings(
+        do.call(ptbf01, c(list(k = 1/10, alternative = alt), common_args))
+    )
+    pH0 <- suppressWarnings(
+        do.call(ptbf01, c(list(k = 10, alternative = alt, lower.tail = FALSE),
+                          common_args))
+    )
+    expect_true(is.finite(seqres$cumpH1) && seqres$cumpH1 > 0 &&
+                    seqres$cumpH1 < 0.01,
+                info = paste(alt, "ptbf01seq H1 probability should be finite"))
+    expect_true(is.finite(seqres$cumpH0) && seqres$cumpH0 > 0.9 &&
+                    seqres$cumpH0 < 1,
+                info = paste(alt, "ptbf01seq H0 probability should be finite"))
+    expect_true(abs(seqres$cumpH1 - pH1) < 1e-6,
+                info = paste(alt, "one-stage H1 probability should match ptbf01"))
+    expect_true(abs(seqres$cumpH0 - pH0) < 5e-4,
+                info = paste(alt, "one-stage H0 probability should match ptbf01"))
+}
+
+missing_h0 <- try(
+    ptbf01seq(k1 = 1/10, k0 = 10, n = c(5, 10), plocation = 0,
+              pscale = 0.707, pdf = 1, type = "two.sample",
+              alternative = "greater", dpm = 0, dpsd = 0),
+    silent = TRUE
+)
+expect_false(inherits(missing_h0, "try-error"),
+             info = "ptbf01seq should handle stages where H0 boundary is impossible")
+expect_true(all(missing_h0$cumpH0 < 1e-12),
+            info = "impossible one-sided H0 boundaries should have zero stop probability")
+
 ## ## do not run these tests for the moment, because they are there to verify
 ## ## the power with simulation which takes a long time to run
 
