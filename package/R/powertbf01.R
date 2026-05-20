@@ -97,7 +97,7 @@ powertbf01 <- function(n = NULL, power = NULL, k = 1/10, null = 0,
         n <- ntbf01(k = k, power = power, null = null, plocation = plocation,
                     pscale = pscale, pdf = pdf, type = type,
                     alternative = alternative, dpm = dpm, dpsd = dpsd,
-                    integer = FALSE)
+                    integer = FALSE, nrange = nrange)
     } else {
         ## determine power
         power <- ptbf01(k = k, n = n, null = null, plocation = plocation,

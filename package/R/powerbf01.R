@@ -330,8 +330,8 @@ plot.power.bftest <- function(x, nlim = c(2, 500), ngrid = 100, type = "l",
                   dpm = x$null, dpsd = 0, lower.tail = lower.tail)
         }
         nH0 <- nbf01(k = 1/x$k, power = x$power, usd = usd, null = x$null,
-                     pm = x$pm, psd = x$psd, dpm = x$null, dpsd = x$null,
-                     lower.tail = FALSE)
+                     pm = x$pm, psd = x$psd, dpm = x$null, dpsd = 0,
+                     lower.tail = FALSE, nrange = x$nrange)
     } else if (x$test == "nm") {
         ## determine unit standard deviation
         if (x$type == "two.sample") {
@@ -348,8 +348,8 @@ plot.power.bftest <- function(x, nlim = c(2, 500), ngrid = 100, type = "l",
                     dpm = x$null, dpsd = 0, lower.tail = lower.tail)
         }
         nH0 <- nnmbf01(k = 1/x$k, power = x$power, usd = usd, null = x$null,
-                       psd = x$psd, dpm = x$null, dpsd = x$null,
-                       lower.tail = FALSE)
+                       psd = x$psd, dpm = x$null, dpsd = 0,
+                       lower.tail = FALSE, nrange = x$nrange)
     } else if (x$test == "t") {
         powFun <- function(k, n, lower.tail = TRUE) {
             ptbf01(k = k, n = n, null = x$null, plocation = x$plocation,
@@ -366,7 +366,7 @@ plot.power.bftest <- function(x, nlim = c(2, 500), ngrid = 100, type = "l",
         nH0 <- ntbf01(k = 1/x$k, power = x$power, null = x$null,
                       plocation = x$plocation, pscale = x$pscale, pdf = x$pdf,
                       alternative = x$alternative, type = x$type, dpm = x$null,
-                      dpsd = 0, lower.tail = FALSE)
+                      dpsd = 0, lower.tail = FALSE, nrange = x$nrange)
     } else {
         ## binomial test
         powFun <- function(k, n, lower.tail = TRUE) {
@@ -382,7 +382,8 @@ plot.power.bftest <- function(x, nlim = c(2, 500), ngrid = 100, type = "l",
             }
             nH0 <- nbinbf01(k = 1/x$k, power = x$power, p0 = x$p0,
                             type = x$type, a = x$a, b = x$b, dp = NA, da = x$a,
-                            db = x$b, dl = 0, du = x$p0, lower.tail = FALSE)
+                            db = x$b, dl = 0, du = x$p0, lower.tail = FALSE,
+                            nrange = x$nrange)
         } else {
             powNullFun <- function(k, n, lower.tail = TRUE) {
                 pbinbf01(k = k, n = n, p0 = x$p0, type = x$type, a = x$a,
@@ -390,7 +391,7 @@ plot.power.bftest <- function(x, nlim = c(2, 500), ngrid = 100, type = "l",
             }
             nH0 <- nbinbf01(k = 1/x$k, power = x$power, p0 = x$p0,
                             type = x$type, a = x$a, b = x$b, dp = x$p0,
-                            lower.tail = FALSE)
+                            lower.tail = FALSE, nrange = x$nrange)
         }
     }
 

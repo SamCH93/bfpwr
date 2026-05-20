@@ -177,9 +177,16 @@ genregions1 <- function(zcrit0, zcrit1) {
               all(is.numeric(zcrit1)),
               length(zcrit0) == length(zcrit1))
 
-    if (all(zcrit1 >= zcrit0)) {
+    H0nan <- is.nan(zcrit0)
+    finite <- !H0nan & !is.nan(zcrit1)
+    finiteH1 <- !is.nan(zcrit1)
+    if (any(finite) && all(zcrit1[finite] >= zcrit0[finite])) {
         direction <- "positive"
-    } else if (all(zcrit1 < zcrit0)) {
+    } else if (any(finite) && all(zcrit1[finite] < zcrit0[finite])) {
+        direction <- "negative"
+    } else if (!any(finite) && any(finiteH1) && all(zcrit1[finiteH1] >= 0)) {
+        direction <- "positive"
+    } else if (!any(finite) && any(finiteH1) && all(zcrit1[finiteH1] <= 0)) {
         direction <- "negative"
     } else {
         stop("Inconsistent critical values: direction cannot be inferred.")
@@ -205,11 +212,13 @@ genregions1 <- function(zcrit0, zcrit1) {
             } else {
                 ## continue (no stop yet)
                 if (direction == "positive") {
-                    lower <- zcrit0[j]
+                    if (H0nan[j]) lower <- -Inf
+                    else lower <- zcrit0[j]
                     upper <- zcrit1[j]
                 } else {
                     lower <- zcrit1[j]
-                    upper <- zcrit0[j]
+                    if (H0nan[j]) upper <- Inf
+                    else upper <- zcrit0[j]
                 }
             }
             matH1[, j] <- c(lower, upper)
@@ -535,20 +544,31 @@ tcrit <- function(k, n1, n2, plocation, pscale, pdf, type, alternative,
                 X <- 5/k
             }
             zcrit <- -plocation*se/pscale^2 + c(-1, 1)*sqrt(X)
-            searchint <- c(zcrit[1] - 2, zcrit[2] + 2)
-            extend <- "yes"
+            meant <- mean(zcrit)
+            if (zcrit[1] < zcrit[2]) {
+                searchIntLow <- c(zcrit[1] - 2, meant)
+                searchIntUp <- c(meant, zcrit[2] + 2)
+            } else {
+                searchIntLow <- c(zcrit[2] - 2, meant)
+                searchIntUp <- c(meant, zcrit[1] + 2)
+            }
         } else {
-            searchint <- drange
+            meant <- mean(drange)
+            searchIntLow <- c(drange[1], meant)
+            searchIntUp <- c(meant, drange[2])
         }
         ## search for critical values
-        rootres <- try(rootSolve::uniroot.all(f = rootFun, interval = searchint))
         tcrit <- c(NaN, NaN)
-        if (!inherits(rootres, "try-error")) {
-            if (length(rootres) == 2) {
-                tcrit <- rootres
-            } else {
-                warning("Numerical problems: Could not find 2 t-roots")
-            }
+        lower <- try(stats::uniroot(f = rootFun, interval = searchIntLow,
+                                    extendInt = "upX", ...)$root,
+                     silent = TRUE)
+        upper <- try(stats::uniroot(f = rootFun, interval = searchIntUp,
+                                    extendInt = "downX", ...)$root,
+                     silent = TRUE)
+        if (inherits(lower, "try-error") || inherits(upper, "try-error")) {
+            warning("Numerical problems: Could not find 2 t-roots")
+        } else {
+            tcrit <- c(lower, upper)
         }
     } else { # one-sided cases
         if (!is.numeric(drange) && drange == "adaptive") {

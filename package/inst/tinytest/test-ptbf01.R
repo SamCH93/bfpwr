@@ -1,3 +1,62 @@
+library(tinytest)
+library(bfpwr)
+
+## Regression test for adaptive root selection in one-sided t-test designs.
+## This fractional n occurs in the default plot grid for nlim = c(10, 10000).
+regression_n <- 9596.363636363636
+common_args <- list(n = regression_n, null = 0, plocation = 0, pscale = 0.707,
+                    pdf = 1, type = "two.sample", dpm = 0, dpsd = 0)
+
+greater_adaptive <- suppressWarnings(
+    do.call(ptbf01, c(list(k = 1/10, alternative = "greater"), common_args))
+)
+greater_positive_range <- suppressWarnings(
+    do.call(ptbf01, c(list(k = 1/10, alternative = "greater", drange = c(0, 2)),
+                      common_args))
+)
+expect_true(is.finite(greater_adaptive) && greater_adaptive < 0.01,
+            info = "greater one-sided adaptive search should not select the lower root")
+expect_true(abs(greater_adaptive - greater_positive_range) < 5e-6,
+            info = "greater one-sided adaptive search should match positive-side search")
+
+less_adaptive <- suppressWarnings(
+    do.call(ptbf01, c(list(k = 1/10, alternative = "less"), common_args))
+)
+less_negative_range <- suppressWarnings(
+    do.call(ptbf01, c(list(k = 1/10, alternative = "less", drange = c(-2, 0)),
+                      common_args))
+)
+expect_true(is.finite(less_adaptive) && less_adaptive < 0.01,
+            info = "less one-sided adaptive search should not select the upper root")
+expect_true(abs(less_adaptive - less_negative_range) < 5e-6,
+            info = "less one-sided adaptive search should match negative-side search")
+
+h0_adaptive <- suppressWarnings(
+    do.call(ptbf01, c(list(k = 10, alternative = "greater", lower.tail = FALSE),
+                      common_args))
+)
+h0_positive_range <- suppressWarnings(
+    do.call(ptbf01, c(list(k = 10, alternative = "greater", lower.tail = FALSE,
+                           drange = c(0, 2)), common_args))
+)
+expect_true(is.finite(h0_adaptive) && h0_adaptive > 0.9 && h0_adaptive < 1,
+            info = "greater one-sided H0 power should remain on the positive root")
+expect_true(abs(h0_adaptive - h0_positive_range) < 5e-4,
+            info = "greater one-sided H0 adaptive search should match positive-side search")
+
+twosided_adaptive <- suppressWarnings(
+    do.call(ptbf01, c(list(k = 1/10, alternative = "two.sided"), common_args))
+)
+twosided_wide_range <- suppressWarnings(
+    do.call(ptbf01, c(list(k = 1/10, alternative = "two.sided", drange = c(-2, 2)),
+                      common_args))
+)
+expect_true(is.finite(twosided_adaptive) && twosided_adaptive > 0 &&
+                twosided_adaptive < 0.01,
+            info = "two-sided adaptive search should use finite lower and upper roots")
+expect_true(abs(twosided_adaptive - twosided_wide_range) < 5e-6,
+            info = "two-sided adaptive search should match a bracketing two-root search")
+
 ## ## do not run these tests for the moment, because they are there to verify
 ## ## the power with simulation which takes a long time to run
 
