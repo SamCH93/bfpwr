@@ -1,3 +1,8 @@
+# bfpwr 0.3
+
+- bug fixes for numerical search of t-test critical values
+- new contributor František Bartoš (<https://orcid.org/0000-0002-0018-5573>)
+
 # bfpwr 0.2
 
 - add function `pbf01seq` to compute characteristics of sequential Bayes factor
