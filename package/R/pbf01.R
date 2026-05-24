@@ -55,21 +55,32 @@ pbf01. <- function(k, n, usd, null = 0, pm, psd, dpm = pm, dpsd = psd,
         } else {
             tail <- FALSE
         }
-        pow <- stats::pnorm(q = Z, mean = 0, sd = 1, lower.tail = tail)
+        logpow <- stats::pnorm(q = Z, mean = 0, sd = 1, lower.tail = tail,
+                               log.p = TRUE)
+        logcomp <- stats::pnorm(q = Z, mean = 0, sd = 1, lower.tail = !tail,
+                                log.p = TRUE)
     } else {
         ## normal prior in the analysis
-        X <- (log(1 + n*psd^2/usd^2) + (null - pm)^2/psd^2 - log(k^2))*
+        X <- (log(1 + n*psd^2/usd^2) + (null - pm)^2/psd^2 - 2*log(k))*
             (1 + usd^2/n/psd^2)*usd^2/n/v
         if (X < 0) {
-            pow <- 1
+            logpow <- 0
+            logcomp <- -Inf
         } else {
             M <- (dpm - null - usd^2/n/psd^2*(null - pm))/sqrt(v)
-            pow <- stats::pnorm(q = -sqrt(X) - M) + stats::pnorm(q = -sqrt(X) + M)
+            lower <- -sqrt(X) - M
+            upper <- sqrt(X) - M
+            logpow <- .bfpwr_logspace_sum(c(
+                stats::pnorm(q = lower, log.p = TRUE),
+                stats::pnorm(q = upper, lower.tail = FALSE, log.p = TRUE)
+            ))
+            logpow <- min(0, logpow)
+            logcomp <- .bfpwr_lpnorm_interval(lower = lower, upper = upper)
         }
     }
 
-    if (lower.tail) return(pow)
-    else return(1 - pow)
+    if (lower.tail) return(exp(logpow))
+    else return(exp(logcomp))
 }
 
 

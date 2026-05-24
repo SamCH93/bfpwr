@@ -1,3 +1,166 @@
+.tbf01_pars <- function(n1, n2, type) {
+    if (type == "two.sample") {
+        list(df = n1 + n2 - 2, neff = 1/(1/n1 + 1/n2))
+    } else {
+        list(df = n1 - 1, neff = n1)
+    }
+}
+
+.tbf01_prior_region <- function(plocation, pscale, pdf, alternative) {
+    q0 <- (0 - plocation)/pscale
+    if (alternative == "two.sided") {
+        list(lower = -Inf, upper = Inf, log_norm_const = 0)
+    } else if (alternative == "greater") {
+        list(lower = 0, upper = Inf,
+             log_norm_const = stats::pt(q = q0, df = pdf, lower.tail = FALSE,
+                                        log.p = TRUE))
+    } else {
+        list(lower = -Inf, upper = 0,
+             log_norm_const = stats::pt(q = q0, df = pdf, lower.tail = TRUE,
+                                        log.p = TRUE))
+    }
+}
+
+.tbf01_log_fast <- function(t, df, neff, plocation, pscale, pdf, region, ...) {
+    if (!is.finite(region$log_norm_const)) {
+        return(NaN)
+    }
+
+    eta <- sqrt(neff)
+    log_f0 <- stats::dt(x = t, df = df, log = TRUE)
+
+    log_prior <- function(d) {
+        stats::dt(x = (d - plocation)/pscale, df = pdf, log = TRUE) -
+            log(pscale) - region$log_norm_const
+    }
+    log_integrand <- function(d) {
+        suppressWarnings({
+            stats::dt(x = t, df = df, ncp = eta*d, log = TRUE) + log_prior(d)
+        })
+    }
+
+    centers <- c(t/eta, plocation, 0)
+    centers <- centers[is.finite(centers) & centers >= region$lower &
+                       centers <= region$upper]
+    if (length(centers) == 0) {
+        centers <- if (is.finite(region$lower)) region$lower else region$upper
+    }
+    log_centers <- vapply(centers, log_integrand, numeric(1))
+    log_center <- max(log_centers, na.rm = TRUE)
+    if (!is.finite(log_center)) {
+        return(NaN)
+    }
+
+    intfun <- function(d) {
+        z <- log_integrand(d) - log_center
+        z[!is.finite(z)] <- -Inf
+        exp(z)
+    }
+    f1 <- try(stats::integrate(f = intfun, lower = region$lower,
+                               upper = region$upper, ...)$value,
+              silent = TRUE)
+    if (inherits(f1, "try-error") || !is.finite(f1) || f1 <= 0) {
+        return(NaN)
+    }
+
+    log_f0 - (log(f1) + log_center)
+}
+
+.tbf01_log_exact <- function(t, df, neff, plocation, pscale, pdf, region, ...) {
+    if (!is.finite(region$log_norm_const)) {
+        return(NaN)
+    }
+
+    eta <- sqrt(neff)
+    shape_v <- (df + 1)/2
+    rate_v <- (1 + t^2/df)/2
+    shape_s <- pdf/2
+    rate_s <- pdf/2
+
+    log_conditional <- function(v, s) {
+        if (!is.finite(v) || !is.finite(s) || v <= 0 || s <= 0) {
+            return(-Inf)
+        }
+
+        y <- t*sqrt(v/df)
+        prior_var <- pscale^2/s
+        if (!is.finite(prior_var) || prior_var <= 0) {
+            return(-Inf)
+        }
+
+        pred_var <- 1 + eta^2*prior_var
+        log_ratio <- stats::dnorm(x = y, mean = eta*plocation,
+                                  sd = sqrt(pred_var), log = TRUE) -
+            stats::dnorm(x = y, mean = 0, sd = 1, log = TRUE)
+
+        post_var <- 1/(1/prior_var + eta^2)
+        post_mean <- post_var*(plocation/prior_var + eta*y)
+        log_mass <- .bfpwr_lpnorm_interval(lower = region$lower,
+                                           upper = region$upper,
+                                           mean = post_mean,
+                                           sd = sqrt(post_var))
+        ans <- log_ratio + log_mass
+        if (is.finite(ans)) ans else -Inf
+    }
+
+    grid <- c(0.001, 0.01, 0.05, 0.1, 0.25, 0.5, 0.75, 0.9, 0.95,
+              0.99, 0.999)
+    v_grid <- stats::qgamma(p = grid, shape = shape_v, rate = rate_v)
+    s_grid <- stats::qgamma(p = grid, shape = shape_s, rate = rate_s)
+    log_grid <- as.vector(outer(v_grid, s_grid,
+                                Vectorize(function(v, s) log_conditional(v, s))))
+    log_center <- max(log_grid, na.rm = TRUE)
+    if (!is.finite(log_center)) {
+        return(NaN)
+    }
+
+    inner <- function(v) {
+        intfun_s <- function(u) {
+            out <- numeric(length(u))
+            ok <- u > 0 & u < 1
+            if (any(ok)) {
+                s <- stats::qgamma(p = u[ok], shape = shape_s, rate = rate_s)
+                z <- vapply(s, function(si) log_conditional(v, si),
+                            numeric(1)) - log_center
+                z[!is.finite(z)] <- -Inf
+                out[ok] <- exp(z)
+            }
+            out
+        }
+        stats::integrate(f = intfun_s, lower = 0, upper = 1, ...)$value
+    }
+
+    intfun_v <- function(u) {
+        out <- numeric(length(u))
+        ok <- u > 0 & u < 1
+        if (any(ok)) {
+            v <- stats::qgamma(p = u[ok], shape = shape_v, rate = rate_v)
+            out[ok] <- vapply(v, inner, numeric(1))
+        }
+        out
+    }
+    ratio <- try(stats::integrate(f = intfun_v, lower = 0, upper = 1,
+                                  ...)$value, silent = TRUE)
+    if (inherits(ratio, "try-error") || !is.finite(ratio) || ratio <= 0) {
+        return(NaN)
+    }
+
+    -(log_center + log(ratio) - region$log_norm_const)
+}
+
+.tbf01_needs_exact_path <- function(t, alternative, log_bf) {
+    if (!is.finite(log_bf)) {
+        return(TRUE)
+    }
+    if (alternative == "greater" && t <= -4) {
+        return(TRUE)
+    }
+    if (alternative == "less" && t >= 4) {
+        return(TRUE)
+    }
+    FALSE
+}
+
 tbf01. <- function(t, n, n1 = n, n2 = n, plocation = 0, pscale = 1/sqrt(2),
                    pdf = 1, type = c("two.sample", "one.sample",  "paired"),
                    alternative = c("two.sided", "less", "greater"), log = FALSE,
@@ -45,51 +208,22 @@ tbf01. <- function(t, n, n1 = n, n2 = n, plocation = 0, pscale = 1/sqrt(2),
         }
     }
 
-    ## compute df and effective sample size depending on test type
-    if (type == "two.sample") {
-        df <- n1 + n2 - 2
-        neff <- 1/(1/n1 + 1/n2)
-    } else {
-        df <- n1 - 1
-        neff <- n1
+    pars <- .tbf01_pars(n1 = n1, n2 = n2, type = type)
+    region <- .tbf01_prior_region(plocation = plocation, pscale = pscale,
+                                  pdf = pdf, alternative = alternative)
+
+    log_bf <- .tbf01_log_fast(t = t, df = pars$df, neff = pars$neff,
+                              plocation = plocation, pscale = pscale,
+                              pdf = pdf, region = region, ...)
+    if (.tbf01_needs_exact_path(t = t, alternative = alternative,
+                                log_bf = log_bf)) {
+        log_bf <- .tbf01_log_exact(t = t, df = pars$df, neff = pars$neff,
+                                   plocation = plocation, pscale = pscale,
+                                   pdf = pdf, region = region, ...)
     }
 
-    ## marginal likelihood under the null hypothesis
-    f0 <- stats::dt(x = t, df = df, ncp = 0)
-
-    ## marginal likelihood under the alternative hypothesis
-    if (alternative == "two.sided") {
-        normConst <- 1
-        lower <- -Inf
-        upper <- Inf
-    } else if (alternative == "greater") {
-        normConst <- 1 - stats::pt(q = (0 - plocation)/pscale, df = pdf)
-        lower <- 0
-        upper <- Inf
-    } else {
-        normConst <- stats::pt(q = (0 - plocation)/pscale, df = pdf)
-        lower <- -Inf
-        upper <- 0
-    }
-    dpriorH1 <- function(d) {
-        stats::dt(x = (d - plocation)/pscale, df = pdf, ncp = 0)/(pscale*normConst)
-    }
-    intFun <- function(d) {
-        suppressWarnings({
-            stats::dt(x = t, df = df, ncp = sqrt(neff)*d)*dpriorH1(d)
-        })
-    }
-    f1 <- try(stats::integrate(f = intFun, lower = lower, upper = upper,
-                               ...)$value, silent = TRUE)
-
-    ## compute Bayes factor
-    if (inherits(f1, "try-error")) {
-        bf <- NaN
-    } else {
-        bf <- f0/f1
-    }
-    if (log) return(log(bf))
-    else return(bf)
+    if (log) return(log_bf)
+    else return(exp(log_bf))
 }
 
 

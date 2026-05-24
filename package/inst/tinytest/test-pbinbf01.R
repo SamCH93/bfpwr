@@ -1,3 +1,19 @@
+library(tinytest)
+library(bfpwr)
+
+res <- pbinbf01(k = 1/10, n = 20, p0 = 0.5, da = 2000, db = 1,
+                dl = 0, du = 0.5)
+
+expect_true(is.finite(res) && res >= 0 && res <= 1,
+            info = "pbinbf01 should handle tiny truncated beta design mass")
+
+expect_equal(
+    res + pbinbf01(k = 1/10, n = 20, p0 = 0.5, da = 2000, db = 1,
+                   dl = 0, du = 0.5, lower.tail = FALSE),
+    1, tolerance = 1e-12,
+    info = "pbinbf01 lower and upper tails should be complementary"
+)
+
 ## do not run these tests for the moment, because they are there to verify
 ## the power with simulation which takes a long time to run
 

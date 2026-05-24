@@ -57,6 +57,14 @@ expect_true(is.finite(twosided_adaptive) && twosided_adaptive > 0 &&
 expect_true(abs(twosided_adaptive - twosided_wide_range) < 5e-6,
             info = "two-sided adaptive search should match a bracketing two-root search")
 
+tiny_upper_tail <- suppressWarnings(
+    ptbf01(k = 3, n = 1000, plocation = 0, pscale = 1/sqrt(2), pdf = 1,
+           dpm = 0.5, dpsd = 0, type = "two.sample",
+           alternative = "two.sided", lower.tail = FALSE, drange = c(-2, 2))
+)
+expect_equal(tiny_upper_tail, 1.384599e-20, tolerance = 1e-6,
+             info = "ptbf01 should compute very small upper-tail probabilities directly")
+
 ## ## do not run these tests for the moment, because they are there to verify
 ## ## the power with simulation which takes a long time to run
 

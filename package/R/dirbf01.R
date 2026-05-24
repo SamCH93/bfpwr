@@ -31,13 +31,20 @@ dirbf01. <- function(estimate, se, null = 0, pm, psd, log = FALSE) {
     postsd <- 1/sqrt(1/se^2 + 1/psd^2)
     postm <- (estimate/se^2 + pm/psd^2)*postsd^2
 
-    priorodds <- 1/stats::pnorm(q = (pm - null)/psd) - 1
-    postodds <- 1/stats::pnorm(q = (postm - null)/postsd) - 1
+    priorz <- (pm - null)/psd
+    postz <- (postm - null)/postsd
 
-    bf <- postodds/priorodds
+    logpriorodds <- stats::pnorm(q = priorz, lower.tail = FALSE,
+                                 log.p = TRUE) -
+        stats::pnorm(q = priorz, lower.tail = TRUE, log.p = TRUE)
+    logpostodds <- stats::pnorm(q = postz, lower.tail = FALSE,
+                                log.p = TRUE) -
+        stats::pnorm(q = postz, lower.tail = TRUE, log.p = TRUE)
 
-    if (log) return(log(bf))
-    else return(bf)
+    logbf <- logpostodds - logpriorodds
+
+    if (log) return(logbf)
+    else return(exp(logbf))
 }
 
 

@@ -14,3 +14,10 @@ expect_equal(log(res), log(res),
 
 expect_equal(bf01(estimate = 0, se = 1, null = 0, pm = 0, psd = 0, log = FALSE),
              1, info = "bf01 should return 1 when null = 0, pm = 0, psd = 0")
+
+expect_equal(
+    pbf01(k = 3, n = 1000, usd = 1, null = 0, pm = 0, psd = 1,
+          dpm = 0.5, dpsd = 0, lower.tail = FALSE),
+    1.162618e-42, tolerance = 1e-6,
+    info = "pbf01 should compute very small upper-tail probabilities directly"
+)

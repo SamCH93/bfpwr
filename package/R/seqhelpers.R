@@ -113,9 +113,10 @@ intstages <- function(intregions, mean, sigma, method = "lpmvnorm", ...) {
                 p <- 0
             } else {
                 if (i == 1) {
-                    p <- diff(stats::pnorm(q = c(region[1,], region[2,]),
-                                           mean = mean[1],
-                                           sd = sqrt(sigma[1:1])))
+                    p <- exp(.bfpwr_lpnorm_interval(lower = region[1,],
+                                                    upper = region[2,],
+                                                    mean = mean[1],
+                                                    sd = sqrt(sigma[1:1])))
                 } else if (method == "lpmvnorm") {
                     p <- exp(mvtnorm::lpmvnorm(lower = region[1, ],
                                                upper = region[2, ],
@@ -410,10 +411,11 @@ zcrit <- function(k, se, mu = NULL, tau, type = c("normal", "directional", "mome
     if (type == "normal") {
         if (tau == 0) {
             ## point prior under the alternative
-            zcrit <- (mu^2/se^2 - log(k^2))/(2*mu/se)
+            zcrit <- (mu^2/se^2 - 2*log(k))/(2*mu/se)
         } else {
             ## normal prior under the alternative
-            X <- (mu^2/tau^2 + log(1 + tau^2/se^2) - log(k^2))*(1 + se^2/tau^2)
+            X <- (mu^2/tau^2 + log(1 + tau^2/se^2) - 2*log(k))*
+                (1 + se^2/tau^2)
             if (X < 0) {
                 zcrit <- c(NaN, NaN)
             } else {
@@ -424,8 +426,11 @@ zcrit <- function(k, se, mu = NULL, tau, type = c("normal", "directional", "mome
     }
 
     if (type == "directional") {
-        priorodds <- 1/stats::pnorm(mu/tau) - 1
-        zcrit <- (stats::qnorm(1/(k*priorodds + 1))*sqrt(1/se^2 + 1/tau^2) -
+        logpriorodds <- stats::pnorm(q = mu/tau, lower.tail = FALSE,
+                                     log.p = TRUE) -
+            stats::pnorm(q = mu/tau, lower.tail = TRUE, log.p = TRUE)
+        postq <- .bfpwr_qnorm_logistic_inverse(log(k) + logpriorodds)
+        zcrit <- (postq*sqrt(1/se^2 + 1/tau^2) -
                   mu/tau^2)*se
     }
 
@@ -539,7 +544,7 @@ tcrit <- function(k, n1, n2, plocation, pscale, pdf, type, alternative,
             }
             se <- 1/sqrt(neff)
             X <- (plocation^2/pscale^2 + log(1 + pscale^2/se^2) -
-                  log(k^2))*(1 + se^2/pscale^2)
+                  2*log(k))*(1 + se^2/pscale^2)
             if (X <= 0) {
                 X <- 5/k
             }

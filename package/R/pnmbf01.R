@@ -47,15 +47,23 @@ pnmbf01. <- function(k, n, usd, null = 0, psd, dpm, dpsd, lower.tail = TRUE) {
         (1 + usd^2/(n*psd^2))/(1 + n*dpsd^2/usd^2)
     A <- (dpm - null)/sqrt(v)
     if (Y < 0) {
-        pow <- 1
+        logpow <- 0
+        logcomp <- -Inf
     } else {
-        pow <- stats::pnorm(-sqrt(Y) - A) + stats::pnorm(-sqrt(Y) + A)
+        lower <- -sqrt(Y) - A
+        upper <- sqrt(Y) - A
+        logpow <- .bfpwr_logspace_sum(c(
+            stats::pnorm(q = lower, log.p = TRUE),
+            stats::pnorm(q = upper, lower.tail = FALSE, log.p = TRUE)
+        ))
+        logpow <- min(0, logpow)
+        logcomp <- .bfpwr_lpnorm_interval(lower = lower, upper = upper)
     }
 
     if (lower.tail == TRUE) {
-        return(pow)
+        return(exp(logpow))
     } else {
-        return(1 - pow)
+        return(exp(logcomp))
     }
 }
 

@@ -100,7 +100,7 @@ ptbf01. <- function(k, n, n1 = n, n2 = n, null = 0, plocation = 0,
         ## TODO improve robustness of adaptive strategy
         if (!is.numeric(drange) && drange == "adaptive") {
             suppressWarnings({
-                X <- (log(1 + neff*pscale^2) + (null - plocation)^2/pscale^2 - log(k^2))*
+                X <- (log(1 + neff*pscale^2) + (null - plocation)^2/pscale^2 - 2*log(k))*
                     (1 + 1/neff/pscale^2)/neff
                 sqrtX <- sqrt(X)
                 if (is.nan(sqrtX)) sqrtX <- 0.3
@@ -132,24 +132,37 @@ ptbf01. <- function(k, n, n1 = n, n2 = n, null = 0, plocation = 0,
 
         ## compute power
         if (inherits(upper, "try-error")) {
-            powup <- 0
+            logpowup <- -Inf
             uperr <- TRUE
         } else {
-            powup <- stats::pnorm(q = upper, mean = dpm, sd = estsd, lower.tail = FALSE)
+            logpowup <- stats::pnorm(q = upper, mean = dpm, sd = estsd,
+                                      lower.tail = FALSE, log.p = TRUE)
             uperr <- FALSE
         }
         if (inherits(lower, "try-error")) {
-            powlow <- 0
+            logpowlow <- -Inf
             lowerr <- TRUE
         } else {
-            powlow <- stats::pnorm(q = lower, mean = dpm, sd = estsd, lower.tail = TRUE)
+            logpowlow <- stats::pnorm(q = lower, mean = dpm, sd = estsd,
+                                       lower.tail = TRUE, log.p = TRUE)
             lowerr <- FALSE
         }
         if ((uperr == TRUE) && (lowerr == TRUE)) {
             warning("Numerical problems finding critical value")
-            pow <- NaN
+            logpow <- NaN
+            logcomp <- NaN
         } else {
-            pow <- powup + powlow
+            logpow <- min(0, .bfpwr_logspace_sum(c(logpowup, logpowlow)))
+            if (!uperr && !lowerr) {
+                logcomp <- .bfpwr_lpnorm_interval(lower = lower, upper = upper,
+                                                  mean = dpm, sd = estsd)
+            } else if (!uperr) {
+                logcomp <- stats::pnorm(q = upper, mean = dpm, sd = estsd,
+                                         lower.tail = TRUE, log.p = TRUE)
+            } else {
+                logcomp <- stats::pnorm(q = lower, mean = dpm, sd = estsd,
+                                         lower.tail = FALSE, log.p = TRUE)
+            }
         }
     } else {
         ## one-sided alternatives
@@ -191,21 +204,26 @@ ptbf01. <- function(k, n, n1 = n, n2 = n, null = 0, plocation = 0,
         }
         if (inherits(crit, "try-error")) {
             warning("Numerical problems finding critical value")
-            pow <- NaN
+            logpow <- NaN
+            logcomp <- NaN
         } else {
             if (alternative == "greater") {
-                pow <- stats::pnorm(q = crit, mean = dpm, sd = estsd,
-                                    lower.tail = FALSE)
+                logpow <- stats::pnorm(q = crit, mean = dpm, sd = estsd,
+                                        lower.tail = FALSE, log.p = TRUE)
+                logcomp <- stats::pnorm(q = crit, mean = dpm, sd = estsd,
+                                         lower.tail = TRUE, log.p = TRUE)
             } else {
-                pow <- stats::pnorm(q = crit, mean = dpm, sd = estsd,
-                                    lower.tail = TRUE)
+                logpow <- stats::pnorm(q = crit, mean = dpm, sd = estsd,
+                                        lower.tail = TRUE, log.p = TRUE)
+                logcomp <- stats::pnorm(q = crit, mean = dpm, sd = estsd,
+                                         lower.tail = FALSE, log.p = TRUE)
             }
         }
 
     }
 
-    if (lower.tail == TRUE) return(pow)
-    else return(1 - pow)
+    if (lower.tail == TRUE) return(exp(logpow))
+    else return(exp(logcomp))
 }
 
 

@@ -47,7 +47,9 @@ pbinbf01. <- function(k, n, p0 = 0.5, type = c("point", "direction"), a = 1,
             0 < dp, dp < 1
             )
         ## predictive PMF under the point design prior
-        predpmf <- function(x) stats::dbinom(x = x, size = n, prob = dp)
+        predlogpmf <- function(x) {
+            stats::dbinom(x = x, size = n, prob = dp, log = TRUE)
+        }
     } else {
         ## Beta design prior
         stopifnot(
@@ -72,13 +74,17 @@ pbinbf01. <- function(k, n, p0 = 0.5, type = c("point", "direction"), a = 1,
             dl < du, du <= 1
         )
         ## predictive PMF under the truncated Beta design prior
-        predpmf. <- function(x) {
-            exp(lchoose(n, x) + lbeta(da + x, db + n - x) - lbeta(da, db)) *
-                diff(stats::pbeta(q = c(dl, du), shape1 = da + x,
-                                  shape2 = db + n - x)) /
-                diff(stats::pbeta(q = c(dl, du), shape1 = da, shape2 = db))
+        log_norm_const <- .bfpwr_lpbeta_interval(lower = dl, upper = du,
+                                                 shape1 = da, shape2 = db)
+        predlogpmf. <- function(x) {
+            lchoose(n, x) + lbeta(da + x, db + n - x) -
+                lbeta(da, db) +
+                .bfpwr_lpbeta_interval(lower = dl, upper = du,
+                                        shape1 = da + x,
+                                        shape2 = db + n - x) -
+                log_norm_const
         }
-        predpmf <- Vectorize(FUN = predpmf.)
+        predlogpmf <- Vectorize(FUN = predlogpmf.)
     }
 
     ## BF as a function of the data
@@ -149,9 +155,13 @@ pbinbf01. <- function(k, n, p0 = 0.5, type = c("point", "direction"), a = 1,
     }
 
     ## compute probability of BF01 <= k under the design prior
-    pow <- sum(predpmf(xsuccess))
-    if (lower.tail == TRUE) return(pow)
-    else return(1 - pow)
+    logpow <- .bfpwr_logspace_sum(predlogpmf(xsuccess))
+    logpow <- min(0, logpow)
+    if (lower.tail == TRUE) {
+        return(exp(logpow))
+    } else {
+        return(exp(.bfpwr_logspace_sub(0, logpow)))
+    }
 }
 
 
