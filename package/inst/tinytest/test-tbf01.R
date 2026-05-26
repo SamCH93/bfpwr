@@ -33,3 +33,16 @@ expect_equal(
     6.2869769, tolerance = 1e-4,
     info = "tbf01 should return finite large-n two-sided log Bayes factors"
 )
+
+opposite_less <- tbf01(t = 7.792904, n1 = 500, n2 = 500,
+                       plocation = 0, pscale = 1 / sqrt(2), pdf = 1,
+                       type = "two.sample", alternative = "less",
+                       log = TRUE)
+opposite_greater <- tbf01(t = -7.792904, n1 = 500, n2 = 500,
+                          plocation = 0, pscale = 1 / sqrt(2), pdf = 1,
+                          type = "two.sample", alternative = "greater",
+                          log = TRUE)
+expect_true(is.finite(opposite_less) && opposite_less > 0,
+            info = "one-sided opposite-direction tbf01 should be finite on the log scale")
+expect_equal(opposite_less, opposite_greater, tolerance = 1e-8,
+             info = "mirrored one-sided opposite-direction tbf01 values should agree")

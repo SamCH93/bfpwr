@@ -31,16 +31,26 @@ for (alt in c("greater", "less", "two.sided")) {
                 info = paste(alt, "one-stage H0 probability should match ptbf01"))
 }
 
+limit_warning <- NULL
 missing_h0 <- try(
-    ptbf01seq(k1 = 1/10, k0 = 10, n = c(5, 10), plocation = 0,
-              pscale = 0.707, pdf = 1, type = "two.sample",
-              alternative = "greater", dpm = 0, dpsd = 0),
+    withCallingHandlers(
+        ptbf01seq(k1 = 1/10, k0 = 10, n = c(5, 10), plocation = 0,
+                  pscale = 0.707, pdf = 1, type = "two.sample",
+                  alternative = "greater", dpm = 0, dpsd = 0),
+        warning = function(w) {
+            limit_warning <<- conditionMessage(w)
+            invokeRestart("muffleWarning")
+        }
+    ),
     silent = TRUE
 )
 expect_false(inherits(missing_h0, "try-error"),
              info = "ptbf01seq should handle stages where H0 boundary is impossible")
 expect_true(all(missing_h0$cumpH0 < 1e-12),
             info = "impossible one-sided H0 boundaries should have zero stop probability")
+expect_true(grepl("Adaptive t critical-value search reached", limit_warning,
+                  fixed = TRUE),
+            info = "ptbf01seq should warn when adaptive tcrit search reaches its limit")
 
 ## ## do not run these tests for the moment, because they are there to verify
 ## ## the power with simulation which takes a long time to run

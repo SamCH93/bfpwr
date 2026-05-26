@@ -76,9 +76,9 @@ ptbf01. <- function(k, n, n1 = n, n2 = n, null = 0, plocation = 0,
     se <- 1/sqrt(neff) # standard error of SMD assuming variance is known
     estsd <- sqrt(se^2 + dpsd^2) # standard deviation of SMD under design prior
     rootFun <- function(est) {
-        tbf01(t = (est - null)/se, n1 = n1, n2 = n2, plocation = plocation,
-              pscale = pscale, pdf = pdf, type = type,
-              alternative = alternative, log = TRUE) - log(k)
+        tbf01(t = (est - null)/se, n1 = n1, n2 = n2,
+              plocation = plocation - null, pscale = pscale, pdf = pdf,
+              type = type, alternative = alternative, log = TRUE) - log(k)
     }
 
     if (alternative == "two.sided") {
@@ -166,25 +166,6 @@ ptbf01. <- function(k, n, n1 = n, n2 = n, null = 0, plocation = 0,
         }
     } else {
         ## one-sided alternatives
-        if (k > 1) {
-            ## find maximum BF to see whether BF = k is possible
-            opt <- stats::optim(par = null, fn = rootFun, control = list(fnscale = -1),
-                                method = "BFGS")
-            if (opt$convergence != 0) {
-                warning("numerical problems finding maximum BF")
-                return(NaN)
-            } else {
-                if (opt$value < 0) {
-                    ## maximum BF is smaller than k
-                    if (lower.tail == TRUE) {
-                        return(1)
-                    } else {
-                        return(0)
-                    }
-                }
-            }
-        }
-
         if (!is.numeric(drange) && drange == "adaptive") {
             ## extend the search range if critical value not contained
             if (alternative == "greater") {
@@ -194,11 +175,13 @@ ptbf01. <- function(k, n, n1 = n, n2 = n, null = 0, plocation = 0,
                 searchRange <- c(null - 0.1, null)
                 extend <- "upX"
             }
-            crit <- try(stats::uniroot(f = rootFun, interval = searchRange,
+            crit <- try(stats::uniroot(f = rootFun,
+                                       interval = searchRange,
                                        extendInt = extend, ...)$root,
                         silent = TRUE)
         } else {
-            crit <- try(stats::uniroot(f = rootFun, interval = drange,
+            crit <- try(stats::uniroot(f = rootFun,
+                                       interval = drange,
                                        extendInt = "no", ...)$root,
                         silent = TRUE)
         }

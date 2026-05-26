@@ -8,6 +8,10 @@
 #'
 #' @inheritParams ptbf01
 #' @inheritParams pbf01seq
+#' @param drange Critical \eqn{t}-statistic search strategy for the sequential
+#'     stopping boundaries. Can be either \code{"adaptive"} (default) or a
+#'     numeric interval. For one-sided adaptive searches, roots are bracketed up
+#'     to \code{|t| <= 256}; pass a wider numeric interval to search farther.
 #' @param ... Additional arguments passed to \code{mvtnorm::lpmvnorm}
 #'
 #' @inherit pbf01seq return
@@ -122,18 +126,41 @@ ptbf01seq <- function(k1, k0 = 1/k1, n, n1 = n, n2 = n, plocation = 0,
     sigma <- pars$sigma
 
     ## get integration regions
-    suppressWarnings({
-        zk0 <- sapply(X = seq_along(n1), FUN = function(i) {
-            tcrit(k = k0, n1 = n1[i], n2 = n2[i], plocation = plocation,
-                  pscale = pscale, pdf = pdf, alternative = alternative,
-                  type = type, drange = drange)
-        })
-        zk1 <- sapply(X = seq_along(n1), FUN = function(i) {
-            tcrit(k = k1, n1 = n1[i], n2 = n2[i], plocation = plocation,
-                  pscale = pscale, pdf = pdf, alternative = alternative,
-                  type = type, drange = drange)
-        })
+    searchLimitWarnings <- 0L
+    evalTcrit <- function(...) {
+        withCallingHandlers(
+            tcrit(...),
+            warning = function(w) {
+                if (grepl("Adaptive t critical-value search reached",
+                          conditionMessage(w), fixed = TRUE)) {
+                    searchLimitWarnings <<- searchLimitWarnings + 1L
+                }
+                invokeRestart("muffleWarning")
+            }
+        )
+    }
+    zk0 <- sapply(X = seq_along(n1), FUN = function(i) {
+        evalTcrit(
+            k = k0, n1 = n1[i], n2 = n2[i], plocation = plocation,
+            pscale = pscale, pdf = pdf, alternative = alternative,
+            type = type, drange = drange
+        )
     })
+    zk1 <- sapply(X = seq_along(n1), FUN = function(i) {
+        evalTcrit(
+            k = k1, n1 = n1[i], n2 = n2[i], plocation = plocation,
+            pscale = pscale, pdf = pdf, alternative = alternative,
+            type = type, drange = drange
+        )
+    })
+    if (searchLimitWarnings > 0) {
+        warning(paste0(
+            "Adaptive t critical-value search reached |t| <= 256 in ",
+            searchLimitWarnings,
+            " sequential boundary search(es); pass a wider numeric 'drange' ",
+            "interval to search for exact bounds beyond this limit."
+        ))
+    }
     if (alternative != "two.sided") {
         ## construct regions with one critical value in each stage
         intregions <- genregions1(zcrit0 = zk0, zcrit1 = zk1)

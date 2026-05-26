@@ -466,7 +466,9 @@ zcrit <- function(k, se, mu = NULL, tau, type = c("normal", "directional", "mome
 #'     \code{"less"}, or \code{"greater"}. The latter two truncate the analysis
 #'     prior to negative and positive effects, respectively
 #' @param drange Numerical search strategy. Can be either \code{"adaptive"}
-#'     (default) or an interval
+#'     (default) or an interval. For one-sided adaptive searches, roots are
+#'     bracketed up to \code{|t| <= 256}; pass a wider numeric interval to
+#'     search farther.
 #' @param ... Other arguments passed to \code{stats::uniroot}
 #'
 #' @return Numeric vector of critical t-value(s)
@@ -515,24 +517,10 @@ tcrit <- function(k, n1, n2, plocation, pscale, pdf, type, alternative,
               log = TRUE) - log(k)
     }
 
-    if (k > 1) {
-        ## find maximum BF to see whether BF = k is possible
-        opt <- stats::optim(par = 0, fn = rootFun, control = list(fnscale = -1),
-                            method = "BFGS")
-        if (opt$convergence != 0) {
-            warning("numerical problems finding maximum BF")
-            return(NaN)
-        } else {
-            if (opt$value < 0) {
-                warning("maximum BF is less than k; BF01 = k impossible")
-                if (alternative == "two.sided") {
-                    return(c(NaN, NaN))
-                } else {
-                    return(NaN)
-                }
-            }
-        }
-    }
+    ## Do not pre-optimize the BF surface for k > 1. The exact tbf01()
+    ## fallback used in wrong-tail cases can make a generic BFGS maximum search
+    ## much more expensive than the boundary search itself. Failed root searches
+    ## below still encode impossible boundaries as NaN.
 
     if (alternative == "two.sided") {
         ## guess search range based on search range from z-test BF
@@ -577,28 +565,72 @@ tcrit <- function(k, n1, n2, plocation, pscale, pdf, type, alternative,
         }
     } else { # one-sided cases
         if (!is.numeric(drange) && drange == "adaptive") {
-            ## extend the search range if critical value not contained
-            if (alternative == "greater") {
-                ## want to first find the critical value on the positive side
-                searchint <- c(0, 0.1)
-                extend <- "downX"
+            searchLimit <- 256
+            bracketRoot <- function(direction) {
+                steps <- c(0.1, 0.25, 0.5, 1, 2, 4, 8, 16, 32, 64, 128,
+                           searchLimit)
+                x0 <- 0
+                f0 <- suppressWarnings(rootFun(x0))
+                if (!is.finite(f0)) {
+                    return(structure("non-finite root start",
+                                     class = "try-error"))
+                }
+                for (step in steps) {
+                    x1 <- direction * step
+                    f1 <- suppressWarnings(rootFun(x1))
+                    if (is.finite(f1) && f0 * f1 <= 0) {
+                        interval <- sort(c(x0, x1))
+                        return(try(stats::uniroot(f = rootFun,
+                                                  interval = interval,
+                                                  extendInt = "no",
+                                                  ...)$root,
+                                   silent = TRUE))
+                    }
+                }
+                structure("adaptive search limit reached",
+                          class = c("bfpwr_tcrit_search_limit", "try-error"))
+            }
+
+            if (alternative == "greater" && k > 1) {
+                directions <- c(-1, 1)
+            } else if (alternative == "greater") {
+                directions <- c(1, -1)
+            } else if (k > 1) {
+                directions <- c(1, -1)
             } else {
-                ## want to first find the critical value on the negative side
-                searchint <- c(-0.1, 0)
-                extend <- "upX"
+                directions <- c(-1, 1)
+            }
+            res <- structure("root not bracketed", class = "try-error")
+            searchLimitReached <- FALSE
+            for (direction in directions) {
+                res <- bracketRoot(direction)
+                searchLimitReached <- searchLimitReached ||
+                    inherits(res, "bfpwr_tcrit_search_limit")
+                if (!inherits(res, "try-error")) break
             }
         } else {
             searchint <- drange
             extend <- "no"
 
+            suppressWarnings({
+                res <- try(stats::uniroot(f = rootFun, interval = searchint,
+                                          extendInt = extend, ...)$root,
+                           silent = TRUE)
+            })
         }
-        suppressWarnings({
-            res <- try(stats::uniroot(f = rootFun, interval = searchint,
-                                      extendInt = extend, ...)$root,
-                       silent = TRUE)
-        })
         if (inherits(res, "try-error")) {
-            warning("Numerical problems finding critical value")
+            if (exists("searchLimitReached", inherits = FALSE) &&
+                searchLimitReached) {
+                warning(paste0(
+                    "Adaptive t critical-value search reached |t| <= ",
+                    searchLimit,
+                    " without bracketing BF01 = k; pass a wider numeric ",
+                    "'drange' interval to search for exact bounds beyond ",
+                    "this limit."
+                ))
+            } else {
+                warning("Numerical problems finding critical value")
+            }
             tcrit <- NaN
         } else {
             tcrit <- res
