@@ -44,6 +44,22 @@ expect_true(is.finite(h0_adaptive) && h0_adaptive > 0.9 && h0_adaptive < 1,
 expect_true(abs(h0_adaptive - h0_positive_range) < 5e-4,
             info = "greater one-sided H0 adaptive search should match positive-side search")
 
+limit_warning <- NULL
+impossible_h0 <- withCallingHandlers(
+    ptbf01(k = 10, n = 5, plocation = 0, pscale = 0.707, pdf = 1,
+           type = "two.sample", alternative = "greater",
+           dpm = 0, dpsd = 0, lower.tail = FALSE),
+    warning = function(w) {
+        limit_warning <<- conditionMessage(w)
+        invokeRestart("muffleWarning")
+    }
+)
+expect_equal(impossible_h0, 0,
+             info = "one-sided ptbf01 should return zero H0 probability when threshold is not reachable")
+expect_true(grepl("Adaptive t power-boundary search reached", limit_warning,
+                  fixed = TRUE),
+            info = "one-sided ptbf01 should warn when adaptive boundary search reaches its limit")
+
 ## For nonzero nulls, one-sided H0 evidence must be computed after recentering
 ## the analysis prior around the tested null.
 shifted_args <- list(n = 100, n1 = 100, n2 = 110, null = 0.2,

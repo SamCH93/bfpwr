@@ -167,18 +167,39 @@ ptbf01. <- function(k, n, n1 = n, n2 = n, null = 0, plocation = 0,
     } else {
         ## one-sided alternatives
         if (!is.numeric(drange) && drange == "adaptive") {
-            ## extend the search range if critical value not contained
-            if (alternative == "greater") {
-                searchRange <- c(null, null + 0.1)
-                extend <- "downX"
+            searchLimit <- 256
+            f0 <- suppressWarnings(rootFun(null))
+            if (!is.finite(f0)) {
+                crit <- structure("non-finite root start", class = "try-error")
             } else {
-                searchRange <- c(null - 0.1, null)
-                extend <- "upX"
+                if (f0 == 0) {
+                    crit <- null
+                } else {
+                    direction <- if (alternative == "greater") {
+                        if (f0 > 0) 1 else -1
+                    } else {
+                        if (f0 > 0) -1 else 1
+                    }
+                    steps <- c(0.1, 0.25, 0.5, 1, 2, 4, 8, 16, 32, 64, 128,
+                               searchLimit)
+                    crit <- structure("adaptive search limit reached",
+                                      class = c("bfpwr_ptbf01_search_limit",
+                                                "try-error"))
+                    for (step in steps) {
+                        x1 <- null + direction * se * step
+                        f1 <- suppressWarnings(rootFun(x1))
+                        if (is.finite(f1) && f0 * f1 <= 0) {
+                            interval <- sort(c(null, x1))
+                            crit <- try(stats::uniroot(f = rootFun,
+                                                       interval = interval,
+                                                       extendInt = "no",
+                                                       ...)$root,
+                                        silent = TRUE)
+                            break
+                        }
+                    }
+                }
             }
-            crit <- try(stats::uniroot(f = rootFun,
-                                       interval = searchRange,
-                                       extendInt = extend, ...)$root,
-                        silent = TRUE)
         } else {
             crit <- try(stats::uniroot(f = rootFun,
                                        interval = drange,
@@ -186,9 +207,29 @@ ptbf01. <- function(k, n, n1 = n, n2 = n, null = 0, plocation = 0,
                         silent = TRUE)
         }
         if (inherits(crit, "try-error")) {
-            warning("Numerical problems finding critical value")
-            logpow <- NaN
-            logcomp <- NaN
+            if (!is.numeric(drange) && drange == "adaptive" &&
+                exists("f0", inherits = FALSE) && is.finite(f0) &&
+                inherits(crit, "bfpwr_ptbf01_search_limit")) {
+                warning(paste0(
+                    "Adaptive t power-boundary search reached |t| <= ",
+                    searchLimit,
+                    " without bracketing BF01 = k; returning the ",
+                    "boundary-free probability implied by the search. Pass ",
+                    "a wider numeric 'drange' interval to search for exact ",
+                    "bounds beyond this limit."
+                ))
+                if (f0 < 0) {
+                    logpow <- 0
+                    logcomp <- -Inf
+                } else {
+                    logpow <- -Inf
+                    logcomp <- 0
+                }
+            } else {
+                warning("Numerical problems finding critical value")
+                logpow <- NaN
+                logcomp <- NaN
+            }
         } else {
             if (alternative == "greater") {
                 logpow <- stats::pnorm(q = crit, mean = dpm, sd = estsd,
