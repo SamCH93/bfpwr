@@ -1,10 +1,9 @@
 library(tinytest)
 library(bfpwr)
 
-## Pinned numeric checks for values rendered in paper/bfssd.Rnw.
-## These tests intentionally do not rederive the manuscript formulas: each
-## assertion calls exported bfpwr functions and checks the rounded or integer
-## values printed in the paper.
+## Checks for values printed in paper/bfssd.Rnw. Each example calls the
+## package function and compares the rounded or integer result to the
+## manuscript value.
 
 ## Mirtazapine example: "mirtazapine-example" and
 ## "mirtazapine-example-design".

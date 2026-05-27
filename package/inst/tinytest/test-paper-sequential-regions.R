@@ -1,10 +1,8 @@
 library(tinytest)
 library(bfpwr)
 
-## Pinned checks for selected sequential examples from the BFGSD paper audit.
-## These tests call exported package functions directly and compare against the
-## paper numbers. They deliberately avoid test-local critical-value or MVN
-## stopping-region reimplementations.
+## Checks for numbers printed in the BFGSD paper. Each example calls the
+## package function and compares the result to the value reported in the paper.
 
 expect_numeric_equal <- function(value, expected, tolerance, info) {
     expect_equal(as.numeric(value), expected, tolerance = tolerance, info = info)
@@ -93,11 +91,10 @@ expect_numeric_equal(
     info = "Low-PV H0-design expected sample size matches the paper"
 )
 
-## Manual BFGSD appendix one-sided JZS sequential t design check.
-## The paper source uses step <- 1 with nmin <- 40 and nmax <- 100, i.e.
-## one new observation per group at each interim look for the two-sample
-## design. This exact 61-look grid took about 285 seconds locally, so it is
-## kept here as commented manual verification code rather than run in tinytest.
+## BFGSD appendix, one-sided JZS sequential t design.
+## The paper code uses step <- 1 from n = 40 to n = 100, which is one new
+## observation per group at each interim look. The full check takes about
+## 285 seconds locally, so it is left commented out.
 ##
 ## jzs_n <- seq(40, 100, 1)
 ## jzs_h1 <- ptbf01seq(k1 = 1/30, k0 = 6, n = jzs_n, plocation = 0,
@@ -112,11 +109,11 @@ expect_numeric_equal(
 ##     c(tail(jzs_h1$cumpH1, 1), tail(jzs_h1$cumpH0, 1), jzs_h1$EN1),
 ##     c(0.7026386, 0.0178849, 69.40229),
 ##     tolerance = 5e-5,
-##     info = "JZS H1-design final paper-grid values match the paper schedule"
+##     info = "JZS H1-design final values match the paper schedule"
 ## )
 ## expect_numeric_equal(
 ##     c(tail(jzs_h0$cumpH0, 1), tail(jzs_h0$cumpH1, 1), jzs_h0$EN1),
 ##     c(0.7129341, 0.004836611, 65.74841),
 ##     tolerance = 5e-5,
-##     info = "JZS H0-design final paper-grid values match the paper schedule"
+##     info = "JZS H0-design final values match the paper schedule"
 ## )

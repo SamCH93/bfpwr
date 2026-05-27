@@ -1,10 +1,9 @@
 library(tinytest)
 library(bfpwr)
 
-## Pinned numeric checks for values printed in Kelter and Pawel (2025),
-## "Sample Size Determination for Bayes Factor Analysis of Binomial Data",
-## arXiv:2502.02914. These tests call exported bfpwr functions directly and
-## intentionally do not rederive the formulas from the paper.
+## Checks for values printed in Kelter and Pawel (2025), "Sample Size
+## Determination for Bayes Factor Analysis of Binomial Data",
+## arXiv:2502.02914. Each example calls the package function for that value.
 
 ## Single-arm phase II proof-of-concept trial, flat directional priors.
 expect_equal(
