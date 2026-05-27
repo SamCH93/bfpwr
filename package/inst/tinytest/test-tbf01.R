@@ -1,6 +1,10 @@
 library(tinytest)
 library(bfpwr)
 
+## Tests tbf01 API behavior and stable one-sided/two-sided tail calculations.
+## Manuscript source: informed/JZS t BF section in paper/bfssd.Rnw 1481-1530 and
+## the one-sided example at 1609-1627; extreme-tail numbers are package regressions.
+
 res <- tbf01(t = c(-1, 0, 1), n = 100, plocation = 0, pscale = 1, pdf = 1,
              type = "one.sample", alternative = "two.sided", log = FALSE)
 logres <- tbf01(t = c(-1, 0, 1), n = 100, plocation = 0, pscale = 1, pdf = 1,

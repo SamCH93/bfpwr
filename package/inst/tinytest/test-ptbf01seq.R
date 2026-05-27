@@ -1,6 +1,10 @@
 library(tinytest)
 library(bfpwr)
 
+## Tests ptbf01seq one-stage equivalence to ptbf01 and impossible H0 boundaries.
+## Related manuscript source: t BF section in paper/bfssd.Rnw 1481-1530 and the
+## BFGSD appendix JZS sequence; these specific fixtures are package regressions.
+
 ## One-stage sequential designs should agree with the non-sequential t-test
 ## power calculation. This also exercises the internal tcrit() root search.
 regression_n <- 9596.363636363636

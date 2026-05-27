@@ -1,6 +1,10 @@
 library(tinytest)
 library(bfpwr)
 
+## Tests normal-moment BF API behavior and a tiny upper-tail pnmbf01 probability.
+## Manuscript source: nlBF/pnlBF and the normal-moment example in
+## paper/bfssd.Rnw 1672-1778; numeric fixtures are package regressions.
+
 expect_true(is.numeric(nmbf01(estimate = 0, se = 1, null = 0, psd = 1, log = FALSE)),
             info = "nmbf01 should return a numeric value")
 

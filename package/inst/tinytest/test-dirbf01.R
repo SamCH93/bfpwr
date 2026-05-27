@@ -1,6 +1,10 @@
 library(tinytest)
 library(bfpwr)
 
+## Tests directional normal BF log-scale behavior and extreme-tail stability.
+## There is no direct bfssd/BFGSD manuscript derivation for dirbf01; this is
+## package-only regression coverage for the directional extension.
+
 res <- dirbf01(estimate = 0.2, se = 0.2, null = 0, pm = 0, psd = 2)
 logres <- dirbf01(estimate = 0.2, se = 0.2, null = 0, pm = 0, psd = 2,
                   log = TRUE)

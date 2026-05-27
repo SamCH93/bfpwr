@@ -1,6 +1,10 @@
 library(tinytest)
 library(bfpwr)
 
+## Tests pbinbf01 stability with tiny truncated-beta design mass and tail
+## complementarity. No bfssd manuscript formula covers binomial BF power; binary
+## outcomes are listed as future work in paper/bfssd.Rnw 1854-1856.
+
 res <- pbinbf01(k = 1/10, n = 20, p0 = 0.5, da = 2000, db = 1,
                 dl = 0, du = 0.5)
 

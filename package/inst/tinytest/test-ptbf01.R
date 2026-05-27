@@ -1,6 +1,10 @@
 library(tinytest)
 library(bfpwr)
 
+## Tests ptbf01 adaptive boundary selection, impossible-boundary handling,
+## shifted-null recentering, and small tail probabilities. Manuscript source:
+## tBF/power example in paper/bfssd.Rnw 1481-1530; edge cases are regressions.
+
 ## Regression test for adaptive root selection in one-sided t-test designs.
 ## This fractional n occurs in the default plot grid for nlim = c(10, 10000).
 regression_n <- 9596.363636363636
