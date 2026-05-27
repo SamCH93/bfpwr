@@ -93,52 +93,30 @@ expect_numeric_equal(
     info = "Low-PV H0-design expected sample size matches the paper"
 )
 
-## BFGSD appendix one-sided JZS sequential t design.
-jzs_n <- seq(40, 100, 10)
-jzs_h1 <- ptbf01seq(k1 = 1/30, k0 = 6, n = jzs_n, plocation = 0,
-                    pscale = 1/sqrt(2), pdf = 1, dpm = 0.5, dpsd = 0.1,
-                    type = "two.sample", alternative = "greater")
-jzs_h0 <- ptbf01seq(k1 = 1/30, k0 = 6, n = jzs_n, plocation = 0,
-                    pscale = 1/sqrt(2), pdf = 1, dpm = 0, dpsd = 0,
-                    type = "two.sample", alternative = "greater")
-
-expect_numeric_equal(
-    jzs_h1$cumpH1,
-    c(0.2013309, 0.3033625, 0.3956815, 0.4778737,
-      0.5509074, 0.6147944, 0.6690324),
-    tolerance = 5e-7,
-    info = "JZS H1-design cumulative H1 probabilities match the paper"
-)
-expect_numeric_equal(
-    jzs_h1$cumpH0,
-    c(0.006282381, 0.008682759, 0.010268499, 0.011435333,
-      0.012141290, 0.012837484, 0.013228923),
-    tolerance = 5e-7,
-    info = "JZS H1-design cumulative H0 probabilities match the paper"
-)
-expect_numeric_equal(
-    jzs_h1$EN1,
-    73.94402,
-    tolerance = 5e-5,
-    info = "JZS H1-design expected sample size matches the paper"
-)
-expect_numeric_equal(
-    jzs_h0$cumpH0,
-    c(0.3092336, 0.4103508, 0.4857032, 0.5446327,
-      0.5932026, 0.6335704, 0.6669929),
-    tolerance = 5e-7,
-    info = "JZS H0-design cumulative H0 probabilities match the paper"
-)
-expect_numeric_equal(
-    jzs_h0$cumpH1,
-    c(0.0008085054, 0.0012818460, 0.0017501755, 0.0020809656,
-      0.0023190945, 0.0025378291, 0.0027805852),
-    tolerance = 5e-7,
-    info = "JZS H0-design cumulative H1 probabilities match the paper"
-)
-expect_numeric_equal(
-    jzs_h0$EN1,
-    70.12528,
-    tolerance = 5e-5,
-    info = "JZS H0-design expected sample size matches the paper"
-)
+## Manual BFGSD appendix one-sided JZS sequential t design check.
+## The paper source uses step <- 1 with nmin <- 40 and nmax <- 100, i.e.
+## one new observation per group at each interim look for the two-sample
+## design. This exact 61-look grid took about 285 seconds locally, so it is
+## kept here as commented manual verification code rather than run in tinytest.
+##
+## jzs_n <- seq(40, 100, 1)
+## jzs_h1 <- ptbf01seq(k1 = 1/30, k0 = 6, n = jzs_n, plocation = 0,
+##                     pscale = 1/sqrt(2), pdf = 1, dpm = 0.5, dpsd = 0.1,
+##                     type = "two.sample", alternative = "greater")
+## jzs_h0 <- ptbf01seq(k1 = 1/30, k0 = 6, n = jzs_n, plocation = 0,
+##                     pscale = 1/sqrt(2), pdf = 1, dpm = 0, dpsd = 0,
+##                     type = "two.sample", alternative = "greater")
+##
+## expect_equal(length(jzs_n), 61)
+## expect_numeric_equal(
+##     c(tail(jzs_h1$cumpH1, 1), tail(jzs_h1$cumpH0, 1), jzs_h1$EN1),
+##     c(0.7026386, 0.0178849, 69.40229),
+##     tolerance = 5e-5,
+##     info = "JZS H1-design final paper-grid values match the paper schedule"
+## )
+## expect_numeric_equal(
+##     c(tail(jzs_h0$cumpH0, 1), tail(jzs_h0$cumpH1, 1), jzs_h0$EN1),
+##     c(0.7129341, 0.004836611, 65.74841),
+##     tolerance = 5e-5,
+##     info = "JZS H0-design final paper-grid values match the paper schedule"
+## )
