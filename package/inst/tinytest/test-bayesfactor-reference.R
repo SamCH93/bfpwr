@@ -2,7 +2,11 @@ library(tinytest)
 library(bfpwr)
 
 source("helper-extended-tests.R", local = TRUE)
-bfpwr_exit_if_not_extended("BayesFactor reference checks are extended")
+if (!bfpwr_run_extended_tests()) {
+    exit_file(bfpwr_extended_skip_message(
+        "BayesFactor reference checks are extended"
+    ))
+}
 
 if (!requireNamespace("BayesFactor", quietly = TRUE)) {
     exit_file("BayesFactor is not installed")

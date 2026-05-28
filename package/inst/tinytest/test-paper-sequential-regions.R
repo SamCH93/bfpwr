@@ -2,7 +2,11 @@ library(tinytest)
 library(bfpwr)
 
 source("helper-extended-tests.R", local = TRUE)
-bfpwr_exit_if_not_extended("paper sequential-region checks are extended")
+if (!bfpwr_run_extended_tests()) {
+    exit_file(bfpwr_extended_skip_message(
+        "paper sequential-region checks are extended"
+    ))
+}
 
 ## Checks for numbers printed in the BFGSD paper. Each example calls the
 ## package function and compares the result to the value reported in the paper.

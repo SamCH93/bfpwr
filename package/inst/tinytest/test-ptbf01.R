@@ -2,7 +2,11 @@ library(tinytest)
 library(bfpwr)
 
 source("helper-extended-tests.R", local = TRUE)
-bfpwr_exit_if_not_extended("t BF power-boundary checks are extended")
+if (!bfpwr_run_extended_tests()) {
+    exit_file(bfpwr_extended_skip_message(
+        "t BF power-boundary checks are extended"
+    ))
+}
 
 ## Tests ptbf01 adaptive boundary selection, impossible-boundary handling,
 ## shifted-null recentering, and small tail probabilities. Manuscript source:

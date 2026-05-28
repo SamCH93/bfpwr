@@ -19,7 +19,11 @@ expect_true(length(res) == 3, info = "tbf01 should handle vector inputs")
 expect_equal(log(res), logres,
              info = "tbf01 should return log(tbf01) when log = TRUE")
 
-bfpwr_exit_if_not_extended("remaining tbf01 numerical-stability checks are extended")
+if (!bfpwr_run_extended_tests()) {
+    exit_file(bfpwr_extended_skip_message(
+        "remaining tbf01 numerical-stability checks are extended"
+    ))
+}
 
 expect_equal(
     tbf01(t = -20, n1 = 7880, n2 = 7880, alternative = "greater",

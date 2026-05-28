@@ -2,7 +2,11 @@ library(tinytest)
 library(bfpwr)
 
 source("helper-extended-tests.R", local = TRUE)
-bfpwr_exit_if_not_extended("paper fixed-design formula checks are extended")
+if (!bfpwr_run_extended_tests()) {
+    exit_file(bfpwr_extended_skip_message(
+        "paper fixed-design formula checks are extended"
+    ))
+}
 
 ## Checks for values printed in paper/bfssd.Rnw. Each example calls the
 ## package function and compares the rounded or integer result to the
