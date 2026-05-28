@@ -63,6 +63,36 @@ expect_true(grepl("Adaptive t critical-value search reached", limit_warning,
                   fixed = TRUE),
             info = "ptbf01seq should warn when adaptive tcrit search reaches its limit")
 
+finite_zcrit0 <- matrix(rep(c(-1, 1), 10), nrow = 2)
+region_count <- bfpwr:::.count_strict_two_sided_regions(finite_zcrit0)
+expect_equal(region_count$total, 3069,
+             info = "strict two-sided region count should match exact branching")
+expect_equal(region_count$firstH0, 1,
+             info = "region count should identify first finite H0 boundary")
+
+slow_warning <- NULL
+slow_exact <- try(
+    withCallingHandlers(
+        ptbf01seq(k1 = 1/10, k0 = 3, n = seq(40, 130, 10),
+                  plocation = 0, pscale = 1/sqrt(2), pdf = 1,
+                  type = "two.sample", alternative = "two.sided",
+                  dpm = 0.5, dpsd = 0.1, strict = TRUE),
+        warning = function(w) {
+            msg <- conditionMessage(w)
+            if (grepl("strict = TRUE with two-sided sequential t testing",
+                      msg, fixed = TRUE)) {
+                slow_warning <<- msg
+                stop("caught expected strict two-sided warning")
+            }
+        }
+    ),
+    silent = TRUE
+)
+expect_true(inherits(slow_exact, "try-error"),
+            info = "test should abort as soon as the slow exact warning appears")
+expect_true(grepl("integrate 3,069 regions", slow_warning, fixed = TRUE),
+            info = "ptbf01seq should warn immediately before slow exact integration")
+
 explicit_trange <- ptbf01seq(k1 = 1/10, k0 = 10, n = 100, plocation = 0,
                              pscale = 0.707, pdf = 1, type = "two.sample",
                              alternative = "greater", dpm = 0.5, dpsd = 0.1,

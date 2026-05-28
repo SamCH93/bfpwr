@@ -166,6 +166,28 @@ ptbf01seq <- function(k1, k0 = 1/k1, n, n1 = n, n2 = n, plocation = 0,
             "interval to search for exact bounds beyond this limit."
         ))
     }
+    if (alternative == "two.sided" && strict) {
+        regionCount <- .count_strict_two_sided_regions(zk0)
+        if (is.infinite(regionCount$total) || regionCount$total > 1000) {
+            nregions <- if (is.finite(regionCount$total)) {
+                format(regionCount$total, big.mark = ",", scientific = FALSE,
+                       trim = TRUE)
+            } else {
+                "more than 1e308"
+            }
+            firstH0 <- if (is.na(regionCount$firstH0)) {
+                "no finite H0 boundary"
+            } else {
+                paste0("first finite H0 boundary at look ", regionCount$firstH0)
+            }
+            warning(paste0(
+                "strict = TRUE with two-sided sequential t testing will ",
+                "integrate ", nregions, " regions across ", length(n1),
+                " looks (", firstH0, "); this can be slow. Consider ",
+                "strict = FALSE for the sign-preserving approximation."
+            ), immediate. = TRUE, call. = FALSE)
+        }
+    }
     if (alternative != "two.sided") {
         ## construct regions with one critical value in each stage
         intregions <- genregions1(zcrit0 = zk0, zcrit1 = zk1)

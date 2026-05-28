@@ -367,6 +367,37 @@ genregions2 <- function(zcrit0, zcrit1, strict = FALSE) {
     list(H1 = intregionsH1, H0 = intregionsH0)
 }
 
+.count_strict_two_sided_regions <- function(zcrit0) {
+    stopifnot(
+        is.matrix(zcrit0),
+        nrow(zcrit0) == 2
+    )
+
+    m <- ncol(zcrit0)
+    H0nan <- apply(zcrit0, 2, function(x) any(is.nan(x)))
+    H1 <- H0 <- numeric(m)
+    finiteH0 <- 0L
+
+    for (i in seq_len(m)) {
+        ## Previous finite H0 boundaries split the continuation region into
+        ## lower and upper paths; strict = TRUE integrates all combinations.
+        npaths <- 2^finiteH0
+        H1[i] <- 2*npaths
+        H0[i] <- if (H0nan[i]) 0 else npaths
+
+        if (!H0nan[i]) {
+            finiteH0 <- finiteH0 + 1L
+        }
+    }
+
+    list(
+        total = sum(H1 + H0),
+        perStage = H1 + H0,
+        H0nan = H0nan,
+        firstH0 = match(FALSE, H0nan)
+    )
+}
+
 #' @title Compute Critical Z-Values for Bayes Factors
 #'
 #' @description Computes critical z-values for Bayes factors using normal,
