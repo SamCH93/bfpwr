@@ -517,11 +517,8 @@ tcrit <- function(k, n1, n2, plocation, pscale, pdf, type, alternative,
               log = TRUE) - log(k)
     }
 
-    ## Avoid the old generic BFGS precheck for all k > 1: in one-sided
-    ## wrong-tail cases the exact tbf01() fallback can make an unconstrained
-    ## optimizer more expensive than the boundary search itself. The two-sided
-    ## branch below uses a bounded, local precheck after its search interval is
-    ## known.
+    ## Avoid the old global BFGS precheck: with the exact tbf01() fallback,
+    ## unconstrained wrong-tail evaluations can dominate the boundary search.
 
     if (alternative == "two.sided") {
         ## guess search range based on search range from z-test BF
@@ -552,12 +549,13 @@ tcrit <- function(k, n1, n2, plocation, pscale, pdf, type, alternative,
             searchIntUp <- c(meant, drange[2])
         }
         if (k > 1) {
+            ## Check impossible H0 boundaries only in the interval searched below.
             maxInt <- c(searchIntLow[1], searchIntUp[2])
-            maxRootFun <- function(t) {
-                ans <- suppressWarnings(rootFun(t))
-                if (is.finite(ans)) ans else -Inf
-            }
-            opt <- try(stats::optimize(f = maxRootFun, interval = maxInt,
+            opt <- try(stats::optimize(f = function(t) {
+                                           ans <- suppressWarnings(rootFun(t))
+                                           if (is.finite(ans)) ans else -Inf
+                                       },
+                                       interval = maxInt,
                                        maximum = TRUE),
                        silent = TRUE)
             if (!inherits(opt, "try-error") &&
@@ -581,33 +579,20 @@ tcrit <- function(k, n1, n2, plocation, pscale, pdf, type, alternative,
         }
     } else { # one-sided cases
         if (!is.numeric(drange) && drange == "adaptive") {
+            ## Scan outward explicitly so tail evaluations have a finite limit.
             searchLimit <- 256
             steps <- c(0.1, 0.25, 0.5, 1, 2, 4, 8, 16, 32, 64, 128,
                        searchLimit)
             x0 <- 0
             f0 <- suppressWarnings(rootFun(x0))
-            bracketRoot <- function(direction) {
-                for (step in steps) {
-                    x1 <- direction * step
-                    f1 <- suppressWarnings(rootFun(x1))
-                    if (is.finite(f1) && f0 * f1 <= 0) {
-                        interval <- sort(c(x0, x1))
-                        return(try(stats::uniroot(f = rootFun,
-                                                  interval = interval,
-                                                  extendInt = "no",
-                                                  ...)$root,
-                                   silent = TRUE))
-                    }
-                }
-                structure("adaptive search limit reached",
-                          class = c("bfpwr_tcrit_search_limit", "try-error"))
-            }
 
             if (!is.finite(f0)) {
                 res <- structure("non-finite root start", class = "try-error")
             } else if (f0 == 0) {
                 res <- x0
             } else {
+                ## Search the side indicated by BF01(0) first; the other side is
+                ## retained as a fallback for unusual boundary shapes.
                 direction <- if (alternative == "greater") {
                     if (f0 > 0) 1 else -1
                 } else {
@@ -617,10 +602,26 @@ tcrit <- function(k, n1, n2, plocation, pscale, pdf, type, alternative,
                 res <- structure("root not bracketed", class = "try-error")
                 searchLimitReached <- FALSE
                 for (direction in directions) {
-                    res <- bracketRoot(direction)
+                    directionLimitReached <- TRUE
+                    for (step in steps) {
+                        x1 <- direction * step
+                        f1 <- suppressWarnings(rootFun(x1))
+                        if (is.finite(f1) && f0 * f1 <= 0) {
+                            directionLimitReached <- FALSE
+                            interval <- sort(c(x0, x1))
+                            res <- try(stats::uniroot(f = rootFun,
+                                                      interval = interval,
+                                                      extendInt = "no",
+                                                      ...)$root,
+                                       silent = TRUE)
+                            break
+                        }
+                    }
+                    if (!inherits(res, "try-error")) {
+                        break
+                    }
                     searchLimitReached <- searchLimitReached ||
-                        inherits(res, "bfpwr_tcrit_search_limit")
-                    if (!inherits(res, "try-error")) break
+                        directionLimitReached
                 }
             }
         } else {
