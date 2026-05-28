@@ -38,7 +38,8 @@ pbinbf01. <- function(k, n, p0 = 0.5, type = c("point", "direction"), a = 1,
     ## n has to be an integer
     n <- ceiling(n)
 
-    if (!is.na(dp)) {
+    pointDesign <- !is.na(dp)
+    if (pointDesign) {
         ## point design prior
         stopifnot(
             length(dp) == 1,
@@ -49,6 +50,26 @@ pbinbf01. <- function(k, n, p0 = 0.5, type = c("point", "direction"), a = 1,
         ## predictive PMF under the point design prior
         predlogpmf <- function(x) {
             stats::dbinom(x = x, size = n, prob = dp, log = TRUE)
+        }
+        predlogcdf <- function(q) {
+            if (q < 0) {
+                return(-Inf)
+            }
+            if (q >= n) {
+                return(0)
+            }
+            stats::pbinom(q = q, size = n, prob = dp, log.p = TRUE)
+        }
+        predlogsf <- function(q) {
+            ## P(X >= q), on the log scale.
+            if (q <= 0) {
+                return(0)
+            }
+            if (q > n) {
+                return(-Inf)
+            }
+            stats::pbinom(q = q - 1, size = n, prob = dp,
+                          lower.tail = FALSE, log.p = TRUE)
         }
     } else {
         ## Beta design prior
@@ -73,20 +94,47 @@ pbinbf01. <- function(k, n, p0 = 0.5, type = c("point", "direction"), a = 1,
             is.finite(du),
             dl < du, du <= 1
         )
-        ## predictive PMF under the truncated Beta design prior
-        ## Work on the log scale because extreme truncation intervals can make
-        ## the beta normalizing constants very small.
+        ## predictive PMF under the truncated Beta design prior. Work on the
+        ## log scale because extreme truncation intervals can make the beta
+        ## normalizing constants very small. The common full and one-sided
+        ## truncation intervals can be evaluated vectorwise; only interior
+        ## intervals need the scalar stable interval helper.
         log_norm_const <- .bfpwr_lpbeta_interval(lower = dl, upper = du,
                                                  shape1 = da, shape2 = db)
-        predlogpmf. <- function(x) {
-            lchoose(n, x) + lbeta(da + x, db + n - x) -
-                lbeta(da, db) +
-                .bfpwr_lpbeta_interval(lower = dl, upper = du,
-                                        shape1 = da + x,
-                                        shape2 = db + n - x) -
-                log_norm_const
+        beta_bin_logpmf <- function(x) {
+            lchoose(n, x) + lbeta(da + x, db + n - x) - lbeta(da, db)
         }
-        predlogpmf <- Vectorize(FUN = predlogpmf.)
+        if (dl <= 0 && du >= 1) {
+            predlogpmf <- beta_bin_logpmf
+        } else {
+            log_interval <- if (dl <= 0) {
+                function(x) {
+                    stats::pbeta(q = du, shape1 = da + x,
+                                 shape2 = db + n - x, log.p = TRUE)
+                }
+            } else if (du >= 1) {
+                function(x) {
+                    stats::pbeta(q = dl, shape1 = da + x,
+                                 shape2 = db + n - x, lower.tail = FALSE,
+                                 log.p = TRUE)
+                }
+            } else {
+                function(x) {
+                    vapply(
+                        X = x,
+                        FUN.VALUE = numeric(1),
+                        FUN = function(xi) {
+                            .bfpwr_lpbeta_interval(lower = dl, upper = du,
+                                                    shape1 = da + xi,
+                                                    shape2 = db + n - xi)
+                        }
+                    )
+                }
+            }
+            predlogpmf <- function(x) {
+                beta_bin_logpmf(x) + log_interval(x) - log_norm_const
+            }
+        }
     }
 
     ## BF as a function of the data
@@ -122,6 +170,7 @@ pbinbf01. <- function(k, n, p0 = 0.5, type = c("point", "direction"), a = 1,
     rootFun <- function(x) logbf(x) - log(k)
 
     ## point null test
+    logpow <- NULL
     if (type == "point") {
         xcrit1 <- try(stats::uniroot(f = rootFun, lower = 0, upper = xmax$par)$root,
                       silent = TRUE)
@@ -136,12 +185,25 @@ pbinbf01. <- function(k, n, p0 = 0.5, type = c("point", "direction"), a = 1,
         ## abline(v = xcrit2, lty = 2)
 
         ## data values for which bf01 <= k
-        if (inherits(xcrit1, "try-error")) {
-            xsuccess <- seq(ceiling(xcrit2), n)
-        } else if (inherits(xcrit2, "try-error")) {
-            xsuccess <- seq(0, floor(xcrit1))
+        if (pointDesign) {
+            if (inherits(xcrit1, "try-error")) {
+                logpow <- predlogsf(ceiling(xcrit2))
+            } else if (inherits(xcrit2, "try-error")) {
+                logpow <- predlogcdf(floor(xcrit1))
+            } else {
+                logpow <- .bfpwr_logspace_sum(c(
+                    predlogcdf(floor(xcrit1)),
+                    predlogsf(ceiling(xcrit2))
+                ))
+            }
         } else {
-            xsuccess <- c(seq(0, floor(xcrit1)), seq(ceiling(xcrit2), n))
+            if (inherits(xcrit1, "try-error")) {
+                xsuccess <- seq(ceiling(xcrit2), n)
+            } else if (inherits(xcrit2, "try-error")) {
+                xsuccess <- seq(0, floor(xcrit1))
+            } else {
+                xsuccess <- c(seq(0, floor(xcrit1)), seq(ceiling(xcrit2), n))
+            }
         }
     } else { ## type == "direction"
         xcrit <- stats::uniroot(f = rootFun, lower = 0, upper = n)$root
@@ -153,13 +215,19 @@ pbinbf01. <- function(k, n, p0 = 0.5, type = c("point", "direction"), a = 1,
         ## abline(v = xcrit, lty = 2)
 
         ## data values for which bf01 <= k
-        xsuccess <- seq(ceiling(xcrit), n)
+        if (pointDesign) {
+            logpow <- predlogsf(ceiling(xcrit))
+        } else {
+            xsuccess <- seq(ceiling(xcrit), n)
+        }
     }
 
     ## compute probability of BF01 <= k under the design prior
     ## Sum the selected predictive probabilities on the log scale; xsuccess
     ## may be a far tail set for stringent thresholds.
-    logpow <- .bfpwr_logspace_sum(predlogpmf(xsuccess))
+    if (is.null(logpow)) {
+        logpow <- .bfpwr_logspace_sum(predlogpmf(xsuccess))
+    }
     logpow <- min(0, logpow)
     if (lower.tail == TRUE) {
         return(exp(logpow))
@@ -215,7 +283,7 @@ pbinbf01. <- function(k, n, p0 = 0.5, type = c("point", "direction"), a = 1,
 #' b <- 1
 #' p0 <- 3/4
 #' k <- 10
-#' nseq <- seq(1, 1000, length.out = 100)
+#' nseq <- seq(1, 1000, length.out = 50)
 #' powH0 <- pbinbf01(k = k, n = nseq, p0 = p0, type = "point", a = a, b = b,
 #'                   dp = p0, lower.tail = FALSE)
 #' plot(nseq, powH0, type = "s", xlab = "n", ylab = "Power")
