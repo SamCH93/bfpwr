@@ -517,10 +517,11 @@ tcrit <- function(k, n1, n2, plocation, pscale, pdf, type, alternative,
               log = TRUE) - log(k)
     }
 
-    ## Do not pre-optimize the BF surface for k > 1. The exact tbf01()
-    ## fallback used in wrong-tail cases can make a generic BFGS maximum search
-    ## much more expensive than the boundary search itself. Failed root searches
-    ## below still encode impossible boundaries as NaN.
+    ## Avoid the old generic BFGS precheck for all k > 1: in one-sided
+    ## wrong-tail cases the exact tbf01() fallback can make an unconstrained
+    ## optimizer more expensive than the boundary search itself. The two-sided
+    ## branch below uses a bounded, local precheck after its search interval is
+    ## known.
 
     if (alternative == "two.sided") {
         ## guess search range based on search range from z-test BF
@@ -550,6 +551,21 @@ tcrit <- function(k, n1, n2, plocation, pscale, pdf, type, alternative,
             searchIntLow <- c(drange[1], meant)
             searchIntUp <- c(meant, drange[2])
         }
+        if (k > 1) {
+            maxInt <- c(searchIntLow[1], searchIntUp[2])
+            maxRootFun <- function(t) {
+                ans <- suppressWarnings(rootFun(t))
+                if (is.finite(ans)) ans else -Inf
+            }
+            opt <- try(stats::optimize(f = maxRootFun, interval = maxInt,
+                                       maximum = TRUE),
+                       silent = TRUE)
+            if (!inherits(opt, "try-error") &&
+                is.finite(opt$objective) && opt$objective < 0) {
+                warning("maximum BF is less than k; BF01 = k impossible")
+                return(c(NaN, NaN))
+            }
+        }
         ## search for critical values
         tcrit <- c(NaN, NaN)
         lower <- try(stats::uniroot(f = rootFun, interval = searchIntLow,
@@ -566,15 +582,11 @@ tcrit <- function(k, n1, n2, plocation, pscale, pdf, type, alternative,
     } else { # one-sided cases
         if (!is.numeric(drange) && drange == "adaptive") {
             searchLimit <- 256
+            steps <- c(0.1, 0.25, 0.5, 1, 2, 4, 8, 16, 32, 64, 128,
+                       searchLimit)
+            x0 <- 0
+            f0 <- suppressWarnings(rootFun(x0))
             bracketRoot <- function(direction) {
-                steps <- c(0.1, 0.25, 0.5, 1, 2, 4, 8, 16, 32, 64, 128,
-                           searchLimit)
-                x0 <- 0
-                f0 <- suppressWarnings(rootFun(x0))
-                if (!is.finite(f0)) {
-                    return(structure("non-finite root start",
-                                     class = "try-error"))
-                }
                 for (step in steps) {
                     x1 <- direction * step
                     f1 <- suppressWarnings(rootFun(x1))
@@ -591,22 +603,25 @@ tcrit <- function(k, n1, n2, plocation, pscale, pdf, type, alternative,
                           class = c("bfpwr_tcrit_search_limit", "try-error"))
             }
 
-            if (alternative == "greater" && k > 1) {
-                directions <- c(-1, 1)
-            } else if (alternative == "greater") {
-                directions <- c(1, -1)
-            } else if (k > 1) {
-                directions <- c(1, -1)
+            if (!is.finite(f0)) {
+                res <- structure("non-finite root start", class = "try-error")
+            } else if (f0 == 0) {
+                res <- x0
             } else {
-                directions <- c(-1, 1)
-            }
-            res <- structure("root not bracketed", class = "try-error")
-            searchLimitReached <- FALSE
-            for (direction in directions) {
-                res <- bracketRoot(direction)
-                searchLimitReached <- searchLimitReached ||
-                    inherits(res, "bfpwr_tcrit_search_limit")
-                if (!inherits(res, "try-error")) break
+                direction <- if (alternative == "greater") {
+                    if (f0 > 0) 1 else -1
+                } else {
+                    if (f0 > 0) -1 else 1
+                }
+                directions <- c(direction, -direction)
+                res <- structure("root not bracketed", class = "try-error")
+                searchLimitReached <- FALSE
+                for (direction in directions) {
+                    res <- bracketRoot(direction)
+                    searchLimitReached <- searchLimitReached ||
+                        inherits(res, "bfpwr_tcrit_search_limit")
+                    if (!inherits(res, "try-error")) break
+                }
             }
         } else {
             searchint <- drange
