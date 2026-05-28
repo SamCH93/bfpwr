@@ -1,6 +1,9 @@
 library(tinytest)
 library(bfpwr)
 
+source("helper-extended-tests.R", local = TRUE)
+bfpwr_exit_if_not_extended("paper binomial-value checks are extended")
+
 ## Checks for values printed in Kelter and Pawel (2025), "Sample Size
 ## Determination for Bayes Factor Analysis of Binomial Data",
 ## arXiv:2502.02914. Each example calls the package function for that value.

@@ -1,6 +1,9 @@
 library(tinytest)
 library(bfpwr)
 
+source("helper-extended-tests.R", local = TRUE)
+bfpwr_exit_if_not_extended("t BF power-boundary checks are extended")
+
 ## Tests ptbf01 adaptive boundary selection, impossible-boundary handling,
 ## shifted-null recentering, and small tail probabilities. Manuscript source:
 ## tBF/power example in paper/bfssd.Rnw 1481-1530; edge cases are regressions.

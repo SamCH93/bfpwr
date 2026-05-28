@@ -1,6 +1,9 @@
 library(tinytest)
 library(bfpwr)
 
+source("helper-extended-tests.R", local = TRUE)
+bfpwr_exit_if_not_extended("paper sequential-region checks are extended")
+
 ## Checks for numbers printed in the BFGSD paper. Each example calls the
 ## package function and compares the result to the value reported in the paper.
 
@@ -93,27 +96,26 @@ expect_numeric_equal(
 
 ## BFGSD appendix, one-sided JZS sequential t design.
 ## The paper code uses step <- 1 from n = 40 to n = 100, which is one new
-## observation per group at each interim look. The full check takes about
-## 285 seconds locally, so it is left commented out.
-##
-## jzs_n <- seq(40, 100, 1)
-## jzs_h1 <- ptbf01seq(k1 = 1/30, k0 = 6, n = jzs_n, plocation = 0,
-##                     pscale = 1/sqrt(2), pdf = 1, dpm = 0.5, dpsd = 0.1,
-##                     type = "two.sample", alternative = "greater")
-## jzs_h0 <- ptbf01seq(k1 = 1/30, k0 = 6, n = jzs_n, plocation = 0,
-##                     pscale = 1/sqrt(2), pdf = 1, dpm = 0, dpsd = 0,
-##                     type = "two.sample", alternative = "greater")
-##
-## expect_equal(length(jzs_n), 61)
-## expect_numeric_equal(
-##     c(tail(jzs_h1$cumpH1, 1), tail(jzs_h1$cumpH0, 1), jzs_h1$EN1),
-##     c(0.7026386, 0.0178849, 69.40229),
-##     tolerance = 5e-5,
-##     info = "JZS H1-design final values match the paper schedule"
-## )
-## expect_numeric_equal(
-##     c(tail(jzs_h0$cumpH0, 1), tail(jzs_h0$cumpH1, 1), jzs_h0$EN1),
-##     c(0.7129341, 0.004836611, 65.74841),
-##     tolerance = 5e-5,
-##     info = "JZS H0-design final values match the paper schedule"
-## )
+## observation per group at each interim look. This is now fast enough to keep
+## as an extended reference check.
+jzs_n <- seq(40, 100, 1)
+jzs_h1 <- ptbf01seq(k1 = 1/30, k0 = 6, n = jzs_n, plocation = 0,
+                    pscale = 1/sqrt(2), pdf = 1, dpm = 0.5, dpsd = 0.1,
+                    type = "two.sample", alternative = "greater")
+jzs_h0 <- ptbf01seq(k1 = 1/30, k0 = 6, n = jzs_n, plocation = 0,
+                    pscale = 1/sqrt(2), pdf = 1, dpm = 0, dpsd = 0,
+                    type = "two.sample", alternative = "greater")
+
+expect_equal(length(jzs_n), 61)
+expect_numeric_equal(
+    c(tail(jzs_h1$cumpH1, 1), tail(jzs_h1$cumpH0, 1), jzs_h1$EN1),
+    c(0.7026386, 0.0178849, 69.40229),
+    tolerance = 5e-5,
+    info = "JZS H1-design final values match the paper schedule"
+)
+expect_numeric_equal(
+    c(tail(jzs_h0$cumpH0, 1), tail(jzs_h0$cumpH1, 1), jzs_h0$EN1),
+    c(0.7129341, 0.004836611, 65.74841),
+    tolerance = 5e-5,
+    info = "JZS H0-design final values match the paper schedule"
+)

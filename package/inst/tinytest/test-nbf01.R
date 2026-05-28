@@ -1,6 +1,9 @@
 library(tinytest)
 library(bfpwr)
 
+source("helper-extended-tests.R", local = TRUE)
+bfpwr_exit_if_not_extended("normal-prior sample-size grid is extended")
+
 ## verify that computed sample size leads to desired power
 grid <- expand.grid(k = c(1/5), usd = c(0.5, 1.5), null = c(0, 0.1),
                     pm = c(1, 2), psd = c(0, 1), dpm = c(1, 1.5),

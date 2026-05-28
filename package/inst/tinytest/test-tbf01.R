@@ -1,6 +1,8 @@
 library(tinytest)
 library(bfpwr)
 
+source("helper-extended-tests.R", local = TRUE)
+
 ## Tests tbf01 API behavior and stable one-sided/two-sided tail calculations.
 ## Manuscript source: informed/JZS t BF section in paper/bfssd.Rnw 1481-1530 and
 ## the one-sided example at 1609-1627; extreme-tail numbers are package regressions.
@@ -16,6 +18,8 @@ expect_true(length(res) == 3, info = "tbf01 should handle vector inputs")
 
 expect_equal(log(res), logres,
              info = "tbf01 should return log(tbf01) when log = TRUE")
+
+bfpwr_exit_if_not_extended("remaining tbf01 numerical-stability checks are extended")
 
 expect_equal(
     tbf01(t = -20, n1 = 7880, n2 = 7880, alternative = "greater",
