@@ -55,6 +55,7 @@ pbf01. <- function(k, n, usd, null = 0, pm, psd, dpm = pm, dpsd = psd,
         } else {
             tail <- FALSE
         }
+        ## Keep both requested tail and complement stable for extreme designs.
         logpow <- stats::pnorm(q = Z, mean = 0, sd = 1, lower.tail = tail,
                                log.p = TRUE)
         logcomp <- stats::pnorm(q = Z, mean = 0, sd = 1, lower.tail = !tail,
@@ -70,6 +71,8 @@ pbf01. <- function(k, n, usd, null = 0, pm, psd, dpm = pm, dpsd = psd,
             M <- (dpm - null - usd^2/n/psd^2*(null - pm))/sqrt(v)
             lower <- -sqrt(X) - M
             upper <- sqrt(X) - M
+            ## BF01 <= k is the union of two normal tails; its complement is
+            ## the interval between the roots.
             logpow <- .bfpwr_logspace_sum(c(
                 stats::pnorm(q = lower, log.p = TRUE),
                 stats::pnorm(q = upper, lower.tail = FALSE, log.p = TRUE)

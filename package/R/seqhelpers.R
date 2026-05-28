@@ -253,7 +253,7 @@ genregions1 <- function(zcrit0, zcrit1) {
 #'     upper bound for H0. Specify NaN if no H0 boundary exists at a stage
 #' @param zcrit1 2 x m numeric matrix of H1 boundaries. Each column corresponds
 #'     to one stage. The first row gives the upper bound of the lower region
-#'     (extending from -Inf to this upper boudn) and the second row the lower
+#'     (extending from -Inf to this upper bound) and the second row the lower
 #'     bound of the upper region for H1 (extending from this lower bound to Inf)
 #' @param strict Logical. If \code{TRUE}, return all possible region
 #'     combinations (slow but exact). If \code{FALSE}, only returns the main
@@ -517,9 +517,6 @@ tcrit <- function(k, n1, n2, plocation, pscale, pdf, type, alternative,
               log = TRUE) - log(k)
     }
 
-    ## Avoid the old global BFGS precheck: with the exact tbf01() fallback,
-    ## unconstrained wrong-tail evaluations can dominate the boundary search.
-
     if (alternative == "two.sided") {
         ## guess search range based on search range from z-test BF
         if (!is.numeric(drange) && drange == "adaptive") {
@@ -550,6 +547,7 @@ tcrit <- function(k, n1, n2, plocation, pscale, pdf, type, alternative,
         }
         if (k > 1) {
             ## Check impossible H0 boundaries only in the interval searched below.
+            ## This avoids unconstrained wrong-tail evaluations in tbf01().
             maxInt <- c(searchIntLow[1], searchIntUp[2])
             opt <- try(stats::optimize(f = function(t) {
                                            ans <- suppressWarnings(rootFun(t))

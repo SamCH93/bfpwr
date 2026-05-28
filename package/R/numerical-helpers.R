@@ -1,3 +1,6 @@
+## Small log-scale utilities used where ordinary tail probabilities can
+## underflow or where 1 - p would lose all meaningful digits.
+
 .bfpwr_log1pexp <- function(x) {
     ifelse(x > 0, x + log1p(exp(-x)), log1p(exp(x)))
 }
@@ -25,6 +28,7 @@
 }
 
 .bfpwr_lpnorm_interval <- function(lower, upper, mean = 0, sd = 1) {
+    ## log P(lower < X < upper), computed from the more stable tail.
     if (is.infinite(lower) && lower < 0 && is.infinite(upper) && upper > 0) {
         return(0)
     }
@@ -53,6 +57,7 @@
 }
 
 .bfpwr_lpbeta_interval <- function(lower, upper, shape1, shape2) {
+    ## log P(lower < X < upper), computed from the more stable tail.
     if (lower <= 0 && upper >= 1) {
         return(0)
     }

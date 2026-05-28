@@ -34,6 +34,8 @@ dirbf01. <- function(estimate, se, null = 0, pm, psd, log = FALSE) {
     priorz <- (pm - null)/psd
     postz <- (postm - null)/postsd
 
+    ## Compute directional prior/posterior odds on the log scale; otherwise
+    ## very small tail masses collapse to zero or Inf.
     logpriorodds <- stats::pnorm(q = priorz, lower.tail = FALSE,
                                  log.p = TRUE) -
         stats::pnorm(q = priorz, lower.tail = TRUE, log.p = TRUE)

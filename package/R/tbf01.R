@@ -1,4 +1,8 @@
+## Route clearly wrong-tail one-sided statistics through the stable integral.
+.tbf01_exact_tail_cutoff <- 4
+
 .tbf01_pars <- function(n1, n2, type) {
+    ## Effective sample size for the noncentrality parameter sqrt(neff)*d.
     if (type == "two.sample") {
         list(df = n1 + n2 - 2, neff = 1/(1/n1 + 1/n2))
     } else {
@@ -7,6 +11,7 @@
 }
 
 .tbf01_prior_region <- function(plocation, pscale, pdf, alternative) {
+    ## One-sided alternatives truncate and renormalize the analysis prior.
     q0 <- (0 - plocation)/pscale
     if (alternative == "two.sided") {
         list(lower = -Inf, upper = Inf, log_norm_const = 0)
@@ -22,6 +27,7 @@
 }
 
 .tbf01_log_fast <- function(t, df, neff, plocation, pscale, pdf, region, ...) {
+    ## Original one-dimensional integral, evaluated on a centered log scale.
     if (!is.finite(region$log_norm_const)) {
         return(NaN)
     }
@@ -67,6 +73,9 @@
 }
 
 .tbf01_log_exact <- function(t, df, neff, plocation, pscale, pdf, region, ...) {
+    ## Wrong-tail one-sided tests can underflow in the noncentral-t integral.
+    ## Integrating over the t-statistic scale mixture (v) and the t-prior
+    ## scale mixture (s) keeps the truncation mass on a stable normal scale.
     if (!is.finite(region$log_norm_const)) {
         return(NaN)
     }
@@ -105,6 +114,7 @@
 
     grid <- c(0.001, 0.01, 0.05, 0.1, 0.25, 0.5, 0.75, 0.9, 0.95,
               0.99, 0.999)
+    ## Center the nested integral near its largest contribution.
     v_grid <- stats::qgamma(p = grid, shape = shape_v, rate = rate_v)
     s_grid <- stats::qgamma(p = grid, shape = shape_s, rate = rate_s)
     log_grid <- as.vector(outer(v_grid, s_grid,
@@ -149,13 +159,16 @@
 }
 
 .tbf01_needs_exact_path <- function(t, alternative, log_bf) {
+    ## Use the slower path only where the direct integral is unreliable. The
+    ## cutoff is empirical: it catches the observed wrong-tail underflow cases
+    ## without slowing down ordinary one-sided calculations.
     if (!is.finite(log_bf)) {
         return(TRUE)
     }
-    if (alternative == "greater" && t <= -4) {
+    if (alternative == "greater" && t <= -.tbf01_exact_tail_cutoff) {
         return(TRUE)
     }
-    if (alternative == "less" && t >= 4) {
+    if (alternative == "less" && t >= .tbf01_exact_tail_cutoff) {
         return(TRUE)
     }
     FALSE
@@ -215,6 +228,7 @@ tbf01. <- function(t, n, n1 = n, n2 = n, plocation = 0, pscale = 1/sqrt(2),
     log_bf <- .tbf01_log_fast(t = t, df = pars$df, neff = pars$neff,
                               plocation = plocation, pscale = pscale,
                               pdf = pdf, region = region, ...)
+    ## Fall back after trying the direct integral so ordinary calls stay cheap.
     if (.tbf01_needs_exact_path(t = t, alternative = alternative,
                                 log_bf = log_bf)) {
         log_bf <- .tbf01_log_exact(t = t, df = pars$df, neff = pars$neff,

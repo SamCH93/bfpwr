@@ -52,6 +52,8 @@ pnmbf01. <- function(k, n, usd, null = 0, psd, dpm, dpsd, lower.tail = TRUE) {
     } else {
         lower <- -sqrt(Y) - A
         upper <- sqrt(Y) - A
+        ## BF01 <= k is the union of two normal tails; its complement is
+        ## the interval between the roots.
         logpow <- .bfpwr_logspace_sum(c(
             stats::pnorm(q = lower, log.p = TRUE),
             stats::pnorm(q = upper, lower.tail = FALSE, log.p = TRUE)

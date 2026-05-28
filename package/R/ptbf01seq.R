@@ -128,6 +128,7 @@ ptbf01seq <- function(k1, k0 = 1/k1, n, n1 = n, n2 = n, plocation = 0,
     ## get integration regions
     searchLimitWarnings <- 0L
     evalTcrit <- function(...) {
+        ## Suppress per-stage boundary warnings and report one aggregate message.
         withCallingHandlers(
             tcrit(...),
             warning = function(w) {

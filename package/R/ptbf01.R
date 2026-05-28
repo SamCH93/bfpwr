@@ -24,7 +24,7 @@ ptbf01. <- function(k, n, n1 = n, n2 = n, null = 0, plocation = 0,
         is.numeric(null),
         is.finite(null),
 
-         length(plocation) == 1,
+        length(plocation) == 1,
         is.numeric(plocation),
         is.finite(plocation),
 
@@ -76,6 +76,7 @@ ptbf01. <- function(k, n, n1 = n, n2 = n, null = 0, plocation = 0,
     se <- 1/sqrt(neff) # standard error of SMD assuming variance is known
     estsd <- sqrt(se^2 + dpsd^2) # standard deviation of SMD under design prior
     rootFun <- function(est) {
+        ## tbf01() tests against zero, so shift the analysis prior by null.
         tbf01(t = (est - null)/se, n1 = n1, n2 = n2,
               plocation = plocation - null, pscale = pscale, pdf = pdf,
               type = type, alternative = alternative, log = TRUE) - log(k)
@@ -152,6 +153,8 @@ ptbf01. <- function(k, n, n1 = n, n2 = n, null = 0, plocation = 0,
             logpow <- NaN
             logcomp <- NaN
         } else {
+            ## BF01 <= k is the union of the two normal tails; the complement
+            ## is the interval between any roots that were found.
             logpow <- min(0, .bfpwr_logspace_sum(c(logpowup, logpowlow)))
             if (!uperr && !lowerr) {
                 logcomp <- .bfpwr_lpnorm_interval(lower = lower, upper = upper,
@@ -167,6 +170,7 @@ ptbf01. <- function(k, n, n1 = n, n2 = n, null = 0, plocation = 0,
     } else {
         ## one-sided alternatives
         if (!is.numeric(drange) && drange == "adaptive") {
+            ## Scan outward from the null and use BF01(null) to choose the side.
             searchLimit <- 256
             f0 <- suppressWarnings(rootFun(null))
             if (!is.finite(f0)) {
@@ -218,6 +222,8 @@ ptbf01. <- function(k, n, n1 = n, n2 = n, null = 0, plocation = 0,
                     "a wider numeric 'drange' interval to search for exact ",
                     "bounds beyond this limit."
                 ))
+                ## No crossing was found within the finite scan. The sign at
+                ## the null determines whether all searched values are successes.
                 if (f0 < 0) {
                     logpow <- 0
                     logcomp <- -Inf

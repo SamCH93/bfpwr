@@ -74,6 +74,8 @@ pbinbf01. <- function(k, n, p0 = 0.5, type = c("point", "direction"), a = 1,
             dl < du, du <= 1
         )
         ## predictive PMF under the truncated Beta design prior
+        ## Work on the log scale because extreme truncation intervals can make
+        ## the beta normalizing constants very small.
         log_norm_const <- .bfpwr_lpbeta_interval(lower = dl, upper = du,
                                                  shape1 = da, shape2 = db)
         predlogpmf. <- function(x) {
@@ -155,6 +157,8 @@ pbinbf01. <- function(k, n, p0 = 0.5, type = c("point", "direction"), a = 1,
     }
 
     ## compute probability of BF01 <= k under the design prior
+    ## Sum the selected predictive probabilities on the log scale; xsuccess
+    ## may be a far tail set for stringent thresholds.
     logpow <- .bfpwr_logspace_sum(predlogpmf(xsuccess))
     logpow <- min(0, logpow)
     if (lower.tail == TRUE) {
