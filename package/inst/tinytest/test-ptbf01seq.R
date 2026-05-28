@@ -63,6 +63,30 @@ expect_true(grepl("Adaptive t critical-value search reached", limit_warning,
                   fixed = TRUE),
             info = "ptbf01seq should warn when adaptive tcrit search reaches its limit")
 
+explicit_trange <- ptbf01seq(k1 = 1/10, k0 = 10, n = 100, plocation = 0,
+                             pscale = 0.707, pdf = 1, type = "two.sample",
+                             alternative = "greater", dpm = 0.5, dpsd = 0.1,
+                             trange = c(-2, 6))
+expect_true(is.finite(explicit_trange$cumpH1) &&
+                is.finite(explicit_trange$cumpH0),
+            info = "ptbf01seq should accept explicit t-statistic trange")
+expect_equal(explicit_trange$trange, c(-2, 6),
+             info = "ptbf01seq should store the explicit t-statistic trange")
+
+old_drange <- try(
+    ptbf01seq(k1 = 1/10, k0 = 10, n = 100, plocation = 0,
+              pscale = 0.707, pdf = 1, type = "two.sample",
+              alternative = "greater", dpm = 0.5, dpsd = 0.1,
+              drange = c(-2, 6)),
+    silent = TRUE
+)
+expect_true(
+    inherits(old_drange, "try-error") &&
+        grepl("renamed to 'trange'",
+              conditionMessage(attr(old_drange, "condition")), fixed = TRUE),
+    info = "ptbf01seq should no longer accept drange"
+)
+
 ## ## do not run these tests for the moment, because they are there to verify
 ## ## the power with simulation which takes a long time to run
 

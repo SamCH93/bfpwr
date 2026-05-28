@@ -465,7 +465,7 @@ zcrit <- function(k, se, mu = NULL, tau, type = c("normal", "directional", "mome
 #' @param alternative Direction of the test. Can be either \code{"two.sided"},
 #'     \code{"less"}, or \code{"greater"}. The latter two truncate the analysis
 #'     prior to negative and positive effects, respectively
-#' @param drange Numerical search strategy. Can be either \code{"adaptive"}
+#' @param trange Numerical search strategy. Can be either \code{"adaptive"}
 #'     (default) or an interval. For one-sided adaptive searches, roots are
 #'     bracketed up to \code{|t| <= 256}; pass a wider numeric interval to
 #'     search farther.
@@ -508,7 +508,7 @@ zcrit <- function(k, se, mu = NULL, tau, type = c("normal", "directional", "mome
 #'
 #' @keywords internal
 tcrit <- function(k, n1, n2, plocation, pscale, pdf, type, alternative,
-                  drange = "adaptive", ...) {
+                  trange = "adaptive", ...) {
 
     ## determine t-statistic for which BF = k
     rootFun <- function(t) {
@@ -519,7 +519,7 @@ tcrit <- function(k, n1, n2, plocation, pscale, pdf, type, alternative,
 
     if (alternative == "two.sided") {
         ## guess search range based on search range from z-test BF
-        if (!is.numeric(drange) && drange == "adaptive") {
+        if (!is.numeric(trange) && trange == "adaptive") {
             if (type == "two.sample") {
                 neff <- 1/(1/n1 + 1/n2)
             } else {
@@ -541,9 +541,9 @@ tcrit <- function(k, n1, n2, plocation, pscale, pdf, type, alternative,
                 searchIntUp <- c(meant, zcrit[1] + 2)
             }
         } else {
-            meant <- mean(drange)
-            searchIntLow <- c(drange[1], meant)
-            searchIntUp <- c(meant, drange[2])
+            meant <- mean(trange)
+            searchIntLow <- c(trange[1], meant)
+            searchIntUp <- c(meant, trange[2])
         }
         if (k > 1) {
             ## Check impossible H0 boundaries only in the interval searched below.
@@ -576,7 +576,7 @@ tcrit <- function(k, n1, n2, plocation, pscale, pdf, type, alternative,
             tcrit <- c(lower, upper)
         }
     } else { # one-sided cases
-        if (!is.numeric(drange) && drange == "adaptive") {
+        if (!is.numeric(trange) && trange == "adaptive") {
             ## Scan outward explicitly so tail evaluations have a finite limit.
             searchLimit <- 256
             steps <- c(0.1, 0.25, 0.5, 1, 2, 4, 8, 16, 32, 64, 128,
@@ -623,7 +623,7 @@ tcrit <- function(k, n1, n2, plocation, pscale, pdf, type, alternative,
                 }
             }
         } else {
-            searchint <- drange
+            searchint <- trange
             extend <- "no"
 
             suppressWarnings({
@@ -639,7 +639,7 @@ tcrit <- function(k, n1, n2, plocation, pscale, pdf, type, alternative,
                     "Adaptive t critical-value search reached |t| <= ",
                     searchLimit,
                     " without bracketing BF01 = k; pass a wider numeric ",
-                    "'drange' interval to search for exact bounds beyond ",
+                    "'trange' interval to search for exact bounds beyond ",
                     "this limit."
                 ))
             } else {

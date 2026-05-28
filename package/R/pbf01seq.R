@@ -536,7 +536,7 @@ plot.bfseqdesign <- function(x, plot = TRUE, nullplot = TRUE, zplot = FALSE,
                 x0 <- ptbf01seq(k1 = x$k1, k0 = x$k0, n1 = x$n1, n2 = x$n2,
                                 plocation = x$plocation, pscale = x$pscale,
                                 pdf = x$pdf, dpm = 0, dpsd = 0, type = x$type,
-                                alternative = x$alternative, drange = x$drange,
+                                alternative = x$alternative, trange = x$trange,
                                 strict = x$strict)
             } else {
                 x0 <- pbf01seq(k1 = x$k1, k0 = x$k0, se = x$se, pm = x$pm,

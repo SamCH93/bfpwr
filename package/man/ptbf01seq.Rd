@@ -18,7 +18,7 @@ ptbf01seq(
   type = c("two.sample", "one.sample", "paired"),
   alternative = c("two.sided", "less", "greater"),
   strict = TRUE,
-  drange = "adaptive",
+  trange = "adaptive",
   ...
 )
 }
@@ -69,7 +69,7 @@ the sign of the z-statistics does not change across stages (faster,
 recommended when many interim analyses, e.g., more than 10, are
 performed). Defaults to \code{TRUE}}
 
-\item{drange}{Critical \eqn{t}-statistic search strategy for the sequential
+\item{trange}{Critical \eqn{t}-statistic search strategy for the sequential
 stopping boundaries. Can be either \code{"adaptive"} (default) or a
 numeric interval. For one-sided adaptive searches, roots are bracketed up
 to \code{|t| <= 256}; pass a wider numeric interval to search farther.}

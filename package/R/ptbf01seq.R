@@ -8,7 +8,7 @@
 #'
 #' @inheritParams ptbf01
 #' @inheritParams pbf01seq
-#' @param drange Critical \eqn{t}-statistic search strategy for the sequential
+#' @param trange Critical \eqn{t}-statistic search strategy for the sequential
 #'     stopping boundaries. Can be either \code{"adaptive"} (default) or a
 #'     numeric interval. For one-sided adaptive searches, roots are bracketed up
 #'     to \code{|t| <= 256}; pass a wider numeric interval to search farther.
@@ -50,9 +50,13 @@ ptbf01seq <- function(k1, k0 = 1/k1, n, n1 = n, n2 = n, plocation = 0,
                       dpsd = pscale,
                       type = c("two.sample", "one.sample", "paired"),
                       alternative = c("two.sided", "less", "greater"),
-                      strict = TRUE, drange = "adaptive", ...) {
+                      strict = TRUE, trange = "adaptive", ...) {
 
     ## input checks
+    dotNames <- names(match.call(expand.dots = FALSE)$...)
+    if ("drange" %in% dotNames) {
+        stop("argument 'drange' was renamed to 'trange' in ptbf01seq")
+    }
     stopifnot(
         length(k1) == 1,
         is.numeric(k1),
@@ -98,9 +102,9 @@ ptbf01seq <- function(k1, k0 = 1/k1, n, n1 = n, n2 = n, plocation = 0,
         is.finite(dpsd),
         0 <= dpsd,
 
-        (is.numeric(drange) && length(drange) == 2 && all(is.finite(drange)) &&
-         drange[2] > drange[1]) || (is.character(drange) && length(drange) == 1 &&
-                                    !is.na(drange) && drange == "adaptive")
+        (is.numeric(trange) && length(trange) == 2 && all(is.finite(trange)) &&
+         trange[2] > trange[1]) || (is.character(trange) && length(trange) == 1 &&
+                                    !is.na(trange) && trange == "adaptive")
     )
     type <- match.arg(type)
     alternative <- match.arg(alternative)
@@ -144,21 +148,21 @@ ptbf01seq <- function(k1, k0 = 1/k1, n, n1 = n, n2 = n, plocation = 0,
         evalTcrit(
             k = k0, n1 = n1[i], n2 = n2[i], plocation = plocation,
             pscale = pscale, pdf = pdf, alternative = alternative,
-            type = type, drange = drange
+            type = type, trange = trange
         )
     })
     zk1 <- sapply(X = seq_along(n1), FUN = function(i) {
         evalTcrit(
             k = k1, n1 = n1[i], n2 = n2[i], plocation = plocation,
             pscale = pscale, pdf = pdf, alternative = alternative,
-            type = type, drange = drange
+            type = type, trange = trange
         )
     })
     if (searchLimitWarnings > 0) {
         warning(paste0(
             "Adaptive t critical-value search reached |t| <= 256 in ",
             searchLimitWarnings,
-            " sequential boundary search(es); pass a wider numeric 'drange' ",
+            " sequential boundary search(es); pass a wider numeric 'trange' ",
             "interval to search for exact bounds beyond this limit."
         ))
     }
@@ -199,7 +203,7 @@ ptbf01seq <- function(k1, k0 = 1/k1, n, n1 = n, n2 = n, plocation = 0,
                           "dpm" = dpm, "dpsd" = dpsd, "plocation" = plocation,
                           "pscale" = pscale, "pdf" = pdf,
                           "alternative" = alternative, "type" = type,
-                          "drange" = drange, "strict" = strict, "test" = "t",
+                          "trange" = trange, "strict" = strict, "test" = "t",
                           "zk1" = zk1, "zk0" = zk0, "EN1" = EN1, "EN2" = EN2,
                           "VarN1" = VarN1, "VarN2" = VarN2,
                           "cumpH1" = cumpH1, "cumpH0" = cumpH0,
