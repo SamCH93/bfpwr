@@ -47,8 +47,12 @@ cran: $(TAR)
 test:
 	R -e 'tinytest::build_install_test(pkgdir = ".")'
 
+## perform extended tests
+test-extended:
+	R -e 'Sys.setenv(BFPWR_RUN_EXTENDED_TESTS = "true"); tinytest::build_install_test(pkgdir = ".")'
+
 ## build vignettes
 vignettes:
 	R -e 'devtools::build_vignettes(pkg = ".")'
 
-.PHONY: all document manual build install check cran description test vignettes
+.PHONY: all document manual build install check cran description test test-extended vignettes
