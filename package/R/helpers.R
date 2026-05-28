@@ -18,9 +18,20 @@
 #' @keywords internal
 
 searchN <- function(rootFun, nrange, ...) {
+    ## uniroot evaluates the interval endpoints again; cache them because
+    ## power calculations can be expensive for t-test Bayes factors.
+    cache <- new.env(parent = emptyenv())
+    evalRoot <- function(n) {
+        key <- paste(format(n, digits = 17, scientific = TRUE), collapse = "_")
+        if (!exists(key, envir = cache, inherits = FALSE)) {
+            assign(key, rootFun(n), envir = cache)
+        }
+        get(key, envir = cache, inherits = FALSE)
+    }
+
     ## check boundaries of sample size search range
-    lower <- rootFun(nrange[1])
-    upper <- rootFun(nrange[2])
+    lower <- evalRoot(nrange[1])
+    upper <- evalRoot(nrange[2])
     if (is.nan(lower)) {
         warning("lower bound of sample size search range ('nrange') leads to Power = NaN")
         n <- NaN
@@ -35,7 +46,7 @@ searchN <- function(rootFun, nrange, ...) {
         n <- NaN
     } else {
         ## perform root-finding
-        res <- try(stats::uniroot(f = rootFun, interval = nrange, ...)$root)
+        res <- try(stats::uniroot(f = evalRoot, interval = nrange, ...)$root)
         if (inherits(res, "try-error")) {
             warning("problems while running uniroot")
             n <- NaN

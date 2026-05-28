@@ -73,6 +73,16 @@ expect_equal(
     info = "one-sided JZS t-test sample sizes match the manuscript"
 )
 
+expect_equal(
+    as.numeric(ntbf01(k = 6, power = 0.95, null = 0,
+                      plocation = 0, pscale = 1/sqrt(2), pdf = 1,
+                      alternative = "greater", type = "two.sample",
+                      dpm = 0, dpsd = 0, lower.tail = FALSE,
+                      nrange = c(2, 10000))),
+    4920,
+    info = "one-sided JZS true-null t-test sample size remains stable"
+)
+
 ## Normal-moment example: "normal-moment-example".
 moment_psd <- 0.5/sqrt(2)
 moment_n <- c(

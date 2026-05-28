@@ -67,8 +67,10 @@ ptbf01. <- function(k, n, n1 = n, n2 = n, null = 0, plocation = 0,
 
     ## determine df and effective sample size
     if (type == "two.sample") {
+        df <- n1 + n2 - 2
         neff <- 1/(1/n1 + 1/n2)
     } else {
+        df <- n1 - 1
         neff <- n1
     }
 
@@ -80,6 +82,20 @@ ptbf01. <- function(k, n, n1 = n, n2 = n, null = 0, plocation = 0,
         tbf01(t = (est - null)/se, n1 = n1, n2 = n2,
               plocation = plocation - null, pscale = pscale, pdf = pdf,
               type = type, alternative = alternative, log = TRUE) - log(k)
+    }
+    region <- .tbf01_prior_region(plocation = plocation - null,
+                                  pscale = pscale, pdf = pdf,
+                                  alternative = alternative)
+    ## For boundary bracketing, use the original direct integral whenever it is
+    ## finite; fall back to the stable exact path only for underflow cases.
+    rootFunFast <- function(est) {
+        .tbf01_log_fast(t = (est - null)/se, df = df, neff = neff,
+                        plocation = plocation - null, pscale = pscale,
+                        pdf = pdf, region = region, ...) - log(k)
+    }
+    rootFunHybrid <- function(est) {
+        ans <- suppressWarnings(rootFunFast(est))
+        if (is.finite(ans)) ans else rootFun(est)
     }
 
     if (alternative == "two.sided") {
@@ -184,22 +200,58 @@ ptbf01. <- function(k, n, n1 = n, n2 = n, null = 0, plocation = 0,
                     } else {
                         if (f0 > 0) -1 else 1
                     }
-                    steps <- c(0.1, 0.25, 0.5, 1, 2, 4, 8, 16, 32, 64, 128,
-                               searchLimit)
+                    steps <- c(0.1, 0.25, 0.5, 1, 1.5, 2, 2.5, 3, 3.5)
+                    tailSteps <- c(4, 8, 16, 32, 64, 128, searchLimit)
                     crit <- structure("adaptive search limit reached",
                                       class = c("bfpwr_ptbf01_search_limit",
                                                 "try-error"))
+                    xprev <- null
+                    fprev <- f0
                     for (step in steps) {
                         x1 <- null + direction * se * step
-                        f1 <- suppressWarnings(rootFun(x1))
-                        if (is.finite(f1) && f0 * f1 <= 0) {
-                            interval <- sort(c(null, x1))
-                            crit <- try(stats::uniroot(f = rootFun,
+                        f1 <- suppressWarnings(rootFunHybrid(x1))
+                        if (is.finite(f1) && fprev * f1 <= 0) {
+                            interval <- sort(c(xprev, x1))
+                            crit <- try(stats::uniroot(f = rootFunHybrid,
                                                        interval = interval,
                                                        extendInt = "no",
                                                        ...)$root,
                                         silent = TRUE)
                             break
+                        }
+                        if (is.finite(f1)) {
+                            xprev <- x1
+                            fprev <- f1
+                        }
+                    }
+                    if (inherits(crit, "try-error")) {
+                        ## Before stepping through the exact wrong-tail path,
+                        ## check whether the finite adaptive limit can bracket
+                        ## a root at all.
+                        xLimit <- null + direction * se * searchLimit
+                        fLimit <- suppressWarnings(rootFunHybrid(xLimit))
+                        if (is.finite(fLimit) && fprev * fLimit <= 0) {
+                            for (step in tailSteps) {
+                                x1 <- null + direction * se * step
+                                f1 <- if (step == searchLimit) {
+                                    fLimit
+                                } else {
+                                    suppressWarnings(rootFunHybrid(x1))
+                                }
+                                if (is.finite(f1) && fprev * f1 <= 0) {
+                                    interval <- sort(c(xprev, x1))
+                                    crit <- try(stats::uniroot(f = rootFunHybrid,
+                                                               interval = interval,
+                                                               extendInt = "no",
+                                                               ...)$root,
+                                                silent = TRUE)
+                                    break
+                                }
+                                if (is.finite(f1)) {
+                                    xprev <- x1
+                                    fprev <- f1
+                                }
+                            }
                         }
                     }
                 }
