@@ -20,7 +20,7 @@ Description: Implements z-test, t-test, and normal moment prior Bayes factors ba
 License: GPL-3
 Encoding: UTF-8
 Imports: lamW, mvtnorm, withr, qrng
-Suggests: roxygen2, tinytest, knitr
+Suggests: roxygen2, tinytest, knitr, BayesFactor
 VignetteBuilder: knitr
 NeedsCompilation: no
 URL: https://github.com/SamCH93/bfpwr

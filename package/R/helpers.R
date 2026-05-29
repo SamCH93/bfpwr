@@ -35,7 +35,10 @@ searchN <- function(rootFun, nrange, ...) {
         n <- NaN
     } else {
         ## perform root-finding
-        res <- try(stats::uniroot(f = rootFun, interval = nrange, ...)$root)
+        ## uniroot otherwise evaluates these endpoints again. We already need
+        ## them for the range checks, so pass them through directly.
+        res <- try(stats::uniroot(f = rootFun, interval = nrange,
+                                  f.lower = lower, f.upper = upper, ...)$root)
         if (inherits(res, "try-error")) {
             warning("problems while running uniroot")
             n <- NaN

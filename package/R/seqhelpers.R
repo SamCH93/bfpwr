@@ -113,9 +113,10 @@ intstages <- function(intregions, mean, sigma, method = "lpmvnorm", ...) {
                 p <- 0
             } else {
                 if (i == 1) {
-                    p <- diff(stats::pnorm(q = c(region[1,], region[2,]),
-                                           mean = mean[1],
-                                           sd = sqrt(sigma[1:1])))
+                    p <- exp(.bfpwr_lpnorm_interval(lower = region[1,],
+                                                    upper = region[2,],
+                                                    mean = mean[1],
+                                                    sd = sqrt(sigma[1:1])))
                 } else if (method == "lpmvnorm") {
                     p <- exp(mvtnorm::lpmvnorm(lower = region[1, ],
                                                upper = region[2, ],
@@ -252,7 +253,7 @@ genregions1 <- function(zcrit0, zcrit1) {
 #'     upper bound for H0. Specify NaN if no H0 boundary exists at a stage
 #' @param zcrit1 2 x m numeric matrix of H1 boundaries. Each column corresponds
 #'     to one stage. The first row gives the upper bound of the lower region
-#'     (extending from -Inf to this upper boudn) and the second row the lower
+#'     (extending from -Inf to this upper bound) and the second row the lower
 #'     bound of the upper region for H1 (extending from this lower bound to Inf)
 #' @param strict Logical. If \code{TRUE}, return all possible region
 #'     combinations (slow but exact). If \code{FALSE}, only returns the main
@@ -366,6 +367,37 @@ genregions2 <- function(zcrit0, zcrit1, strict = FALSE) {
     list(H1 = intregionsH1, H0 = intregionsH0)
 }
 
+.count_strict_two_sided_regions <- function(zcrit0) {
+    stopifnot(
+        is.matrix(zcrit0),
+        nrow(zcrit0) == 2
+    )
+
+    m <- ncol(zcrit0)
+    H0nan <- apply(zcrit0, 2, function(x) any(is.nan(x)))
+    H1 <- H0 <- numeric(m)
+    finiteH0 <- 0L
+
+    for (i in seq_len(m)) {
+        ## Previous finite H0 boundaries split the continuation region into
+        ## lower and upper paths; strict = TRUE integrates all combinations.
+        npaths <- 2^finiteH0
+        H1[i] <- 2*npaths
+        H0[i] <- if (H0nan[i]) 0 else npaths
+
+        if (!H0nan[i]) {
+            finiteH0 <- finiteH0 + 1L
+        }
+    }
+
+    list(
+        total = sum(H1 + H0),
+        perStage = H1 + H0,
+        H0nan = H0nan,
+        firstH0 = match(FALSE, H0nan)
+    )
+}
+
 #' @title Compute Critical Z-Values for Bayes Factors
 #'
 #' @description Computes critical z-values for Bayes factors using normal,
@@ -410,10 +442,11 @@ zcrit <- function(k, se, mu = NULL, tau, type = c("normal", "directional", "mome
     if (type == "normal") {
         if (tau == 0) {
             ## point prior under the alternative
-            zcrit <- (mu^2/se^2 - log(k^2))/(2*mu/se)
+            zcrit <- (mu^2/se^2 - 2*log(k))/(2*mu/se)
         } else {
             ## normal prior under the alternative
-            X <- (mu^2/tau^2 + log(1 + tau^2/se^2) - log(k^2))*(1 + se^2/tau^2)
+            X <- (mu^2/tau^2 + log(1 + tau^2/se^2) - 2*log(k))*
+                (1 + se^2/tau^2)
             if (X < 0) {
                 zcrit <- c(NaN, NaN)
             } else {
@@ -424,8 +457,11 @@ zcrit <- function(k, se, mu = NULL, tau, type = c("normal", "directional", "mome
     }
 
     if (type == "directional") {
-        priorodds <- 1/stats::pnorm(mu/tau) - 1
-        zcrit <- (stats::qnorm(1/(k*priorodds + 1))*sqrt(1/se^2 + 1/tau^2) -
+        logpriorodds <- stats::pnorm(q = mu/tau, lower.tail = FALSE,
+                                     log.p = TRUE) -
+            stats::pnorm(q = mu/tau, lower.tail = TRUE, log.p = TRUE)
+        postq <- .bfpwr_qnorm_logistic_inverse(log(k) + logpriorodds)
+        zcrit <- (postq*sqrt(1/se^2 + 1/tau^2) -
                   mu/tau^2)*se
     }
 
@@ -460,8 +496,10 @@ zcrit <- function(k, se, mu = NULL, tau, type = c("normal", "directional", "mome
 #' @param alternative Direction of the test. Can be either \code{"two.sided"},
 #'     \code{"less"}, or \code{"greater"}. The latter two truncate the analysis
 #'     prior to negative and positive effects, respectively
-#' @param drange Numerical search strategy. Can be either \code{"adaptive"}
-#'     (default) or an interval
+#' @param trange Numerical search strategy. Can be either \code{"adaptive"}
+#'     (default) or an interval. For one-sided adaptive searches, roots are
+#'     bracketed up to \code{|t| <= 256}; pass a wider numeric interval to
+#'     search farther.
 #' @param ... Other arguments passed to \code{stats::uniroot}
 #'
 #' @return Numeric vector of critical t-value(s)
@@ -501,7 +539,7 @@ zcrit <- function(k, se, mu = NULL, tau, type = c("normal", "directional", "mome
 #'
 #' @keywords internal
 tcrit <- function(k, n1, n2, plocation, pscale, pdf, type, alternative,
-                  drange = "adaptive", ...) {
+                  trange = "adaptive", ...) {
 
     ## determine t-statistic for which BF = k
     rootFun <- function(t) {
@@ -510,28 +548,9 @@ tcrit <- function(k, n1, n2, plocation, pscale, pdf, type, alternative,
               log = TRUE) - log(k)
     }
 
-    if (k > 1) {
-        ## find maximum BF to see whether BF = k is possible
-        opt <- stats::optim(par = 0, fn = rootFun, control = list(fnscale = -1),
-                            method = "BFGS")
-        if (opt$convergence != 0) {
-            warning("numerical problems finding maximum BF")
-            return(NaN)
-        } else {
-            if (opt$value < 0) {
-                warning("maximum BF is less than k; BF01 = k impossible")
-                if (alternative == "two.sided") {
-                    return(c(NaN, NaN))
-                } else {
-                    return(NaN)
-                }
-            }
-        }
-    }
-
     if (alternative == "two.sided") {
         ## guess search range based on search range from z-test BF
-        if (!is.numeric(drange) && drange == "adaptive") {
+        if (!is.numeric(trange) && trange == "adaptive") {
             if (type == "two.sample") {
                 neff <- 1/(1/n1 + 1/n2)
             } else {
@@ -539,7 +558,7 @@ tcrit <- function(k, n1, n2, plocation, pscale, pdf, type, alternative,
             }
             se <- 1/sqrt(neff)
             X <- (plocation^2/pscale^2 + log(1 + pscale^2/se^2) -
-                  log(k^2))*(1 + se^2/pscale^2)
+                  2*log(k))*(1 + se^2/pscale^2)
             if (X <= 0) {
                 X <- 5/k
             }
@@ -553,9 +572,26 @@ tcrit <- function(k, n1, n2, plocation, pscale, pdf, type, alternative,
                 searchIntUp <- c(meant, zcrit[1] + 2)
             }
         } else {
-            meant <- mean(drange)
-            searchIntLow <- c(drange[1], meant)
-            searchIntUp <- c(meant, drange[2])
+            meant <- mean(trange)
+            searchIntLow <- c(trange[1], meant)
+            searchIntUp <- c(meant, trange[2])
+        }
+        if (k > 1) {
+            ## Check impossible H0 boundaries only in the interval searched below.
+            ## This avoids unconstrained wrong-tail evaluations in tbf01().
+            maxInt <- c(searchIntLow[1], searchIntUp[2])
+            opt <- try(stats::optimize(f = function(t) {
+                                           ans <- suppressWarnings(rootFun(t))
+                                           if (is.finite(ans)) ans else -Inf
+                                       },
+                                       interval = maxInt,
+                                       maximum = TRUE),
+                       silent = TRUE)
+            if (!inherits(opt, "try-error") &&
+                is.finite(opt$objective) && opt$objective < 0) {
+                warning("maximum BF is less than k; BF01 = k impossible")
+                return(c(NaN, NaN))
+            }
         }
         ## search for critical values
         tcrit <- c(NaN, NaN)
@@ -571,29 +607,75 @@ tcrit <- function(k, n1, n2, plocation, pscale, pdf, type, alternative,
             tcrit <- c(lower, upper)
         }
     } else { # one-sided cases
-        if (!is.numeric(drange) && drange == "adaptive") {
-            ## extend the search range if critical value not contained
-            if (alternative == "greater") {
-                ## want to first find the critical value on the positive side
-                searchint <- c(0, 0.1)
-                extend <- "downX"
+        if (!is.numeric(trange) && trange == "adaptive") {
+            ## Scan outward explicitly so tail evaluations have a finite limit.
+            searchLimit <- 256
+            steps <- c(0.1, 0.25, 0.5, 1, 2, 4, 8, 16, 32, 64, 128,
+                       searchLimit)
+            x0 <- 0
+            f0 <- suppressWarnings(rootFun(x0))
+
+            if (!is.finite(f0)) {
+                res <- structure("non-finite root start", class = "try-error")
+            } else if (f0 == 0) {
+                res <- x0
             } else {
-                ## want to first find the critical value on the negative side
-                searchint <- c(-0.1, 0)
-                extend <- "upX"
+                ## Search the side indicated by BF01(0) first; the other side is
+                ## retained as a fallback for unusual boundary shapes.
+                direction <- if (alternative == "greater") {
+                    if (f0 > 0) 1 else -1
+                } else {
+                    if (f0 > 0) -1 else 1
+                }
+                directions <- c(direction, -direction)
+                res <- structure("root not bracketed", class = "try-error")
+                searchLimitReached <- FALSE
+                for (direction in directions) {
+                    directionLimitReached <- TRUE
+                    for (step in steps) {
+                        x1 <- direction * step
+                        f1 <- suppressWarnings(rootFun(x1))
+                        if (is.finite(f1) && f0 * f1 <= 0) {
+                            directionLimitReached <- FALSE
+                            interval <- sort(c(x0, x1))
+                            res <- try(stats::uniroot(f = rootFun,
+                                                      interval = interval,
+                                                      extendInt = "no",
+                                                      ...)$root,
+                                       silent = TRUE)
+                            break
+                        }
+                    }
+                    if (!inherits(res, "try-error")) {
+                        break
+                    }
+                    searchLimitReached <- searchLimitReached ||
+                        directionLimitReached
+                }
             }
         } else {
-            searchint <- drange
+            searchint <- trange
             extend <- "no"
 
+            suppressWarnings({
+                res <- try(stats::uniroot(f = rootFun, interval = searchint,
+                                          extendInt = extend, ...)$root,
+                           silent = TRUE)
+            })
         }
-        suppressWarnings({
-            res <- try(stats::uniroot(f = rootFun, interval = searchint,
-                                      extendInt = extend, ...)$root,
-                       silent = TRUE)
-        })
         if (inherits(res, "try-error")) {
-            warning("Numerical problems finding critical value")
+            if (exists("searchLimitReached", inherits = FALSE) &&
+                searchLimitReached) {
+                warning(paste0(
+                    "Adaptive t critical-value search reached |t| <= ",
+                    searchLimit,
+                    " without bracketing BF01 = k; pass a wider numeric ",
+                    "'trange' interval to search for exact bounds beyond ",
+                    "this limit."
+                ))
+            } else {
+                warning("Numerical problems finding critical value")
+            }
             tcrit <- NaN
         } else {
             tcrit <- res
