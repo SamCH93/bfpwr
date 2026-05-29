@@ -33,7 +33,7 @@
 #' }
 #'
 #' @param strict Logical. If \code{TRUE} and there are more than two critical
-#'     values per stage, integrate over all possible region combinations (slow
+#'     values per stage, integrate over all possible region combinations (slower
 #'     but exact). If \code{FALSE}, only integrates over the main regions where
 #'     the sign of the z-statistics does not change across stages (faster,
 #'     recommended when many interim analyses, e.g., more than 10, are
@@ -318,7 +318,11 @@ print.bfseqdesign <- function(x, digits = max(3L, getOption("digits") - 3L), ...
         }
 
     } else {
-        par <- parlong <- "parameter"
+        if (x$test == "zcor") {
+            par <- parlong <- "z(correlation)"
+        } else {
+            par <- parlong <- "parameter"
+        }
         if (x$type %in% c("normal", "moment")) {
             null <- " ="
             alt <- "!="
@@ -345,19 +349,22 @@ print.bfseqdesign <- function(x, digits = max(3L, getOption("digits") - 3L), ...
         }
     } else if (x$type %in% c("normal", "directional")) {
         if (x$psd == 0) {
-            aprior <- paste0("parameter = ", round(x$pm, digits = digits))
+            aprior <- paste0(par, " = ", round(x$pm, digits = digits))
         } else {
             if (x$type == "normal") {
-                parameter <- "parameter|H1" # prior is conditional on H1
+                ## prior is conditional on H1
+                parameter <- paste0(par, "|H1")
             } else {
-                parameter <- "parameter" # prior is marginal
+                ## prior is marginal
+                parameter <- par
             }
             aprior <- paste0(parameter,
                              " ~ N(mean = ", round(x$pm, digits = digits),
                              ", sd = ", round(x$psd, digits = digits), ")")
         }
     } else {
-        aprior <- paste0("parameter|H1 ~ NM(location = 0, scale = ",
+        aprior <- paste0(par,
+                         "|H1 ~ NM(location = 0, scale = ",
                          round(x$psd, digits = digits), ")")
     }
     cat(paste0("Analysis prior:   ", aprior, "\n"))
@@ -592,14 +599,16 @@ plot.bfseqdesign <- function(x, plot = TRUE, nullplot = TRUE, zplot = FALSE,
                 graphics::layout(matrix(c(1, 2), ncol = 1), heights = c(1, 10))
             }
 
-            if (x$test != "t") {
-                parameter <- "Assuming parameter"
-            } else {
+            if (x$test == "zcor") {
+                parameter <- "Assuming z(correlation)"
+            } else if (x$test == "t") {
                 if (x$type == "one.sample") {
                     parameter <- "Assuming standardized mean"
                 } else {
                     parameter <- "Assuming standardized mean difference"
                 }
+            } else {
+                parameter <- "Assuming parameter"
             }
 
             graphics::par(mar = c(0, 0, 0, 0))
