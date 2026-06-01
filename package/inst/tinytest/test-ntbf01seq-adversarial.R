@@ -38,6 +38,22 @@ tinyRatio <- try(
 expect_true(inherits(tinyRatio, "try-error"),
             info = "t wrapper should reject ratios producing n2 below two")
 
+badK1 <- try(
+    ntbf01seq(k1 = 0, k0 = 2, power = 0.4, dpm = 0.5, dpsd = 0,
+              alternative = "greater", strict = FALSE),
+    silent = TRUE
+)
+badFixedNextend <- try(
+    powertbf01seq(n = 20, k1 = k1, k0 = k0, dpm = 0.5, dpsd = 0,
+                  alternative = "greater", nextend = NA_real_,
+                  strict = FALSE),
+    silent = TRUE
+)
+expect_true(inherits(badK1, "try-error"),
+            info = "t search should reject non-positive H1 BF thresholds")
+expect_true(inherits(badFixedNextend, "try-error"),
+            info = "t fixed-n wrapper should validate nextend")
+
 smallRatio <- suppressWarnings(
     ntbf01seq(k1 = k1, k0 = k0, power = 0.4, dpm = 0.5, dpsd = 0,
               alternative = "greater", ratio = 0.1, nrange = c(2, 200),

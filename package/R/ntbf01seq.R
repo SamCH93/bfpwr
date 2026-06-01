@@ -12,6 +12,7 @@ ntbf01seq. <- function(k1, k0 = 1/k1, power, null = 0,
         length(k1) == 1,
         is.numeric(k1),
         is.finite(k1),
+        k1 > 0,
         k1 <= 1,
 
         length(k0) == 1,
@@ -68,11 +69,6 @@ ntbf01seq. <- function(k1, k0 = 1/k1, power, null = 0,
         is.logical(integer),
         !is.na(integer),
 
-        length(nextend) == 1,
-        is.numeric(nextend),
-        is.finite(nextend),
-        nextend >= 0,
-
         length(details) == 1,
         is.logical(details),
         !is.na(details)
@@ -80,6 +76,7 @@ ntbf01seq. <- function(k1, k0 = 1/k1, power, null = 0,
     type <- match.arg(type)
     alternative <- match.arg(alternative)
     target <- match.arg(target)
+    nextend <- .bfseq_normalize_nextend(nextend)
 
     lookMinN <- if (type == "two.sample") .bfseq_ratio_look_min_n(ratio) else 2
     schedule <- .bfseq_schedule_spec(looks = looks, timing = timing,
@@ -101,8 +98,7 @@ ntbf01seq. <- function(k1, k0 = 1/k1, power, null = 0,
         )
         list(result = design,
              power = .bfseq_target_probability(design = design,
-                                                target = target),
-             schedule = list(n1 = n1, n2 = n2))
+                                                target = target))
     }
 
     solver <- .bfseq_search(power = power, target = target, nrange = nrange,
@@ -125,6 +121,16 @@ ntbf01seq. <- function(k1, k0 = 1/k1, power, null = 0,
 #'     t-test Bayes factor design to reach a target probability of stopping for
 #'     \eqn{H_1}{H1} or \eqn{H_0}{H0}.
 #'
+#' @details The function searches over the maximum group-1 sample size for
+#'     two-sample designs, or the maximum sample size for one-sample and paired
+#'     designs. Candidate look schedules are rebuilt for each maximum sample
+#'     size according to \code{looks}/\code{timing} or \code{by}/\code{minN}.
+#'     For multi-look timing schedules, the search verifies the first maximum
+#'     sample size in \code{nrange} that reaches the requested stopping
+#'     probability, because the rounded interim looks can make the power curve
+#'     non-monotone. If the target is not reached within \code{nrange}, the
+#'     function returns \code{NaN} and issues a warning.
+#'
 #' @inheritParams ptbf01seq
 #' @inheritParams ntbf01
 #' @inheritParams nbf01seq
@@ -136,7 +142,8 @@ ntbf01seq. <- function(k1, k0 = 1/k1, power, null = 0,
 #'     Candidate group-2 sample sizes are \code{ceiling(n1 * ratio)}. Ignored
 #'     for one-sample and paired designs.
 #' @param details Logical indicating whether the full search result should be
-#'     returned instead of only the maximum sample size. Defaults to
+#'     returned instead of only the maximum sample size. The detailed result is
+#'     scalar; vectorized inputs require \code{details = FALSE}. Defaults to
 #'     \code{FALSE}.
 #' @param ... Additional arguments passed to \code{\link{ptbf01seq}}.
 #'
@@ -163,9 +170,23 @@ ntbf01seq <- function(k1, k0 = 1/k1, power, null = 0,
                       looks = 1, timing = NULL, minN = NULL, by = NULL,
                       ratio = 1, strict = TRUE, trange = "adaptive",
                       integer = TRUE, nextend = 0, details = FALSE, ...) {
-    type <- if (missing(type)) "two.sample" else .bfseq_match_vector_arg(type, c("two.sample", "one.sample", "paired"), "type")
-    alternative <- if (missing(alternative)) "two.sided" else .bfseq_match_vector_arg(alternative, c("two.sided", "less", "greater"), "alternative")
-    target <- if (missing(target)) "h1" else .bfseq_match_vector_arg(target, c("h1", "h0"), "target")
+    type <- if (missing(type)) {
+        "two.sample"
+    } else {
+        .bfseq_match_vector_arg(type, c("two.sample", "one.sample", "paired"),
+                                "type")
+    }
+    alternative <- if (missing(alternative)) {
+        "two.sided"
+    } else {
+        .bfseq_match_vector_arg(alternative, c("two.sided", "less",
+                                               "greater"), "alternative")
+    }
+    target <- if (missing(target)) {
+        "h1"
+    } else {
+        .bfseq_match_vector_arg(target, c("h1", "h0"), "target")
+    }
 
     if (isTRUE(details)) {
         if (length(type) != 1 || length(alternative) != 1 ||

@@ -152,6 +152,7 @@
 
 .bfseq_search <- function(power, target, nrange, schedule, evaluate,
                           nextend = 0) {
+    nextend <- .bfseq_normalize_nextend(nextend)
     bounds <- .bfseq_search_bounds(nrange = nrange, schedule = schedule)
     lowerN <- bounds[1]
     upperLimit <- bounds[2]
@@ -174,8 +175,7 @@
         } else {
             achieved <- value$power
             out <- list(n = n, criterion = achieved - power, power = achieved,
-                        error = NULL, result = value$result,
-                        schedule = value$schedule)
+                        error = NULL, result = value$result)
             if (!is.finite(out$criterion)) {
                 out$error <- "non-finite sequential stopping probability"
             }
@@ -186,11 +186,15 @@
 
     lower <- evalN(lowerN)
     if (is.finite(lower$criterion) && lower$criterion >= 0) {
-        return(.bfseq_solver_result(evalN = evalN, candidate = lower,
+        certified <- .bfseq_certify_nextend(evalN = evalN, foundN = lower$n,
+                                            upperLimit = upperLimit,
+                                            nextend = nextend)
+        return(.bfseq_solver_result(candidate = certified$candidate,
                                     target = target, targetPower = power,
                                     nrange = bounds, schedule = schedule,
                                     evaluations = evaluations,
-                                    reached = TRUE, nextend = nextend))
+                                    reached = certified$reached,
+                                    nextend = nextend))
     }
 
     bracket <- .bfseq_find_bracket(evalN = evalN, lower = lower,
@@ -203,7 +207,7 @@
         } else {
             warning("upper bound of sample size search range ('nrange') leads to lower power than specified")
         }
-        return(.bfseq_solver_result(evalN = evalN, candidate = limit,
+        return(.bfseq_solver_result(candidate = limit,
                                     target = target, targetPower = power,
                                     nrange = bounds, schedule = schedule,
                                     evaluations = evaluations,
@@ -217,7 +221,7 @@
                                   scanFirst = .bfseq_needs_first_scan(schedule),
                                   nextend = nextend)
 
-    .bfseq_solver_result(evalN = evalN, candidate = found$candidate,
+    .bfseq_solver_result(candidate = found$candidate,
                          target = target, targetPower = power,
                          nrange = bounds, schedule = schedule,
                          evaluations = evaluations, reached = found$reached,
@@ -327,15 +331,20 @@
         }
     }
 
+    .bfseq_certify_nextend(evalN = evalN, foundN = foundN,
+                           upperLimit = upperLimit, nextend = nextend)
+}
+
+.bfseq_certify_nextend <- function(evalN, foundN, upperLimit, nextend) {
     reached <- TRUE
     if (nextend > 0) {
         repeat {
-            if (foundN + as.integer(nextend) > upperLimit) {
+            if (foundN + nextend > upperLimit) {
                 warning("Power function may still fall below target power, extend sample size search range")
                 reached <- FALSE
                 break
             }
-            checkN <- foundN:min(upperLimit, foundN + as.integer(nextend))
+            checkN <- foundN:(foundN + nextend)
             checked <- lapply(checkN, evalN)
             criteria <- vapply(checked, `[[`, numeric(1), "criterion")
             if (all(is.finite(criteria) & criteria >= 0)) {
@@ -355,7 +364,7 @@
     list(candidate = evalN(foundN), reached = reached)
 }
 
-.bfseq_solver_result <- function(evalN, candidate, target, targetPower, nrange,
+.bfseq_solver_result <- function(candidate, target, targetPower, nrange,
                                  schedule, evaluations, reached, nextend) {
     n <- if (isTRUE(reached)) candidate$n else NaN
     result <- candidate$result
@@ -391,6 +400,23 @@
     )
 }
 
+.bfseq_fixed_solver <- function(n, target, design, schedule, nextend = 0) {
+    n <- ceiling(n)
+    list(
+        n = n,
+        maximumN = n,
+        target = target,
+        targetPower = NA_real_,
+        actualPower = .bfseq_target_probability(design, target),
+        reached = NA,
+        nrange = c(n, n),
+        schedule = .bfseq_schedule_summary(schedule),
+        evaluations = 1L,
+        nextend = .bfseq_normalize_nextend(nextend),
+        error = NULL
+    )
+}
+
 .bfseq_schedule_summary <- function(schedule) {
     if (schedule$type == "increase") {
         return(list(type = schedule$type, minN = schedule$minN,
@@ -405,7 +431,23 @@
 }
 
 .bfseq_ratio_look_min_n <- function(ratio) {
+    stopifnot(
+        length(ratio) == 1,
+        is.numeric(ratio),
+        is.finite(ratio),
+        ratio > 0
+    )
     max(2L, as.integer(floor(1/ratio) + 1L))
+}
+
+.bfseq_normalize_nextend <- function(nextend) {
+    stopifnot(
+        length(nextend) == 1,
+        is.numeric(nextend),
+        is.finite(nextend),
+        nextend >= 0
+    )
+    as.integer(ceiling(nextend))
 }
 
 .bfseq_match_vector_arg <- function(arg, choices, name) {

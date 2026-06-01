@@ -98,11 +98,12 @@ should be returned. If \code{TRUE} the required sample size is rounded to
 the next larger integer. Defaults to \code{TRUE}}
 
 \item{nextend}{Number of sample sizes beyond the solution used to check that
-the target probability does not drop below \code{power}. Defaults to
-\code{0}.}
+the target probability does not drop below \code{power}. Non-integer
+values are rounded up. Defaults to \code{0}.}
 
 \item{details}{Logical indicating whether the full search result should be
-returned instead of only the maximum sample size. Defaults to
+returned instead of only the maximum sample size. The detailed result is
+scalar; vectorized inputs require \code{details = FALSE}. Defaults to
 \code{FALSE}.}
 
 \item{...}{Additional arguments passed to \code{\link{pbf01seq}}.}
@@ -116,6 +117,16 @@ The required maximum sample size to achieve the specified power. If
 Computes the maximum sample size required for a sequential
     z-test Bayes factor design to reach a target probability of stopping for
     \eqn{H_1}{H1} or \eqn{H_0}{H0}.
+}
+\details{
+The function searches over the maximum sample size of the
+    sequential design. Candidate look schedules are rebuilt for each
+    maximum sample size according to \code{looks}/\code{timing} or
+    \code{by}/\code{minN}. For multi-look timing schedules, the search
+    verifies the first maximum sample size in \code{nrange} that reaches the
+    requested stopping probability, because the rounded interim looks can
+    make the power curve non-monotone. If the target is not reached within
+    \code{nrange}, the function returns \code{NaN} and issues a warning.
 }
 \examples{
 nbf01seq(k1 = 1/5, k0 = 5, power = 0.8, usd = sqrt(2),

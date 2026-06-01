@@ -16,6 +16,7 @@ nbf01seq. <- function(k1, k0 = 1/k1, power, usd = sqrt(2), null = 0,
         length(k1) == 1,
         is.numeric(k1),
         is.finite(k1),
+        k1 > 0,
         k1 <= 1,
 
         length(k0) == 1,
@@ -59,11 +60,6 @@ nbf01seq. <- function(k1, k0 = 1/k1, power, usd = sqrt(2), null = 0,
         is.logical(integer),
         !is.na(integer),
 
-        length(nextend) == 1,
-        is.numeric(nextend),
-        is.finite(nextend),
-        nextend >= 0,
-
         length(details) == 1,
         is.logical(details),
         !is.na(details)
@@ -78,6 +74,7 @@ nbf01seq. <- function(k1, k0 = 1/k1, power, usd = sqrt(2), null = 0,
     if (type != "normal") {
         stopifnot(psd > 0)
     }
+    nextend <- .bfseq_normalize_nextend(nextend)
 
     schedule <- .bfseq_schedule_spec(looks = looks, timing = timing,
                                      minN = minN, by = by, nrange = nrange)
@@ -91,8 +88,7 @@ nbf01seq. <- function(k1, k0 = 1/k1, power, usd = sqrt(2), null = 0,
         )
         list(result = design,
              power = .bfseq_target_probability(design = design,
-                                                target = target),
-             schedule = n)
+                                                target = target))
     }
 
     solver <- .bfseq_search(power = power, target = target, nrange = nrange,
@@ -114,6 +110,15 @@ nbf01seq. <- function(k1, k0 = 1/k1, power, usd = sqrt(2), null = 0,
 #' @description Computes the maximum sample size required for a sequential
 #'     z-test Bayes factor design to reach a target probability of stopping for
 #'     \eqn{H_1}{H1} or \eqn{H_0}{H0}.
+#'
+#' @details The function searches over the maximum sample size of the
+#'     sequential design. Candidate look schedules are rebuilt for each
+#'     maximum sample size according to \code{looks}/\code{timing} or
+#'     \code{by}/\code{minN}. For multi-look timing schedules, the search
+#'     verifies the first maximum sample size in \code{nrange} that reaches the
+#'     requested stopping probability, because the rounded interim looks can
+#'     make the power curve non-monotone. If the target is not reached within
+#'     \code{nrange}, the function returns \code{NaN} and issues a warning.
 #'
 #' @inheritParams pbf01seq
 #' @inheritParams nbf01
@@ -141,10 +146,11 @@ nbf01seq. <- function(k1, k0 = 1/k1, power, usd = sqrt(2), null = 0,
 #'     are generated as \code{seq(minN, maximumN, by = by)} with
 #'     \code{maximumN} appended as the final look.
 #' @param nextend Number of sample sizes beyond the solution used to check that
-#'     the target probability does not drop below \code{power}. Defaults to
-#'     \code{0}.
+#'     the target probability does not drop below \code{power}. Non-integer
+#'     values are rounded up. Defaults to \code{0}.
 #' @param details Logical indicating whether the full search result should be
-#'     returned instead of only the maximum sample size. Defaults to
+#'     returned instead of only the maximum sample size. The detailed result is
+#'     scalar; vectorized inputs require \code{details = FALSE}. Defaults to
 #'     \code{FALSE}.
 #' @param ... Additional arguments passed to \code{\link{pbf01seq}}.
 #'
@@ -169,8 +175,17 @@ nbf01seq <- function(k1, k0 = 1/k1, power, usd = sqrt(2), null = 0,
                      looks = 1, timing = NULL, minN = NULL, by = NULL,
                      strict = TRUE, integer = TRUE, nextend = 0,
                      details = FALSE, ...) {
-    type <- if (missing(type)) "normal" else .bfseq_match_vector_arg(type, c("normal", "directional", "moment"), "type")
-    target <- if (missing(target)) "h1" else .bfseq_match_vector_arg(target, c("h1", "h0"), "target")
+    type <- if (missing(type)) {
+        "normal"
+    } else {
+        .bfseq_match_vector_arg(type, c("normal", "directional", "moment"),
+                                "type")
+    }
+    target <- if (missing(target)) {
+        "h1"
+    } else {
+        .bfseq_match_vector_arg(target, c("h1", "h0"), "target")
+    }
 
     if (isTRUE(details)) {
         if (length(type) != 1 || length(target) != 1) {

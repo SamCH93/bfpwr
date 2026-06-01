@@ -7,7 +7,12 @@
 #' @details This function provides a higher-level interface to
 #'     \code{\link{ptbf01seq}} and \code{\link{ntbf01seq}}. The analysis and
 #'     design prior locations are centered at \code{null} before calling
-#'     \code{\link{ptbf01seq}}.
+#'     \code{\link{ptbf01seq}}. If \code{power} is supplied, the returned
+#'     design is evaluated at the searched maximum sample size, and
+#'     \code{solver$reached} records whether the target was achieved within
+#'     \code{nrange}. If \code{n} is supplied, no search is performed and the
+#'     \code{solver} element records the achieved stopping probability for the
+#'     fixed schedule.
 #'
 #' @inheritParams ntbf01seq
 #' @inheritParams powertbf01
@@ -49,11 +54,23 @@ powertbf01seq <- function(n = NULL, power = NULL, k1 = 1/10, k0 = 1/k1,
     alternative <- match.arg(alternative)
     target <- match.arg(target)
     stopifnot(
+        length(k1) == 1,
+        is.numeric(k1),
+        is.finite(k1),
+        k1 > 0,
+        k1 <= 1,
+
+        length(k0) == 1,
+        is.numeric(k0),
+        is.finite(k0),
+        k0 >= 1,
+
         length(ratio) == 1,
         is.numeric(ratio),
         is.finite(ratio),
         ratio > 0
     )
+    nextend <- .bfseq_normalize_nextend(nextend)
 
     if (is.null(n)) {
         solver <- ntbf01seq.(
@@ -94,19 +111,8 @@ powertbf01seq <- function(n = NULL, power = NULL, k1 = 1/10, k0 = 1/k1,
             dpm = dpm - null, dpsd = dpsd, type = type,
             alternative = alternative, strict = strict, trange = trange, ...
         )
-        solver <- list(
-            n = ceiling(n),
-            maximumN = ceiling(n),
-            target = target,
-            targetPower = NA_real_,
-            actualPower = .bfseq_target_probability(design, target),
-            reached = NA,
-            nrange = c(ceiling(n), ceiling(n)),
-            schedule = .bfseq_schedule_summary(schedule),
-            evaluations = 1L,
-            nextend = nextend,
-            error = NULL
-        )
+        solver <- .bfseq_fixed_solver(n = n, target = target, design = design,
+                                      schedule = schedule, nextend = nextend)
         design$solver <- solver
     }
 

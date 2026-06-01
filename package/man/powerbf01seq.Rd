@@ -97,8 +97,8 @@ recommended when many interim analyses, e.g., more than 10, are
 performed). Defaults to \code{TRUE}}
 
 \item{nextend}{Number of sample sizes beyond the solution used to check that
-the target probability does not drop below \code{power}. Defaults to
-\code{0}.}
+the target probability does not drop below \code{power}. Non-integer
+values are rounded up. Defaults to \code{0}.}
 
 \item{...}{Additional arguments passed to \code{\link{pbf01seq}}.}
 }
@@ -116,7 +116,12 @@ Computes cumulative stopping probabilities for a sequential
 This function provides a higher-level interface to
     \code{\link{pbf01seq}} and \code{\link{nbf01seq}} for continuous data.
     The analysis and design prior means are centered at \code{null} before
-    calling \code{\link{pbf01seq}}.
+    calling \code{\link{pbf01seq}}. If \code{power} is supplied, the
+    returned design is evaluated at the searched maximum sample size, and
+    \code{solver$reached} records whether the target was achieved within
+    \code{nrange}. If \code{n} is supplied, no search is performed and the
+    \code{solver} element records the achieved stopping probability for the
+    fixed schedule.
 }
 \examples{
 powerbf01seq(n = 60, k1 = 1/5, k0 = 5, pm = 0, psd = 1,

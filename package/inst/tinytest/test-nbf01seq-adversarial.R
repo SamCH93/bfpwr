@@ -135,6 +135,42 @@ expect_true(inherits(badTimingEnd, "try-error"),
 expect_true(inherits(badScheduleMix, "try-error"),
             info = "z schedule should reject timing and increment together")
 
+badK1 <- try(
+    nbf01seq(k1 = 0, k0 = 2, power = 0.4, usd = sqrt(2), pm = 0,
+             psd = 1, dpm = 0.5, dpsd = 0),
+    silent = TRUE
+)
+badFixedNextend <- try(
+    powerbf01seq(n = 20, k1 = 1/2, k0 = 2, pm = 0, psd = 1,
+                 dpm = 0.5, dpsd = 0, nextend = NA_real_),
+    silent = TRUE
+)
+expect_true(inherits(badK1, "try-error"),
+            info = "z search should reject non-positive H1 BF thresholds")
+expect_true(inherits(badFixedNextend, "try-error"),
+            info = "z fixed-n wrapper should validate nextend")
+
+lowerSchedule <- bfpwr:::.bfseq_schedule_spec(looks = 1,
+                                              nrange = c(2, 5))
+lowerDip <- suppressWarnings(
+    bfpwr:::.bfseq_search(
+        power = 0.8,
+        target = "h1",
+        nrange = c(2, 5),
+        schedule = lowerSchedule,
+        nextend = 1,
+        evaluate = function(maxN) {
+            power <- if (maxN == 3) 0.5 else 0.9
+            list(result = list(cumpH1 = power, cumpH0 = 0, n = maxN),
+                 power = power, schedule = maxN)
+        }
+    )
+)
+expect_equal(lowerDip$n, 4,
+             info = "nextend should be checked when lower bound already reaches")
+expect_true(lowerDip$reached,
+            info = "lower-bound nextend certification should advance to stable n")
+
 syntheticSchedule <- bfpwr:::.bfseq_schedule_spec(looks = 1,
                                                   nrange = c(2, 10))
 synthetic <- suppressWarnings(

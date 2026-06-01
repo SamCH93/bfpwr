@@ -109,8 +109,8 @@ numeric interval. For one-sided adaptive searches, roots are bracketed up
 to \code{|t| <= 256}; pass a wider numeric interval to search farther.}
 
 \item{nextend}{Number of sample sizes beyond the solution used to check that
-the target probability does not drop below \code{power}. Defaults to
-\code{0}.}
+the target probability does not drop below \code{power}. Non-integer
+values are rounded up. Defaults to \code{0}.}
 
 \item{...}{Additional arguments passed to \code{\link{ptbf01seq}}.}
 }
@@ -128,7 +128,12 @@ Computes cumulative stopping probabilities for a sequential
 This function provides a higher-level interface to
     \code{\link{ptbf01seq}} and \code{\link{ntbf01seq}}. The analysis and
     design prior locations are centered at \code{null} before calling
-    \code{\link{ptbf01seq}}.
+    \code{\link{ptbf01seq}}. If \code{power} is supplied, the returned
+    design is evaluated at the searched maximum sample size, and
+    \code{solver$reached} records whether the target was achieved within
+    \code{nrange}. If \code{n} is supplied, no search is performed and the
+    \code{solver} element records the achieved stopping probability for the
+    fixed schedule.
 }
 \examples{
 powertbf01seq(n = 20, k1 = 1/2, k0 = 2, dpm = 0.5, dpsd = 0,
