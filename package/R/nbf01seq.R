@@ -4,9 +4,11 @@ nbf01seq. <- function(k1, k0 = 1/k1, power, usd = sqrt(2), null = 0,
                       target = c("h1", "h0"), nrange = c(2, 10^5),
                       looks = 1, timing = NULL, minN = NULL, by = NULL,
                       strict = TRUE, integer = TRUE, nextend = 0,
-                      details = FALSE, ...) {
+                      search = c("adaptive", "exhaustive"),
+                      details = FALSE, progress = NULL, ...) {
     type <- match.arg(type)
     target <- match.arg(target)
+    search <- match.arg(search)
     if (type == "moment" && is.null(dpm)) {
         stop("argument 'dpm' must be specified when type = \"moment\"")
     }
@@ -75,25 +77,36 @@ nbf01seq. <- function(k1, k0 = 1/k1, power, usd = sqrt(2), null = 0,
         stopifnot(psd > 0)
     }
     nextend <- .bfseq_normalize_nextend(nextend)
+    progress <- .bfseq_validate_progress(progress)
 
     schedule <- .bfseq_schedule_spec(looks = looks, timing = timing,
                                      minN = minN, by = by, nrange = nrange)
-    evalDesign <- function(maxN) {
-        n <- .bfseq_schedule_n(maxN = maxN, schedule = schedule)
-        relpm <- if (type == "moment") NULL else pm - null
-        design <- pbf01seq(
-            k1 = k1, k0 = k0, se = usd/sqrt(n), n = n,
-            pm = relpm, psd = psd, dpm = dpm - null, dpsd = dpsd,
-            type = type, strict = strict, ...
+    evalDesign <- if (identical(schedule$type, "increase")) {
+        .bfseq_z_increase_evaluator(
+            k1 = k1, k0 = k0, usd = usd, null = null, pm = pm,
+            psd = psd, dpm = dpm, dpsd = dpsd, type = type,
+            target = target, schedule = schedule, strict = strict,
+            dots = list(...)
         )
-        list(result = design,
-             power = .bfseq_target_probability(design = design,
-                                                target = target))
+    } else {
+        function(maxN) {
+            n <- .bfseq_schedule_n(maxN = maxN, schedule = schedule)
+            relpm <- if (type == "moment") NULL else pm - null
+            design <- pbf01seq(
+                k1 = k1, k0 = k0, se = usd/sqrt(n), n = n,
+                pm = relpm, psd = psd, dpm = dpm - null, dpsd = dpsd,
+                type = type, strict = strict, ...
+            )
+            list(result = design,
+                 power = .bfseq_target_probability(design = design,
+                                                    target = target))
+        }
     }
 
     solver <- .bfseq_search(power = power, target = target, nrange = nrange,
                             schedule = schedule, evaluate = evalDesign,
-                            nextend = nextend)
+                            nextend = nextend, progress = progress,
+                            search = search)
 
     if (details) {
         return(solver)
@@ -114,11 +127,13 @@ nbf01seq. <- function(k1, k0 = 1/k1, power, usd = sqrt(2), null = 0,
 #' @details The function searches over the maximum sample size of the
 #'     sequential design. Candidate look schedules are rebuilt for each
 #'     maximum sample size according to \code{looks}/\code{timing} or
-#'     \code{by}/\code{minN}. For multi-look timing schedules, the search
-#'     verifies the first maximum sample size in \code{nrange} that reaches the
-#'     requested stopping probability, because the rounded interim looks can
-#'     make the power curve non-monotone. If the target is not reached within
-#'     \code{nrange}, the function returns \code{NaN} and issues a warning.
+#'     \code{by}/\code{minN}. For multi-look timing schedules, rounded interim
+#'     looks can make the power curve non-monotone; \code{search} selects
+#'     the search rule. For \code{by}/\code{minN} schedules, scheduled maximum
+#'     sample sizes are scanned in increasing order and previous look
+#'     calculations are reused; \code{search} is ignored. If the target is not
+#'     reached within \code{nrange}, the function returns \code{NaN} and issues
+#'     a warning.
 #'
 #' @inheritParams pbf01seq
 #' @inheritParams nbf01
@@ -148,14 +163,24 @@ nbf01seq. <- function(k1, k0 = 1/k1, power, usd = sqrt(2), null = 0,
 #' @param nextend Number of sample sizes beyond the solution used to check that
 #'     the target probability does not drop below \code{power}. Non-integer
 #'     values are rounded up. Defaults to \code{0}.
+#' @param search Sample-size search rule for schedules generated from
+#'     \code{looks}/\code{timing}. \code{"adaptive"} uses bracketing and binary
+#'     search with local checks. \code{"exhaustive"} scans candidate maximum
+#'     sample sizes until the first crossing. Ignored when \code{by} is
+#'     supplied, where scheduled maximum sample sizes \code{minN + j * by} are
+#'     scanned in increasing order. Defaults to \code{"adaptive"}.
 #' @param details Logical indicating whether the full search result should be
 #'     returned instead of only the maximum sample size. The detailed result is
 #'     scalar; vectorized inputs require \code{details = FALSE}. Defaults to
 #'     \code{FALSE}.
+#' @param progress Optional function called after each newly evaluated
+#'     candidate maximum sample size. A callback with arguments receives a list
+#'     of search diagnostics; a zero-argument callback is called without
+#'     arguments.
 #' @param ... Additional arguments passed to \code{\link{pbf01seq}}.
 #'
-#' @return The required maximum sample size to achieve the specified power. If
-#'     \code{details = TRUE}, returns a list containing the sample size, achieved
+#' @return The maximum sample size found to achieve the specified power. If
+#'     \code{details = TRUE}, returns a list with the sample size, achieved
 #'     power, generated design, and search diagnostics.
 #'
 #' @author Samuel Pawel
@@ -174,7 +199,8 @@ nbf01seq <- function(k1, k0 = 1/k1, power, usd = sqrt(2), null = 0,
                      target = c("h1", "h0"), nrange = c(2, 10^5),
                      looks = 1, timing = NULL, minN = NULL, by = NULL,
                      strict = TRUE, integer = TRUE, nextend = 0,
-                     details = FALSE, ...) {
+                     search = c("adaptive", "exhaustive"),
+                     details = FALSE, progress = NULL, ...) {
     type <- if (missing(type)) {
         "normal"
     } else {
@@ -196,7 +222,8 @@ nbf01seq <- function(k1, k0 = 1/k1, power, usd = sqrt(2), null = 0,
             pm = pm, psd = psd, dpm = dpm, dpsd = dpsd, type = type,
             target = target, nrange = nrange, looks = looks, timing = timing,
             minN = minN, by = by, strict = strict, integer = integer,
-            nextend = nextend, details = TRUE, ...
+            nextend = nextend, search = search, details = TRUE,
+            progress = progress, ...
         ))
     }
 
@@ -210,5 +237,6 @@ nbf01seq <- function(k1, k0 = 1/k1, power, usd = sqrt(2), null = 0,
       pm = pm, psd = psd, dpm = dpm, dpsd = dpsd, type = type,
       target = target, nrange = nrange, looks = looks, timing = timing,
       minN = minN, by = by, strict = strict, integer = integer,
-      nextend = nextend, details = FALSE, ...)
+      nextend = nextend, search = search, details = FALSE,
+      progress = progress, ...)
 }

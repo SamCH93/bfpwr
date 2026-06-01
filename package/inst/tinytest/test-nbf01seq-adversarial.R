@@ -70,11 +70,46 @@ expect_equal(oneLookH0, fixedH0,
 
 early <- nbf01seq(k1 = 1/3, k0 = 5, power = 0.9826,
                   pm = 0.5, psd = 2, dpm = 1, dpsd = 0, looks = 4,
-                  nrange = c(2, 120), details = TRUE)
+                  nrange = c(2, 120), search = "exhaustive",
+                  details = TRUE)
 expect_equal(early$n, 44,
              info = "timing search should return the first crossing")
 expect_true(early$actualPower >= 0.9826,
             info = "timing first crossing should reach the target")
+expect_true(early$firstCrossingCertified,
+            info = "exhaustive timing search should certify the first crossing")
+
+timingSchedule <- bfpwr:::.bfseq_schedule_spec(looks = 5,
+                                               nrange = c(2, 1000))
+stepEvaluator <- function(maxN) {
+    power <- if (maxN >= 800) 0.9 else 0.5
+    list(result = list(cumpH1 = power, cumpH0 = 0, n = maxN),
+         power = power)
+}
+adaptiveStep <- bfpwr:::.bfseq_search(
+    power = 0.8,
+    target = "h1",
+    nrange = c(2, 1000),
+    schedule = timingSchedule,
+    evaluate = stepEvaluator,
+    search = "adaptive"
+)
+exhaustiveStep <- bfpwr:::.bfseq_search(
+    power = 0.8,
+    target = "h1",
+    nrange = c(2, 1000),
+    schedule = timingSchedule,
+    evaluate = stepEvaluator,
+    search = "exhaustive"
+)
+expect_equal(adaptiveStep$n, exhaustiveStep$n,
+             info = "adaptive timing search should find the bracketing solution in monotone cases")
+expect_true(adaptiveStep$evaluations < exhaustiveStep$evaluations/10,
+            info = "adaptive timing search should avoid exhaustive first-crossing scans")
+expect_false(adaptiveStep$firstCrossingCertified,
+             info = "adaptive multi-look timing search should report uncertified first crossing")
+expect_true(exhaustiveStep$firstCrossingCertified,
+            info = "exhaustive multi-look timing search should report certified first crossing")
 
 detailsVector <- try(
     nbf01seq(k1 = c(1/2, 1/3), k0 = 2, power = 0.4, usd = sqrt(2),

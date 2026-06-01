@@ -150,3 +150,20 @@ expect_true(inherits(badTiming, "try-error"),
             info = "t timing should reject duplicate information fractions")
 expect_true(inherits(badScheduleMix, "try-error"),
             info = "t schedule should reject timing and increment together")
+
+greaterTimingEvents <- list()
+greaterTiming <- suppressWarnings(
+    ntbf01seq(k1 = 1/10, k0 = 10, power = 0.8, dpm = 0.5, dpsd = 0,
+              type = "two.sample", alternative = "greater", ratio = 1,
+              timing = seq(0.2, 1, length.out = 5), nrange = c(20, 200),
+              strict = TRUE, trange = "adaptive", details = TRUE,
+              progress = function(info) {
+                  greaterTimingEvents[[length(greaterTimingEvents) + 1L]] <<- info
+              })
+)
+expect_equal(greaterTiming$n, 96,
+             info = "one-sided strict t sequential search should keep accelerated adaptive result")
+expect_true(greaterTiming$actualPower >= 0.8,
+            info = "one-sided strict t sequential search should reach the target")
+expect_equal(length(greaterTimingEvents), greaterTiming$evaluations,
+             info = "one-sided strict t sequential search should still report progress")

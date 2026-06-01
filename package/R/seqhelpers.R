@@ -102,45 +102,90 @@ intstages <- function(intregions, mean, sigma, method = "lpmvnorm", ...) {
     }
 
     for (i in seq_len(m)) {
-        stageregions <- intregions[[i]]
-        stopifnot(is.list(stageregions))
-
-        regionprobs <- vapply(stageregions,
-                              FUN.VALUE = numeric(1),
-                              FUN = function(region) {
-            ## NaN encodes that critical value doesn't exist => probability = 0
-            if (any(is.nan(region))) {
-                p <- 0
-            } else {
-                if (i == 1) {
-                    p <- exp(.bfpwr_lpnorm_interval(lower = region[1,],
-                                                    upper = region[2,],
-                                                    mean = mean[1],
-                                                    sd = sqrt(sigma[1:1])))
-                } else if (method == "lpmvnorm") {
-                    p <- exp(mvtnorm::lpmvnorm(lower = region[1, ],
-                                               upper = region[2, ],
-                                               mean = mean[1:i],
-                                               chol = Ct[,1:i],
-                                               M = ngrid,
-                                               w = w[1:(i - 1),,drop = FALSE],
-                                               ...))
-                } else {
-                    p <- mvtnorm::pmvnorm(lower = region[1, ],
-                                          upper = region[2, ],
-                                          mean  = mean[1:i],
-                                          sigma = sigma[1:i, 1:i],
-                                          seed = 42,
-                                          keepAttr = FALSE,
-                                          ...)
-                }
-            }
-            return(p)
-        })
-        probs[i] <- sum(regionprobs, na.rm = TRUE)
+        if (i > 1 && method == "lpmvnorm") {
+            probs[i] <- .bfseq_intstage_sum(
+                stageregions = intregions[[i]], mean = mean[1:i],
+                sigma = sigma[1:i, 1:i], method = method,
+                cholFactor = Ct[,1:i], w = w[1:(i - 1),,drop = FALSE],
+                ngrid = ngrid, ...
+            )
+        } else {
+            probs[i] <- .bfseq_intstage_sum(
+                stageregions = intregions[[i]], mean = mean[1:i],
+                sigma = sigma[1:i, 1:i], method = method, ...
+            )
+        }
     }
 
     return(probs)
+}
+
+.bfseq_intstage <- function(stageregions, mean, sigma, method = "lpmvnorm",
+                            ...) {
+    stopifnot(
+        is.list(stageregions),
+        is.numeric(mean),
+        is.matrix(sigma),
+        length(mean) == nrow(sigma),
+        nrow(sigma) == ncol(sigma)
+    )
+
+    i <- length(mean)
+    if (i > 1 && method == "lpmvnorm") {
+        C <- t(chol(sigma))
+        Ct <- mvtnorm::ltMatrices(C[lower.tri(C, diag = TRUE)], diag = TRUE)
+        ngrid <- 1000
+        w <- withr::with_seed(seed = 42, code = {
+            t(qrng::ghalton(n = ngrid, d = i - 1))
+        })
+        return(.bfseq_intstage_sum(stageregions = stageregions,
+                                   mean = mean, sigma = sigma,
+                                   method = method, cholFactor = Ct,
+                                   w = w, ngrid = ngrid, ...))
+    }
+
+    .bfseq_intstage_sum(stageregions = stageregions, mean = mean,
+                        sigma = sigma, method = method, ...)
+}
+
+.bfseq_intstage_sum <- function(stageregions, mean, sigma,
+                                method = "lpmvnorm", cholFactor = NULL,
+                                w = NULL, ngrid = 1000, ...) {
+    stopifnot(is.list(stageregions))
+
+    i <- length(mean)
+    regionprobs <- vapply(stageregions,
+                          FUN.VALUE = numeric(1),
+                          FUN = function(region) {
+        ## NaN encodes that a boundary does not exist, so the region is empty.
+        if (any(is.nan(region))) {
+            p <- 0
+        } else if (i == 1) {
+            p <- exp(.bfpwr_lpnorm_interval(lower = region[1,],
+                                            upper = region[2,],
+                                            mean = mean[1],
+                                            sd = sqrt(sigma[1:1])))
+        } else if (method == "lpmvnorm") {
+            p <- exp(mvtnorm::lpmvnorm(lower = region[1, ],
+                                       upper = region[2, ],
+                                       mean = mean,
+                                       chol = cholFactor,
+                                       M = ngrid,
+                                       w = w,
+                                       ...))
+        } else {
+            p <- mvtnorm::pmvnorm(lower = region[1, ],
+                                  upper = region[2, ],
+                                  mean  = mean,
+                                  sigma = sigma,
+                                  seed = 42,
+                                  keepAttr = FALSE,
+                                  ...)
+        }
+        return(p)
+    })
+
+    sum(regionprobs, na.rm = TRUE)
 }
 
 
@@ -178,65 +223,81 @@ genregions1 <- function(zcrit0, zcrit1) {
               all(is.numeric(zcrit1)),
               length(zcrit0) == length(zcrit1))
 
+    m <- length(zcrit1)
+    direction <- .bfseq_one_critical_direction(zcrit0 = zcrit0,
+                                               zcrit1 = zcrit1)
+    stages <- lapply(seq_len(m), function(i) {
+        .bfseq_genregions1_stage(zcrit0 = zcrit0[seq_len(i)],
+                                 zcrit1 = zcrit1[seq_len(i)],
+                                 direction = direction)
+    })
+
+    return(list(H1 = lapply(stages, `[[`, "H1"),
+                H0 = lapply(stages, `[[`, "H0")))
+}
+
+.bfseq_one_critical_direction <- function(zcrit0, zcrit1) {
     H0nan <- is.nan(zcrit0)
     finite <- !H0nan & !is.nan(zcrit1)
     finiteH1 <- !is.nan(zcrit1)
     if (any(finite) && all(zcrit1[finite] >= zcrit0[finite])) {
-        direction <- "positive"
-    } else if (any(finite) && all(zcrit1[finite] < zcrit0[finite])) {
-        direction <- "negative"
-    } else if (!any(finite) && any(finiteH1) && all(zcrit1[finiteH1] >= 0)) {
-        direction <- "positive"
-    } else if (!any(finite) && any(finiteH1) && all(zcrit1[finiteH1] <= 0)) {
-        direction <- "negative"
-    } else {
-        stop("Inconsistent critical values: direction cannot be inferred.")
+        return("positive")
     }
+    if (any(finite) && all(zcrit1[finite] < zcrit0[finite])) {
+        return("negative")
+    }
+    if (!any(finite) && any(finiteH1) && all(zcrit1[finiteH1] >= 0)) {
+        return("positive")
+    }
+    if (!any(finite) && any(finiteH1) && all(zcrit1[finiteH1] <= 0)) {
+        return("negative")
+    }
+    stop("Inconsistent critical values: direction cannot be inferred.")
+}
 
-    m <- length(zcrit1)
-    intregionsH1 <- vector("list", m)
-    intregionsH0 <- vector("list", m)
+.bfseq_genregions1_stage <- function(zcrit0, zcrit1, direction = NULL) {
+    stopifnot(all(is.numeric(zcrit0)),
+              all(is.numeric(zcrit1)),
+              length(zcrit0) == length(zcrit1))
 
-    for (i in seq_len(m)) {
-        ## region where evidence for H1 in stage i
-        matH1 <- matrix(nrow = 2, ncol = i)
-        for (j in seq_len(i)) {
-            if (i == j) {
-                ## evidence for H1
-                if (direction == "positive") {
-                    lower <- zcrit1[j]
-                    upper <- Inf
-                } else {
-                    lower <- -Inf
-                    upper <- zcrit1[j]
-                }
+    if (is.null(direction)) {
+        direction <- .bfseq_one_critical_direction(zcrit0 = zcrit0,
+                                                   zcrit1 = zcrit1)
+    }
+    H0nan <- is.nan(zcrit0)
+    i <- length(zcrit1)
+    matH1 <- matrix(nrow = 2, ncol = i)
+    for (j in seq_len(i)) {
+        if (i == j) {
+            if (direction == "positive") {
+                lower <- zcrit1[j]
+                upper <- Inf
             } else {
-                ## continue (no stop yet)
-                if (direction == "positive") {
-                    if (H0nan[j]) lower <- -Inf
-                    else lower <- zcrit0[j]
-                    upper <- zcrit1[j]
-                } else {
-                    lower <- zcrit1[j]
-                    if (H0nan[j]) upper <- Inf
-                    else upper <- zcrit0[j]
-                }
+                lower <- -Inf
+                upper <- zcrit1[j]
             }
-            matH1[, j] <- c(lower, upper)
-        }
-        intregionsH1[[i]] <- list(matH1)
-
-        ## region where evidence for H0 in stage i
-        matH0 <- matH1
-        if (direction == "positive") {
-            matH0[, i] <- c(-Inf, zcrit0[i])
         } else {
-            matH0[, i] <- c(zcrit0[i], Inf)
+            if (direction == "positive") {
+                if (H0nan[j]) lower <- -Inf
+                else lower <- zcrit0[j]
+                upper <- zcrit1[j]
+            } else {
+                lower <- zcrit1[j]
+                if (H0nan[j]) upper <- Inf
+                else upper <- zcrit0[j]
+            }
         }
-        intregionsH0[[i]] <- list(matH0)
+        matH1[, j] <- c(lower, upper)
     }
 
-    return(list(H1 = intregionsH1, H0 = intregionsH0))
+    matH0 <- matH1
+    if (direction == "positive") {
+        matH0[, i] <- c(-Inf, zcrit0[i])
+    } else {
+        matH0[, i] <- c(zcrit0[i], Inf)
+    }
+
+    list(H1 = list(matH1), H0 = list(matH0))
 }
 
 
@@ -298,73 +359,71 @@ genregions2 <- function(zcrit0, zcrit1, strict = FALSE) {
     ## }
 
     m <- ncol(zcrit0)
-    intregionsH1 <- vector("list", m)
-    intregionsH0 <- vector("list", m)
+    stages <- lapply(seq_len(m), function(i) {
+        .bfseq_genregions2_stage(zcrit0 = zcrit0[, seq_len(i), drop = FALSE],
+                                 zcrit1 = zcrit1[, seq_len(i), drop = FALSE],
+                                 strict = strict)
+    })
 
-    ## identify stages where evidence for H0 impossible
+    list(H1 = lapply(stages, `[[`, "H1"),
+         H0 = lapply(stages, `[[`, "H0"))
+}
+
+.bfseq_genregions2_stage <- function(zcrit0, zcrit1, strict = FALSE) {
+    stopifnot(
+        is.matrix(zcrit0),
+        is.matrix(zcrit1),
+        all(dim(zcrit0) == dim(zcrit1)),
+        nrow(zcrit0) == 2
+    )
+
+    i <- ncol(zcrit0)
     H0nan <- apply(zcrit0, 2, function(x) any(is.nan(x)))
 
-    for (i in seq_len(m)) {
-        ## build stage-wise regions
-        H1i <- lapply(seq_len(i), function(j) {
-            if (i == j) {
-                ## stopping regions (evidence for H1)
-                list(
-                    c(-Inf, zcrit1[1, j]), # lower
-                    c(zcrit1[2, j], Inf)   # upper
-                )
-            } else {
-                ## continuation regions (no evidence for H1 or H0)
-                if (H0nan[j] == TRUE) {
-                    list(c(zcrit1[1, j], zcrit1[2, j]))
-                } else {
-                    list(
-                        ## between H1 lower and H0 lower
-                        c(zcrit1[1, j], zcrit0[1, j]),
-                        ## between H0 upper and H1 upper
-                        c(zcrit0[2, j], zcrit1[2, j])
-                    )
-                }
-            }
-        })
-
-        H0i <- H1i
-        H0i[[i]] <- list(c(zcrit0[1, i], zcrit0[2, i])) # H0 stop region
-
-       ## build all region combinations
-        if (strict == TRUE) {
-            combosH1i <- expand.grid(lapply(H1i, seq_along))
-            combosH0i <- expand.grid(lapply(H0i, seq_along))
+    H1i <- lapply(seq_len(i), function(j) {
+        if (i == j) {
+            list(
+                c(-Inf, zcrit1[1, j]),
+                c(zcrit1[2, j], Inf)
+            )
         } else {
-            ## integrating all regions is usually not worth it because the
-            ## probability of regions where the sign of z_i flips is almost
-            ## zero), hence, only take the two regions where the sign of z_i
-            ## doesn't flip (the first and last)
-            combosH1i <- rbind(rep(1, length(H1i)),
-                               sapply(H1i, length))
-            if (i <= 1 + sum(H0nan)) {
-                ## only one H0 region in the first non-NaN stage
-                combosH0i <- matrix(rep(1, length(H0i)), nrow = 1)
+            if (H0nan[j] == TRUE) {
+                list(c(zcrit1[1, j], zcrit1[2, j]))
             } else {
-                combosH0i <- rbind(rep(1, length(H0i)),
-                                   sapply(H0i, length))
+                list(
+                    c(zcrit1[1, j], zcrit0[1, j]),
+                    c(zcrit0[2, j], zcrit1[2, j])
+                )
             }
         }
+    })
 
-        makeregions <- function(combos, Hi) {
-            apply(combos, 1, function(row) {
-                sapply(seq_along(row), function(j) {
-                    region_index <- as.numeric(row[[j]])
-                    Hi[[j]][[region_index]]
-                })
-            }, simplify = FALSE)
+    H0i <- H1i
+    H0i[[i]] <- list(c(zcrit0[1, i], zcrit0[2, i]))
+
+    if (strict == TRUE) {
+        combosH1i <- expand.grid(lapply(H1i, seq_along))
+        combosH0i <- expand.grid(lapply(H0i, seq_along))
+    } else {
+        combosH1i <- rbind(rep(1, length(H1i)), sapply(H1i, length))
+        if (i <= 1 + sum(H0nan)) {
+            combosH0i <- matrix(rep(1, length(H0i)), nrow = 1)
+        } else {
+            combosH0i <- rbind(rep(1, length(H0i)), sapply(H0i, length))
         }
-
-        intregionsH1[[i]] <- makeregions(combosH1i, H1i)
-        intregionsH0[[i]] <- makeregions(combosH0i, H0i)
     }
 
-    list(H1 = intregionsH1, H0 = intregionsH0)
+    makeregions <- function(combos, Hi) {
+        apply(combos, 1, function(row) {
+            sapply(seq_along(row), function(j) {
+                region_index <- as.numeric(row[[j]])
+                Hi[[j]][[region_index]]
+            })
+        }, simplify = FALSE)
+    }
+
+    list(H1 = makeregions(combosH1i, H1i),
+         H0 = makeregions(combosH0i, H0i))
 }
 
 .count_strict_two_sided_regions <- function(zcrit0) {
@@ -547,6 +606,22 @@ tcrit <- function(k, n1, n2, plocation, pscale, pdf, type, alternative,
               pdf = pdf, type = type, alternative = alternative,
               log = TRUE) - log(k)
     }
+    if (type == "two.sample") {
+        pars <- .tbf01_pars(n1 = n1, n2 = n2, type = type)
+    } else {
+        pars <- .tbf01_pars(n1 = n1, n2 = n1, type = type)
+    }
+    region <- .tbf01_prior_region(plocation = plocation, pscale = pscale,
+                                  pdf = pdf, alternative = alternative)
+    rootFunFast <- function(t) {
+        .tbf01_log_fast(t = t, df = pars$df, neff = pars$neff,
+                        plocation = plocation, pscale = pscale, pdf = pdf,
+                        region = region, ...) - log(k)
+    }
+    rootFunHybrid <- function(t) {
+        ans <- suppressWarnings(rootFunFast(t))
+        if (is.finite(ans)) ans else rootFun(t)
+    }
 
     if (alternative == "two.sided") {
         ## guess search range based on search range from z-test BF
@@ -610,8 +685,8 @@ tcrit <- function(k, n1, n2, plocation, pscale, pdf, type, alternative,
         if (!is.numeric(trange) && trange == "adaptive") {
             ## Scan outward explicitly so tail evaluations have a finite limit.
             searchLimit <- 256
-            steps <- c(0.1, 0.25, 0.5, 1, 2, 4, 8, 16, 32, 64, 128,
-                       searchLimit)
+            steps <- c(0.1, 0.25, 0.5, 1, 1.5, 2, 2.5, 3, 3.5)
+            tailSteps <- c(4, 8, 16, 32, 64, 128, searchLimit)
             x0 <- 0
             f0 <- suppressWarnings(rootFun(x0))
 
@@ -631,19 +706,74 @@ tcrit <- function(k, n1, n2, plocation, pscale, pdf, type, alternative,
                 res <- structure("root not bracketed", class = "try-error")
                 searchLimitReached <- FALSE
                 for (direction in directions) {
-                    directionLimitReached <- TRUE
+                    directionLimitReached <- FALSE
+                    xprev <- x0
+                    fprev <- f0
                     for (step in steps) {
                         x1 <- direction * step
-                        f1 <- suppressWarnings(rootFun(x1))
-                        if (is.finite(f1) && f0 * f1 <= 0) {
-                            directionLimitReached <- FALSE
-                            interval <- sort(c(x0, x1))
-                            res <- try(stats::uniroot(f = rootFun,
+                        f1 <- suppressWarnings(rootFunHybrid(x1))
+                        if (is.finite(f1) && fprev * f1 <= 0) {
+                            interval <- sort(c(xprev, x1))
+                            res <- try(stats::uniroot(f = rootFunHybrid,
                                                       interval = interval,
                                                       extendInt = "no",
                                                       ...)$root,
                                        silent = TRUE)
                             break
+                        }
+                        if (is.finite(f1)) {
+                            xprev <- x1
+                            fprev <- f1
+                        }
+                    }
+                    if (inherits(res, "try-error")) {
+                        nearbyTailSteps <- tailSteps[tailSteps <= 16]
+                        for (step in nearbyTailSteps) {
+                            x1 <- direction * step
+                            f1 <- suppressWarnings(rootFunHybrid(x1))
+                            if (is.finite(f1) && fprev * f1 <= 0) {
+                                interval <- sort(c(xprev, x1))
+                                res <- try(stats::uniroot(f = rootFunHybrid,
+                                                          interval = interval,
+                                                          extendInt = "no",
+                                                          ...)$root,
+                                           silent = TRUE)
+                                break
+                            }
+                            if (is.finite(f1)) {
+                                xprev <- x1
+                                fprev <- f1
+                            }
+                        }
+                    }
+                    if (inherits(res, "try-error")) {
+                        xLimit <- direction * searchLimit
+                        fLimit <- suppressWarnings(rootFunHybrid(xLimit))
+                        directionLimitReached <- TRUE
+                        if (is.finite(fLimit) && fprev * fLimit <= 0) {
+                            farTailSteps <- tailSteps[tailSteps > 16]
+                            for (step in farTailSteps) {
+                                x1 <- direction * step
+                                f1 <- if (step == searchLimit) {
+                                    fLimit
+                                } else {
+                                    suppressWarnings(rootFunHybrid(x1))
+                                }
+                                if (is.finite(f1) && fprev * f1 <= 0) {
+                                    directionLimitReached <- FALSE
+                                    interval <- sort(c(xprev, x1))
+                                    res <- try(stats::uniroot(f = rootFunHybrid,
+                                                              interval = interval,
+                                                              extendInt = "no",
+                                                              ...)$root,
+                                               silent = TRUE)
+                                    break
+                                }
+                                if (is.finite(f1)) {
+                                    xprev <- x1
+                                    fprev <- f1
+                                }
+                            }
                         }
                     }
                     if (!inherits(res, "try-error")) {

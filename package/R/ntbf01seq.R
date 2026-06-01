@@ -6,7 +6,11 @@ ntbf01seq. <- function(k1, k0 = 1/k1, power, null = 0,
                        target = c("h1", "h0"), nrange = c(2, 10^4),
                        looks = 1, timing = NULL, minN = NULL, by = NULL,
                        ratio = 1, strict = TRUE, trange = "adaptive",
-                       integer = TRUE, nextend = 0, details = FALSE, ...) {
+                       integer = TRUE, nextend = 0,
+                       search = c("adaptive", "exhaustive"),
+                       details = FALSE,
+                       progress = NULL, ...) {
+    search <- match.arg(search)
     ## input checks
     stopifnot(
         length(k1) == 1,
@@ -77,33 +81,46 @@ ntbf01seq. <- function(k1, k0 = 1/k1, power, null = 0,
     alternative <- match.arg(alternative)
     target <- match.arg(target)
     nextend <- .bfseq_normalize_nextend(nextend)
+    progress <- .bfseq_validate_progress(progress)
 
     lookMinN <- if (type == "two.sample") .bfseq_ratio_look_min_n(ratio) else 2
     schedule <- .bfseq_schedule_spec(looks = looks, timing = timing,
                                      minN = minN, by = by, nrange = nrange,
                                      lookMinN = lookMinN)
-    evalDesign <- function(maxN) {
-        n1 <- .bfseq_schedule_n(maxN = maxN, schedule = schedule)
-        n2 <- if (type == "two.sample") {
-            as.integer(ceiling(n1*ratio))
-        } else {
-            n1
-        }
-        .bfseq_validate_schedule(n2)
-        design <- ptbf01seq(
-            k1 = k1, k0 = k0, n1 = n1, n2 = n2,
-            plocation = plocation - null, pscale = pscale, pdf = pdf,
-            dpm = dpm - null, dpsd = dpsd, type = type,
-            alternative = alternative, strict = strict, trange = trange, ...
+    evalDesign <- if (identical(schedule$type, "increase")) {
+        .bfseq_t_increase_evaluator(
+            k1 = k1, k0 = k0, plocation = plocation - null,
+            pscale = pscale, pdf = pdf, dpm = dpm - null,
+            dpsd = dpsd, type = type, alternative = alternative,
+            target = target, ratio = ratio, schedule = schedule,
+            strict = strict, trange = trange, dots = list(...)
         )
-        list(result = design,
-             power = .bfseq_target_probability(design = design,
-                                                target = target))
+    } else {
+        function(maxN) {
+            n1 <- .bfseq_schedule_n(maxN = maxN, schedule = schedule)
+            n2 <- if (type == "two.sample") {
+                as.integer(ceiling(n1*ratio))
+            } else {
+                n1
+            }
+            .bfseq_validate_schedule(n2)
+            design <- ptbf01seq(
+                k1 = k1, k0 = k0, n1 = n1, n2 = n2,
+                plocation = plocation - null, pscale = pscale, pdf = pdf,
+                dpm = dpm - null, dpsd = dpsd, type = type,
+                alternative = alternative, strict = strict, trange = trange,
+                ...
+            )
+            list(result = design,
+                 power = .bfseq_target_probability(design = design,
+                                                    target = target))
+        }
     }
 
     solver <- .bfseq_search(power = power, target = target, nrange = nrange,
                             schedule = schedule, evaluate = evalDesign,
-                            nextend = nextend)
+                            nextend = nextend, progress = progress,
+                            search = search)
 
     if (details) {
         return(solver)
@@ -125,11 +142,12 @@ ntbf01seq. <- function(k1, k0 = 1/k1, power, null = 0,
 #'     two-sample designs, or the maximum sample size for one-sample and paired
 #'     designs. Candidate look schedules are rebuilt for each maximum sample
 #'     size according to \code{looks}/\code{timing} or \code{by}/\code{minN}.
-#'     For multi-look timing schedules, the search verifies the first maximum
-#'     sample size in \code{nrange} that reaches the requested stopping
-#'     probability, because the rounded interim looks can make the power curve
-#'     non-monotone. If the target is not reached within \code{nrange}, the
-#'     function returns \code{NaN} and issues a warning.
+#'     For multi-look timing schedules, rounded interim looks can make the
+#'     power curve non-monotone; \code{search} selects the search rule. For
+#'     \code{by}/\code{minN} schedules, scheduled maximum sample sizes are
+#'     scanned in increasing order and previous look calculations are reused;
+#'     \code{search} is ignored. If the target is not reached within
+#'     \code{nrange}, the function returns \code{NaN} and issues a warning.
 #'
 #' @inheritParams ptbf01seq
 #' @inheritParams ntbf01
@@ -147,9 +165,9 @@ ntbf01seq. <- function(k1, k0 = 1/k1, power, null = 0,
 #'     \code{FALSE}.
 #' @param ... Additional arguments passed to \code{\link{ptbf01seq}}.
 #'
-#' @return The required maximum sample size in group 1 to achieve the specified
-#'     power. If \code{details = TRUE}, returns a list containing the sample
-#'     size, achieved power, generated design, and search diagnostics.
+#' @return The maximum sample size in group 1 found to achieve the specified
+#'     power. If \code{details = TRUE}, returns a list with the sample size,
+#'     achieved power, generated design, and search diagnostics.
 #'
 #' @author Samuel Pawel
 #'
@@ -169,7 +187,10 @@ ntbf01seq <- function(k1, k0 = 1/k1, power, null = 0,
                       target = c("h1", "h0"), nrange = c(2, 10^4),
                       looks = 1, timing = NULL, minN = NULL, by = NULL,
                       ratio = 1, strict = TRUE, trange = "adaptive",
-                      integer = TRUE, nextend = 0, details = FALSE, ...) {
+                      integer = TRUE, nextend = 0,
+                      search = c("adaptive", "exhaustive"),
+                      details = FALSE,
+                      progress = NULL, ...) {
     type <- if (missing(type)) {
         "two.sample"
     } else {
@@ -200,7 +221,8 @@ ntbf01seq <- function(k1, k0 = 1/k1, power, null = 0,
             alternative = alternative, target = target, nrange = nrange,
             looks = looks, timing = timing, minN = minN, by = by,
             ratio = ratio, strict = strict, trange = trange,
-            integer = integer, nextend = nextend, details = TRUE, ...
+            integer = integer, nextend = nextend, search = search,
+            details = TRUE, progress = progress, ...
         ))
     }
 
@@ -216,5 +238,5 @@ ntbf01seq <- function(k1, k0 = 1/k1, power, null = 0,
       target = target, nrange = nrange, looks = looks, timing = timing,
       minN = minN, by = by, ratio = ratio, strict = strict,
       trange = trange, integer = integer, nextend = nextend,
-      details = FALSE, ...)
+      search = search, details = FALSE, progress = progress, ...)
 }

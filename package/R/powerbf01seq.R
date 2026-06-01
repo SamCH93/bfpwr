@@ -53,7 +53,9 @@ powerbf01seq <- function(n = NULL, power = NULL, k1 = 1/10, k0 = 1/k1,
                          dpm = pm, dpsd = psd, target = c("h1", "h0"),
                          nrange = c(2, 10^5), looks = 1, timing = NULL,
                          minN = NULL, by = NULL, strict = TRUE,
-                         nextend = 0, ...) {
+                         nextend = 0,
+                         search = c("adaptive", "exhaustive"),
+                         progress = NULL, ...) {
     pmMissing <- missing(pm)
     dpmMissing <- missing(dpm)
 
@@ -73,6 +75,7 @@ powerbf01seq <- function(n = NULL, power = NULL, k1 = 1/10, k0 = 1/k1,
     type <- match.arg(type)
     bftype <- match.arg(bftype)
     target <- match.arg(target)
+    search <- match.arg(search)
     stopifnot(
         length(k1) == 1,
         is.numeric(k1),
@@ -86,6 +89,7 @@ powerbf01seq <- function(n = NULL, power = NULL, k1 = 1/10, k0 = 1/k1,
         k0 >= 1
     )
     nextend <- .bfseq_normalize_nextend(nextend)
+    progress <- .bfseq_validate_progress(progress)
     if (bftype == "moment") {
         if (pmMissing) {
             pm <- NULL
@@ -105,7 +109,8 @@ powerbf01seq <- function(n = NULL, power = NULL, k1 = 1/10, k0 = 1/k1,
             pm = pm, psd = psd, dpm = dpm, dpsd = dpsd, type = bftype,
             target = target, nrange = nrange, looks = looks, timing = timing,
             minN = minN, by = by, strict = strict, integer = TRUE,
-            nextend = nextend, details = TRUE, ...
+            nextend = nextend, search = search, details = TRUE,
+            progress = progress, ...
         )
         design <- solver$result
         if (is.null(design)) {

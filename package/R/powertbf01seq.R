@@ -46,13 +46,16 @@ powertbf01seq <- function(n = NULL, power = NULL, k1 = 1/10, k0 = 1/k1,
                           target = c("h1", "h0"), nrange = c(2, 10^4),
                           looks = 1, timing = NULL, minN = NULL, by = NULL,
                           ratio = 1, strict = TRUE, trange = "adaptive",
-                          nextend = 0, ...) {
+                          nextend = 0,
+                          search = c("adaptive", "exhaustive"),
+                          progress = NULL, ...) {
     if (is.null(n) == is.null(power)) {
         stop("exactly one of 'n' and 'power' must be NULL")
     }
     type <- match.arg(type)
     alternative <- match.arg(alternative)
     target <- match.arg(target)
+    search <- match.arg(search)
     stopifnot(
         length(k1) == 1,
         is.numeric(k1),
@@ -71,6 +74,7 @@ powertbf01seq <- function(n = NULL, power = NULL, k1 = 1/10, k0 = 1/k1,
         ratio > 0
     )
     nextend <- .bfseq_normalize_nextend(nextend)
+    progress <- .bfseq_validate_progress(progress)
 
     if (is.null(n)) {
         solver <- ntbf01seq.(
@@ -80,7 +84,8 @@ powertbf01seq <- function(n = NULL, power = NULL, k1 = 1/10, k0 = 1/k1,
             alternative = alternative, target = target, nrange = nrange,
             looks = looks, timing = timing, minN = minN, by = by,
             ratio = ratio, strict = strict, trange = trange, integer = TRUE,
-            nextend = nextend, details = TRUE, ...
+            nextend = nextend, search = search, details = TRUE,
+            progress = progress, ...
         )
         design <- solver$result
         if (is.null(design)) {

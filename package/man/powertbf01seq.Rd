@@ -27,6 +27,8 @@ powertbf01seq(
   strict = TRUE,
   trange = "adaptive",
   nextend = 0,
+  search = c("adaptive", "exhaustive"),
+  progress = NULL,
   ...
 )
 }
@@ -111,6 +113,18 @@ to \code{|t| <= 256}; pass a wider numeric interval to search farther.}
 \item{nextend}{Number of sample sizes beyond the solution used to check that
 the target probability does not drop below \code{power}. Non-integer
 values are rounded up. Defaults to \code{0}.}
+
+\item{search}{Sample-size search rule for schedules generated from
+\code{looks}/\code{timing}. \code{"adaptive"} uses bracketing and binary
+search with local checks. \code{"exhaustive"} scans candidate maximum
+sample sizes until the first crossing. Ignored when \code{by} is
+supplied, where scheduled maximum sample sizes \code{minN + j * by} are
+scanned in increasing order. Defaults to \code{"adaptive"}.}
+
+\item{progress}{Optional function called after each newly evaluated
+candidate maximum sample size. A callback with arguments receives a list
+of search diagnostics; a zero-argument callback is called without
+arguments.}
 
 \item{...}{Additional arguments passed to \code{\link{ptbf01seq}}.}
 }
