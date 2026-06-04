@@ -25,7 +25,7 @@
 #'     design, augmented with a \code{solver} element. In fixed-\code{n} mode,
 #'     \code{solver$targetPower} and \code{solver$reached} are \code{NA}.
 #'
-#' @author Samuel Pawel
+#' @author František Bartoš
 #'
 #' @seealso \link{ptbf01seq}, \link{ntbf01seq}, \link{powertbf01}
 #'

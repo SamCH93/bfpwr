@@ -154,5 +154,5 @@ nbf01seq(k1 = 1/5, k0 = 5, power = 0.8, usd = sqrt(2),
 \link{pbf01seq}, \link{powerbf01seq}, \link{nbf01}
 }
 \author{
-Samuel Pawel
+František Bartoš
 }

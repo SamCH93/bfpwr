@@ -166,5 +166,5 @@ ntbf01seq(k1 = 1/2, k0 = 2, power = 0.4, dpm = 0.5, dpsd = 0,
 \link{ptbf01seq}, \link{powertbf01seq}, \link{ntbf01}
 }
 \author{
-Samuel Pawel
+František Bartoš
 }

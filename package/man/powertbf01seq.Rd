@@ -161,5 +161,5 @@ powertbf01seq(power = 0.4, k1 = 1/2, k0 = 2, dpm = 0.5, dpsd = 0,
 \link{ptbf01seq}, \link{ntbf01seq}, \link{powertbf01}
 }
 \author{
-Samuel Pawel
+František Bartoš
 }

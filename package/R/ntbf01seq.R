@@ -169,7 +169,7 @@ ntbf01seq. <- function(k1, k0 = 1/k1, power, null = 0,
 #'     power. If \code{details = TRUE}, returns a list with the sample size,
 #'     achieved power, generated design, and search diagnostics.
 #'
-#' @author Samuel Pawel
+#' @author František Bartoš
 #'
 #' @seealso \link{ptbf01seq}, \link{powertbf01seq}, \link{ntbf01}
 #'

@@ -148,5 +148,5 @@ powerbf01seq(power = 0.8, k1 = 1/5, k0 = 5, pm = 0, psd = 1,
 \link{pbf01seq}, \link{nbf01seq}, \link{powerbf01}
 }
 \author{
-Samuel Pawel
+František Bartoš
 }

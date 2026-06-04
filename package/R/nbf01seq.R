@@ -183,7 +183,7 @@ nbf01seq. <- function(k1, k0 = 1/k1, power, usd = sqrt(2), null = 0,
 #'     \code{details = TRUE}, returns a list with the sample size, achieved
 #'     power, generated design, and search diagnostics.
 #'
-#' @author Samuel Pawel
+#' @author František Bartoš
 #'
 #' @seealso \link{pbf01seq}, \link{powerbf01seq}, \link{nbf01}
 #'
