@@ -58,10 +58,19 @@ look_n <- seq(5, n_final, by = 5)
 sample_size_breaks <- seq(0, n_final, by = 20)
 x_padding <- 3
 x_plot_limits <- c(0, n_final + x_padding)
-trajectory_base_size <- 11
-strip_axis_text_size <- 8.8
-strip_axis_title_size <- 9.9
+plot_text_scale <- 1.5
+axis_text_size <- 8.8 * plot_text_scale
+trajectory_base_size <- 11 * plot_text_scale
+margin_base_size <- 9 * plot_text_scale
+strip_axis_text_size <- axis_text_size
+strip_axis_title_size <- axis_text_size
+trajectory_alpha <- 0.5
+probability_label_size <- 2.45 * plot_text_scale
+strip_probability_label_size <- 2.35 * plot_text_scale
+condition_title_size <- 11 * plot_text_scale * 0.8
+endpoint_jitter_width <- 0.75
 sequential_panel_margin <- 10
+sequential_undecided_bins <- 40
 effects <- data.frame(
     effect = c("d = 0.5", "d = 0"),
     delta = c(0.5, 0),
@@ -273,6 +282,11 @@ probability_status_label <- function(probability, evidence, delta) {
           sep = "\n")
 }
 
+probability_status_label_inline <- function(probability, evidence, delta) {
+    paste(as.character(status_label(evidence, delta)),
+          paste0("(", format_probability(probability), ")"))
+}
+
 zone_midpoints <- data.frame(
     evidence = factor(evidence_levels, levels = evidence_levels),
     ymin = c(bf10_to_posterior(bf10_upper),
@@ -286,39 +300,79 @@ zone_midpoints$y <- (zone_midpoints$ymin + zone_midpoints$ymax) / 2
 
 ## Plotting helpers -----------------------------------------------------------
 
-make_sequential_undecided_label <- function(probabilities, delta) {
-    row <- probabilities[as.character(probabilities$evidence) == "Undecided", ]
-    data.frame(
-        evidence = row$evidence,
-        label = probability_status_label(row$probability, row$evidence, delta),
-        x = if (delta == 0) n_final - 10 else n_final - 7,
-        y = if (delta == 0) bf10_to_posterior(6.2) else bf10_to_posterior(2.4)
+transparent_background_theme <- function() {
+    ggplot2::theme(
+        plot.background = ggplot2::element_rect(fill = "transparent",
+                                                colour = NA),
+        panel.background = ggplot2::element_rect(fill = "transparent",
+                                                 colour = NA),
+        legend.background = ggplot2::element_rect(fill = "transparent",
+                                                  colour = NA),
+        legend.box.background = ggplot2::element_rect(fill = "transparent",
+                                                      colour = NA)
     )
 }
 
+make_condition_title <- function(hypothesis) {
+    label <- if (hypothesis == 1) "Under~H[1]" else "Under~H[0]"
+    ggplot2::ggplot() +
+        ggplot2::annotate(
+            "text",
+            x = 0,
+            y = 0.5,
+            label = label,
+            parse = TRUE,
+            hjust = 0,
+            vjust = 0.5,
+            size = condition_title_size / 2.845276,
+            fontface = "bold",
+            colour = "#111827"
+        ) +
+        ggplot2::coord_cartesian(xlim = c(0, 1), ylim = c(0, 1),
+                                 clip = "off") +
+        ggplot2::theme_void(base_size = condition_title_size) +
+        ggplot2::theme(
+            plot.margin = ggplot2::margin(
+                0, sequential_panel_margin, 0, sequential_panel_margin
+            )
+        ) +
+        transparent_background_theme()
+}
+
+deterministic_unit_interval <- function(x) {
+    x <- sin(x * 12.9898) * 43758.5453
+    x - floor(x)
+}
+
+add_endpoint_jitter <- function(points, width = endpoint_jitter_width) {
+    points$x_endpoint <- points$n
+    if (nrow(points) <= 1) {
+        return(points)
+    }
+
+    evidence_index <- match(as.character(points$evidence), evidence_levels)
+    key <- points$id * 1009 + points$n * 917 + evidence_index * 101
+    jitter_order <- deterministic_unit_interval(key)
+    point_groups <- split(seq_len(nrow(points)), points$n)
+
+    for (group in point_groups) {
+        group_size <- length(group)
+        if (group_size <= 1) {
+            next
+        }
+        ranks <- rank(jitter_order[group], ties.method = "first")
+        offsets <- ((ranks - 0.5) / group_size - 0.5) * 2 * width
+        points$x_endpoint[group] <- points$n[group] + offsets
+    }
+
+    points
+}
+
 make_trajectory_plot <- function(paths, final_points, sequential = FALSE,
-                                 show_y = TRUE, show_x = TRUE,
-                                 probabilities = NULL, delta = NULL) {
-    zone_background <- data.frame(
-        ymin = c(posterior_plot_limits[1],
-                 bf10_to_posterior(bf10_lower),
-                 bf10_to_posterior(bf10_upper)),
-        ymax = c(bf10_to_posterior(bf10_lower),
-                 bf10_to_posterior(bf10_upper),
-                 posterior_plot_limits[2]),
-        evidence = factor(c("Evidence for null", "Undecided",
-                            "Evidence for effect"),
-                          levels = evidence_levels)
-    )
+                                 show_y = TRUE, show_x = TRUE) {
+    final_points <- add_endpoint_jitter(final_points)
 
     p <- ggplot2::ggplot() +
-        ggplot2::geom_rect(
-            data = zone_background,
-            ggplot2::aes(xmin = -Inf, xmax = Inf, ymin = ymin, ymax = ymax,
-                         fill = evidence),
-            alpha = 0.055,
-            inherit.aes = FALSE
-        ) +
         ggplot2::geom_hline(yintercept = bf10_to_posterior(c(bf10_lower,
                                                               bf10_upper)),
                             linewidth = 0.35, linetype = "22",
@@ -352,11 +406,14 @@ make_trajectory_plot <- function(paths, final_points, sequential = FALSE,
         ) +
         ggplot2::theme_minimal(base_size = trajectory_base_size) +
         ggplot2::theme(
+            axis.text = ggplot2::element_text(size = axis_text_size),
+            axis.title = ggplot2::element_text(size = axis_text_size),
             panel.grid.minor = ggplot2::element_blank(),
             panel.grid.major.x = ggplot2::element_blank(),
             legend.position = "none",
             plot.margin = ggplot2::margin(6, 6, 6, 6)
-        )
+        ) +
+        transparent_background_theme()
 
     if (sequential) {
         p <- p +
@@ -365,46 +422,31 @@ make_trajectory_plot <- function(paths, final_points, sequential = FALSE,
                 ggplot2::aes(x = n, y = bf10_to_posterior(bf10),
                              group = id, colour = evidence),
                 linewidth = 0.275,
-                alpha = 0.72,
+                alpha = trajectory_alpha,
                 lineend = "round"
             ) +
             ggplot2::geom_point(
                 data = final_points,
-                ggplot2::aes(x = n, y = bf10_to_posterior(bf10),
+                ggplot2::aes(x = x_endpoint, y = bf10_to_posterior(bf10),
                              fill = evidence),
                 shape = 21,
                 colour = "white",
                 stroke = 0.35,
                 size = 2.3
             )
-        if (!is.null(probabilities) && !is.null(delta)) {
-            label_data <- make_sequential_undecided_label(probabilities, delta)
-            p <- p +
-                ggplot2::geom_text(
-                    data = label_data,
-                    ggplot2::aes(x = x, y = y, label = label,
-                                 colour = evidence),
-                    hjust = 1,
-                    vjust = 0.5,
-                    size = 2.45,
-                    lineheight = 0.92,
-                    fontface = "bold",
-                    show.legend = FALSE
-                )
-        }
     } else {
         p <- p +
             ggplot2::geom_line(
                 data = paths,
                 ggplot2::aes(x = n, y = bf10_to_posterior(bf10), group = id),
                 linewidth = 0.225,
-                alpha = 0.55,
+                alpha = trajectory_alpha,
                 colour = "#4B5563",
                 lineend = "round"
             ) +
             ggplot2::geom_point(
                 data = final_points,
-                ggplot2::aes(x = n, y = bf10_to_posterior(bf10),
+                ggplot2::aes(x = x_endpoint, y = bf10_to_posterior(bf10),
                              fill = evidence),
                 shape = 21,
                 colour = "white",
@@ -448,16 +490,25 @@ make_fixed_margin <- function(delta, probabilities) {
     label_data$y[label_data$status == "Conclusive" &
                      label_data$evidence == "Evidence for null"] <-
         lower_boundary * 0.72
+    upper_evidence_labels <- label_data$status %in% c("Conclusive",
+                                                      "Misleading") &
+        label_data$evidence == "Evidence for effect"
+    lower_evidence_labels <- label_data$status %in% c("Conclusive",
+                                                      "Misleading") &
+        label_data$evidence == "Evidence for null"
+    label_data$y[upper_evidence_labels] <- pmax(
+        upper_boundary,
+        label_data$y[upper_evidence_labels] -
+            0.20 * (posterior_plot_limits[2] - upper_boundary)
+    )
+    label_data$y[lower_evidence_labels] <- pmin(
+        lower_boundary,
+        label_data$y[lower_evidence_labels] +
+            0.20 * (lower_boundary - posterior_plot_limits[1])
+    )
     max_density <- max(density$density, na.rm = TRUE)
     if (!is.finite(max_density) || max_density == 0) max_density <- 1
-    label_data$density_at_label <- stats::approx(
-        x = density$posterior,
-        y = density$density,
-        xout = label_data$y,
-        rule = 2
-    )$y
-    label_data$x <- pmax(label_data$density_at_label + max_density * 0.08,
-                         max_density * 0.92)
+    label_data$x <- max_density * 2.55
 
     ggplot2::ggplot(density) +
         ggplot2::geom_segment(
@@ -471,8 +522,8 @@ make_fixed_margin <- function(delta, probabilities) {
             data = label_data,
             ggplot2::aes(x = x, y = y, label = label,
                          colour = evidence),
-            hjust = 0,
-            size = 2.45,
+            hjust = 1,
+            size = probability_label_size,
             fontface = "bold",
             show.legend = FALSE
         ) +
@@ -481,33 +532,278 @@ make_fixed_margin <- function(delta, probabilities) {
             breaks = bf10_to_posterior(bf10_breaks),
             labels = NULL
         ) +
-        ggplot2::scale_x_continuous(limits = c(0, max_density * 2.65),
+        ggplot2::scale_x_continuous(limits = c(0, max_density * 2.7),
                                     expand = c(0, 0)) +
         ggplot2::coord_cartesian(ylim = posterior_plot_limits, clip = "off") +
         ggplot2::scale_colour_manual(values = evidence_cols,
                                       limits = evidence_levels,
                                       drop = FALSE,
                                       guide = "none") +
-        ggplot2::theme_void(base_size = 9) +
+        ggplot2::theme_void(base_size = margin_base_size) +
         ggplot2::theme(
             plot.margin = ggplot2::margin(6, 2, 6, 2)
+        ) +
+        transparent_background_theme()
+}
+
+integrate_final_regions <- function(final_regions, mean, sigma,
+                                    method = "lpmvnorm", ...) {
+    stopifnot(
+        is.list(final_regions),
+        is.numeric(mean),
+        is.matrix(sigma),
+        length(mean) == nrow(sigma),
+        nrow(sigma) == ncol(sigma)
+    )
+
+    m <- length(mean)
+    if (m == 1) {
+        return(vapply(final_regions, function(region) {
+            if (any(is.nan(region))) {
+                return(0)
+            }
+            diff(stats::pnorm(q = c(region[1, ], region[2, ]),
+                              mean = mean[1],
+                              sd = sqrt(sigma[1, 1])))
+        }, numeric(1)))
+    }
+
+    if (method == "lpmvnorm") {
+        C <- t(chol(sigma))
+        Ct <- mvtnorm::ltMatrices(C[lower.tri(C, diag = TRUE)], diag = TRUE)
+        ngrid <- 1000
+        w <- withr::with_seed(seed = 42, code = {
+            t(qrng::ghalton(n = ngrid, d = m - 1))
+        })
+    }
+
+    vapply(final_regions, function(region) {
+        if (any(is.nan(region))) {
+            return(0)
+        }
+        if (method == "lpmvnorm") {
+            exp(mvtnorm::lpmvnorm(lower = region[1, ],
+                                  upper = region[2, ],
+                                  mean = mean,
+                                  chol = Ct,
+                                  M = ngrid,
+                                  w = w,
+                                  ...))
+        } else {
+            mvtnorm::pmvnorm(lower = region[1, ],
+                             upper = region[2, ],
+                             mean = mean,
+                             sigma = sigma,
+                             seed = 42,
+                             keepAttr = FALSE,
+                             ...)
+        }
+    }, numeric(1))
+}
+
+sequential_undecided_regions <- function(breaks) {
+    m <- length(look_n)
+    suppressWarnings({
+        critical_null <- sapply(seq_along(look_n), function(i) {
+            tcrit(k = 1 / bf10_lower, n1 = look_n[i], n2 = look_n[i],
+                  plocation = analysis_args$plocation,
+                  pscale = analysis_args$pscale, pdf = analysis_args$pdf,
+                  alternative = analysis_args$alternative,
+                  type = analysis_args$type)
+        })
+        critical_effect <- sapply(seq_along(look_n), function(i) {
+            tcrit(k = 1 / bf10_upper, n1 = look_n[i], n2 = look_n[i],
+                  plocation = analysis_args$plocation,
+                  pscale = analysis_args$pscale, pdf = analysis_args$pdf,
+                  alternative = analysis_args$alternative,
+                  type = analysis_args$type)
+        })
+    })
+
+    finite <- !is.nan(critical_null) & !is.nan(critical_effect)
+    if (any(finite) && all(critical_effect[finite] >= critical_null[finite])) {
+        direction <- "positive"
+    } else if (any(finite) &&
+               all(critical_effect[finite] < critical_null[finite])) {
+        direction <- "negative"
+    } else {
+        stop("Inconsistent critical values: direction cannot be inferred.")
+    }
+
+    lower_boundary <- bf10_to_posterior(bf10_lower)
+    upper_boundary <- bf10_to_posterior(bf10_upper)
+    final_regions <- vector("list", length(breaks) - 1)
+
+    for (i in seq_along(final_regions)) {
+        bin_lower <- max(breaks[i], lower_boundary)
+        bin_upper <- min(breaks[i + 1], upper_boundary)
+        region <- matrix(NaN, nrow = 2, ncol = m)
+
+        if (bin_lower < bin_upper) {
+            if (direction == "positive") {
+                for (j in seq_len(m - 1)) {
+                    region[, j] <- c(
+                        if (is.nan(critical_null[j])) -Inf else critical_null[j],
+                        critical_effect[j]
+                    )
+                }
+                region[, m] <- c(
+                    tcrit(k = 1 / posterior_to_bf10(bin_lower),
+                          n1 = n_final, n2 = n_final,
+                          plocation = analysis_args$plocation,
+                          pscale = analysis_args$pscale,
+                          pdf = analysis_args$pdf,
+                          alternative = analysis_args$alternative,
+                          type = analysis_args$type),
+                    tcrit(k = 1 / posterior_to_bf10(bin_upper),
+                          n1 = n_final, n2 = n_final,
+                          plocation = analysis_args$plocation,
+                          pscale = analysis_args$pscale,
+                          pdf = analysis_args$pdf,
+                          alternative = analysis_args$alternative,
+                          type = analysis_args$type)
+                )
+            } else {
+                for (j in seq_len(m - 1)) {
+                    region[, j] <- c(
+                        critical_effect[j],
+                        if (is.nan(critical_null[j])) Inf else critical_null[j]
+                    )
+                }
+                region[, m] <- c(
+                    tcrit(k = 1 / posterior_to_bf10(bin_upper),
+                          n1 = n_final, n2 = n_final,
+                          plocation = analysis_args$plocation,
+                          pscale = analysis_args$pscale,
+                          pdf = analysis_args$pdf,
+                          alternative = analysis_args$alternative,
+                          type = analysis_args$type),
+                    tcrit(k = 1 / posterior_to_bf10(bin_lower),
+                          n1 = n_final, n2 = n_final,
+                          plocation = analysis_args$plocation,
+                          pscale = analysis_args$pscale,
+                          pdf = analysis_args$pdf,
+                          alternative = analysis_args$alternative,
+                          type = analysis_args$type)
+                )
+            }
+        }
+        final_regions[[i]] <- region
+    }
+
+    final_regions
+}
+
+sequential_undecided_histogram <- function(delta, probabilities,
+                                           bins = sequential_undecided_bins) {
+    evidence <- "Undecided"
+    probability <- probabilities$probability[
+        as.character(probabilities$evidence) == evidence
+    ]
+    if (length(probability) == 0) probability <- 0
+
+    breaks <- seq(posterior_plot_limits[1], posterior_plot_limits[2],
+                  length.out = bins + 1)
+    final_regions <- sequential_undecided_regions(breaks)
+    design <- analysis_design_grid(delta)
+    bin_mass <- numeric(length(final_regions))
+    for (i in seq_len(nrow(design))) {
+        neff <- look_n
+        se <- 1 / sqrt(neff)
+        pars <- predpars(se = se, dpm = design$d[i], dpsd = 0)
+        bin_mass <- bin_mass + design$weight[i] * integrate_final_regions(
+            final_regions = final_regions,
+            mean = pars$mean,
+            sigma = pars$sigma
         )
+    }
+    total_mass <- sum(bin_mass, na.rm = TRUE)
+    bin_mass <- if (total_mass > 0 && probability > 0) {
+        probability * bin_mass / total_mass
+    } else {
+        numeric(length(final_regions))
+    }
+
+    data.frame(
+        ymin = breaks[-length(breaks)],
+        ymax = breaks[-1],
+        y = (breaks[-length(breaks)] + breaks[-1]) / 2,
+        density = bin_mass / diff(breaks),
+        evidence = factor(evidence, levels = evidence_levels)
+    )
+}
+
+make_sequential_undecided_margin <- function(histogram_data, probabilities,
+                                             delta, x_limit) {
+    label_data <- probabilities[
+        as.character(probabilities$evidence) == "Undecided",
+    ]
+    label_data$label <- probability_status_label(
+        label_data$probability,
+        label_data$evidence,
+        delta
+    )
+    label_data$x <- x_limit * 0.95
+    label_data$y <- zone_midpoints$y[
+        as.character(zone_midpoints$evidence) == "Undecided"
+    ]
+
+    ggplot2::ggplot(histogram_data) +
+        ggplot2::geom_rect(
+            ggplot2::aes(xmin = 0, xmax = density, ymin = ymin, ymax = ymax),
+            fill = evidence_cols[["Undecided"]],
+            alpha = 0.55
+        ) +
+        ggplot2::geom_text(
+            data = label_data,
+            ggplot2::aes(x = x, y = y, label = label, colour = evidence),
+            hjust = 1,
+            vjust = 0.5,
+            size = probability_label_size,
+            lineheight = 0.92,
+            fontface = "bold",
+            show.legend = FALSE
+        ) +
+        ggplot2::scale_y_continuous(
+            limits = posterior_plot_limits,
+            breaks = bf10_to_posterior(bf10_breaks),
+            labels = NULL
+        ) +
+        ggplot2::scale_x_continuous(limits = c(0, x_limit), expand = c(0, 0)) +
+        ggplot2::coord_cartesian(ylim = posterior_plot_limits, clip = "off") +
+        ggplot2::scale_colour_manual(values = evidence_cols,
+                                      limits = evidence_levels,
+                                      drop = FALSE,
+                                      guide = "none") +
+        ggplot2::theme_void(base_size = margin_base_size) +
+        ggplot2::theme(
+            plot.margin = ggplot2::margin(
+                0, sequential_panel_margin, 0, 2
+            )
+        ) +
+        transparent_background_theme()
 }
 
 make_stop_strip <- function(stop_curve, boundary = c("effect", "null"),
                             show_x_axis = FALSE, probabilities = NULL,
-                            delta = NULL) {
+                            delta = NULL, mass_limit = NULL) {
     boundary <- match.arg(boundary)
     if (boundary == "effect") {
         mass <- stop_curve$effect_mass
         colour <- evidence_cols[["Evidence for effect"]]
         signed_mass <- mass
-        y_limits <- c(0, max(c(mass, 0.01), na.rm = TRUE) * 1.2)
     } else {
         mass <- stop_curve$null_mass
         colour <- evidence_cols[["Evidence for null"]]
         signed_mass <- -mass
-        y_limits <- c(-max(c(mass, 0.01), na.rm = TRUE) * 1.2, 0)
+    }
+    if (is.null(mass_limit)) {
+        mass_limit <- max(c(mass, 0.01), na.rm = TRUE) * 1.2
+    }
+    y_limits <- if (boundary == "effect") {
+        c(0, mass_limit)
+    } else {
+        c(-mass_limit, 0)
     }
     strip_data <- data.frame(n = stop_curve$n,
                              mass = mass,
@@ -525,12 +821,13 @@ make_stop_strip <- function(stop_curve, boundary = c("effect", "null"),
                       y = NULL) +
         ggplot2::coord_cartesian(xlim = x_plot_limits, ylim = y_limits,
                                  clip = "off") +
-        ggplot2::theme_void(base_size = 9) +
+        ggplot2::theme_void(base_size = margin_base_size) +
         ggplot2::theme(
             plot.margin = ggplot2::margin(
                 0, sequential_panel_margin, 0, sequential_panel_margin
             )
-        )
+        ) +
+        transparent_background_theme()
 
     if (!is.null(probabilities) && !is.null(delta)) {
         label_evidence <- if (boundary == "effect") {
@@ -541,7 +838,7 @@ make_stop_strip <- function(stop_curve, boundary = c("effect", "null"),
         label_data <- probabilities[
             as.character(probabilities$evidence) == label_evidence,
         ]
-        label_data$label <- probability_status_label(
+        label_data$label <- probability_status_label_inline(
             label_data$probability,
             label_data$evidence,
             delta
@@ -560,7 +857,7 @@ make_stop_strip <- function(stop_curve, boundary = c("effect", "null"),
                              colour = evidence),
                 hjust = 1,
                 vjust = 0.5,
-                size = 2.35,
+                size = strip_probability_label_size,
                 lineheight = 0.92,
                 fontface = "bold",
                 show.legend = FALSE
@@ -582,7 +879,7 @@ make_stop_strip <- function(stop_curve, boundary = c("effect", "null"),
                     colour = "#6B7280",
                     linewidth = 0.25
                 ),
-                axis.ticks.length.x = grid::unit(2, "pt"),
+                axis.ticks.length.x = grid::unit(2 * plot_text_scale, "pt"),
                 axis.title.x = ggplot2::element_text(
                     colour = "#374151",
                     size = strip_axis_title_size,
@@ -708,8 +1005,27 @@ seq_paths <- merge(seq_trajectory_data,
                    by = c("effect", "id"), suffixes = c("", "_stop"))
 seq_paths <- seq_paths[seq_paths$n <= seq_paths$n_stop, ]
 
+sequential_stop_mass_limit <- max(
+    c(0.01, unlist(lapply(seq_curves, function(curve) {
+        c(curve$effect_mass, curve$null_mass)
+    }))),
+    na.rm = TRUE
+) * 1.2
+seq_undecided_histograms <- lapply(seq_len(nrow(effects)), function(i) {
+    sequential_undecided_histogram(
+        delta = effects$delta[i],
+        probabilities = seq_probabilities[[i]]
+    )
+})
+seq_undecided_x_limit <- max(
+    c(0.01, vapply(seq_undecided_histograms, function(histogram_data) {
+        max(histogram_data$density, na.rm = TRUE)
+    }, numeric(1))),
+    na.rm = TRUE
+) * 2.7
+
 fixed_plots <- vector("list", nrow(effects) * 2)
-sequential_plots <- vector("list", nrow(effects) * 3)
+sequential_plots <- vector("list", nrow(effects) * 4)
 for (i in seq_len(nrow(effects))) {
     effect_i <- effects$effect[i]
     row_paths <- fixed_trajectory_data[fixed_trajectory_data$effect == effect_i, ]
@@ -726,61 +1042,89 @@ for (i in seq_len(nrow(effects))) {
     fixed_plots[[2 * (i - 1) + 2]] <-
         make_fixed_margin(effects$delta[i], fixed_probs[[i]])
 
-    sequential_plots[[3 * (i - 1) + 1]] <-
+    sequential_plots[[4 * (i - 1) + 1]] <-
         make_stop_strip(seq_curves[[i]], "effect",
                         probabilities = seq_probabilities[[i]],
-                        delta = effects$delta[i])
-    sequential_plots[[3 * (i - 1) + 2]] <- make_trajectory_plot(
+                        delta = effects$delta[i],
+                        mass_limit = sequential_stop_mass_limit)
+    sequential_plots[[4 * (i - 1) + 2]] <- make_trajectory_plot(
         paths = row_seq_paths,
         final_points = row_seq_points,
         sequential = TRUE,
         show_y = i == 1,
-        show_x = FALSE,
-        probabilities = seq_probabilities[[i]],
-        delta = effects$delta[i]
+        show_x = FALSE
     ) +
         ggplot2::theme(
             plot.margin = ggplot2::margin(
                 0, sequential_panel_margin, 0, sequential_panel_margin
             )
         )
-    sequential_plots[[3 * (i - 1) + 3]] <-
+    sequential_plots[[4 * (i - 1) + 3]] <-
+        make_sequential_undecided_margin(
+            histogram_data = seq_undecided_histograms[[i]],
+            probabilities = seq_probabilities[[i]],
+            delta = effects$delta[i],
+            x_limit = seq_undecided_x_limit
+        )
+    sequential_plots[[4 * (i - 1) + 4]] <-
         make_stop_strip(seq_curves[[i]], "null", show_x_axis = TRUE,
                         probabilities = seq_probabilities[[i]],
-                        delta = effects$delta[i])
+                        delta = effects$delta[i],
+                        mass_limit = sequential_stop_mass_limit)
 }
 
 names(fixed_plots) <- LETTERS[seq_along(fixed_plots)]
 names(sequential_plots) <- LETTERS[seq_along(sequential_plots)]
 
-fixed_figure <- patchwork::wrap_plots(
-    fixed_plots,
-    design = "ABCD",
-    widths = c(1, 0.25, 1, 0.25)
+fixed_figure_plots <- c(
+    list(make_condition_title(1), make_condition_title(0)),
+    fixed_plots
 )
+names(fixed_figure_plots) <- LETTERS[seq_along(fixed_figure_plots)]
+
+sequential_figure_plots <- c(
+    list(make_condition_title(1), make_condition_title(0)),
+    sequential_plots
+)
+names(sequential_figure_plots) <- LETTERS[seq_along(sequential_figure_plots)]
+
+fixed_figure <- patchwork::wrap_plots(
+    fixed_figure_plots,
+    design = "AABB\nCDEF",
+    widths = c(1, 0.38, 1, 0.38),
+    heights = c(0.13, 1)
+) &
+    transparent_background_theme()
 
 sequential_figure <- patchwork::wrap_plots(
-    sequential_plots,
-    design = "AD\nBE\nCF",
-    widths = c(1, 1),
-    heights = c(0.12, 1, 0.18)
-)
+    sequential_figure_plots,
+    design = "AABB\nC#G#\nDEHI\nF#J#",
+    widths = c(1, 0.32, 1, 0.32),
+    heights = c(0.13, 0.18, 1, 0.18)
+) &
+    transparent_background_theme()
 
 fixed_pdf <- file.path(output_dir, "bf_design_analysis_fixed.pdf")
 fixed_png <- file.path(output_dir, "bf_design_analysis_fixed.png")
 sequential_pdf <- file.path(output_dir, "bf_design_analysis_sequential.pdf")
 sequential_png <- file.path(output_dir, "bf_design_analysis_sequential.png")
 
-ggplot2::ggsave(fixed_pdf, fixed_figure, width = 10, height = 3.6,
-                device = grDevices::cairo_pdf)
-ggplot2::ggsave(fixed_png, fixed_figure, width = 10, height = 3.6,
-                dpi = 300)
-ggplot2::ggsave(sequential_pdf, sequential_figure, width = 10, height = 4.6,
-                device = grDevices::cairo_pdf)
-ggplot2::ggsave(sequential_png, sequential_figure, width = 10, height = 4.6,
-                dpi = 300)
+export_design_analysis <- !tolower(
+    Sys.getenv("BFPWR_SUPPRESS_DESIGN_ANALYSIS_EXPORT")
+) %in% c("1", "true", "yes")
 
-message("Wrote ", fixed_pdf)
-message("Wrote ", fixed_png)
-message("Wrote ", sequential_pdf)
-message("Wrote ", sequential_png)
+if (export_design_analysis) {
+    ggplot2::ggsave(fixed_pdf, fixed_figure, width = 10, height = 3.6,
+                    device = grDevices::cairo_pdf, bg = "transparent")
+    ggplot2::ggsave(fixed_png, fixed_figure, width = 10, height = 3.6,
+                    dpi = 300, bg = "transparent")
+    ggplot2::ggsave(sequential_pdf, sequential_figure, width = 10, height = 4.6,
+                    device = grDevices::cairo_pdf, bg = "transparent")
+    ggplot2::ggsave(sequential_png, sequential_figure, width = 10, height = 4.6,
+                    dpi = 300, bg = "transparent")
+
+    message("Wrote ", fixed_pdf)
+    message("Wrote ", fixed_png)
+    message("Wrote ", sequential_pdf)
+    message("Wrote ", sequential_png)
+}
