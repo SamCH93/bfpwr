@@ -69,7 +69,12 @@ critical values are searched for. Can be either set to a numerical range
 or to \code{"adaptive"} (default) which determines the range in an
 adaptive way from the other input parameters}
 
-\item{...}{Other arguments passed to \code{stats::uniroot}}
+\item{...}{Optional numerical controls. For numeric ranges and two-sided
+adaptive searches, arguments are passed to \code{stats::uniroot}. In
+adaptive one-sided searches, \code{subdivisions}, \code{rel.tol},
+\code{abs.tol}, \code{stop.on.error}, and \code{keep.xy} are used for BF
+integration, while \code{tol}, \code{maxiter}, \code{trace}, and
+\code{check.conv} are passed to \code{stats::uniroot}.}
 }
 \value{
 The probability that the Bayes factor is less or greater (depending

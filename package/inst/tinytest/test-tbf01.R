@@ -19,6 +19,33 @@ expect_true(length(res) == 3, info = "tbf01 should handle vector inputs")
 expect_equal(log(res), logres,
              info = "tbf01 should return log(tbf01) when log = TRUE")
 
+less_crit <- suppressWarnings(
+    bfpwr:::tcrit(k = 30, n1 = 41, n2 = 41, plocation = 0,
+                  pscale = 1/sqrt(2), pdf = 1, type = "two.sample",
+                  alternative = "less", trange = "adaptive")
+)
+greater_crit <- suppressWarnings(
+    bfpwr:::tcrit(k = 30, n1 = 41, n2 = 41, plocation = 0,
+                  pscale = 1/sqrt(2), pdf = 1, type = "two.sample",
+                  alternative = "greater", trange = "adaptive")
+)
+less_residual <- suppressWarnings(
+    tbf01(t = less_crit, n1 = 41, n2 = 41, plocation = 0,
+          pscale = 1/sqrt(2), pdf = 1, type = "two.sample",
+          alternative = "less", log = TRUE) - log(30)
+)
+greater_residual <- suppressWarnings(
+    tbf01(t = greater_crit, n1 = 41, n2 = 41, plocation = 0,
+          pscale = 1/sqrt(2), pdf = 1, type = "two.sample",
+          alternative = "greater", log = TRUE) - log(30)
+)
+expect_true(less_crit > 4 && greater_crit < -4,
+            info = "one-sided adaptive tcrit should search the wrong tail for H0 evidence")
+expect_equal(less_crit, -greater_crit, tolerance = 1e-5,
+             info = "mirrored one-sided adaptive tcrit roots should agree")
+expect_true(max(abs(c(less_residual, greater_residual))) < 1e-4,
+            info = "one-sided adaptive tcrit roots should satisfy BF01 threshold")
+
 if (!bfpwr_run_extended_tests()) {
     exit_file(bfpwr_extended_skip_message(
         "remaining tbf01 numerical-stability checks are extended"

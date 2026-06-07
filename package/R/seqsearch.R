@@ -675,9 +675,9 @@
     list(EN = EN, VarN = EN2 - EN^2)
 }
 
-.bfseq_z_increase_evaluator <- function(k1, k0, usd, null, pm, psd, dpm,
-                                        dpsd, type, target, schedule,
-                                        strict, dots) {
+.bfseq_z_schedule_evaluator <- function(k1, k0, usd, null, pm, psd, dpm,
+                                         dpsd, type, target, schedule,
+                                         strict, dots) {
     relpm <- if (type == "moment") NULL else pm - null
     reldpm <- dpm - null
     oneCritical <- (type == "normal" && psd == 0) || type == "directional"
@@ -753,10 +753,10 @@
     }
 }
 
-.bfseq_t_increase_evaluator <- function(k1, k0, plocation, pscale, pdf,
-                                        dpm, dpsd, type, alternative, target,
-                                        ratio, schedule, strict, trange,
-                                        dots) {
+.bfseq_t_schedule_evaluator <- function(k1, k0, plocation, pscale, pdf,
+                                         dpm, dpsd, type, alternative, target,
+                                         ratio, schedule, strict, trange,
+                                         dots) {
     oneCritical <- alternative != "two.sided"
     boundaryCache <- new.env(parent = emptyenv())
     stageCache <- new.env(parent = emptyenv())

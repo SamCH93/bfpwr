@@ -71,6 +71,38 @@ expect_true(grepl("Adaptive t power-boundary search reached", limit_warning,
                   fixed = TRUE),
             info = "one-sided ptbf01 should warn when adaptive boundary search reaches its limit")
 
+## Regression cases for one-sided H0 roots that previously trusted a fast
+## wrong-tail scout root. Reference values are certified by tbf01() below.
+wrong_tail_tcrit_cases <- data.frame(
+    n = c(28, 41),
+    expected_tcrit = c(26.089665, 7.588086)
+)
+for (i in seq_len(nrow(wrong_tail_tcrit_cases))) {
+    n <- wrong_tail_tcrit_cases$n[i]
+    crit <- suppressWarnings(
+        bfpwr:::tcrit(k = 30, n1 = n, n2 = n,
+                      plocation = 0, pscale = 1/sqrt(2), pdf = 1,
+                      type = "two.sample", alternative = "less",
+                      trange = "adaptive")
+    )
+    residual <- suppressWarnings(
+        tbf01(t = crit, n1 = n, n2 = n,
+              plocation = 0, pscale = 1/sqrt(2), pdf = 1,
+              type = "two.sample", alternative = "less",
+              log = TRUE) - log(30)
+    )
+
+    expect_equal(
+        as.numeric(crit), wrong_tail_tcrit_cases$expected_tcrit[i],
+        tolerance = 0.05,
+        info = paste("less one-sided H0 tcrit should stay near the exact wrong-tail root at n =", n)
+    )
+    expect_true(
+        is.finite(residual) && abs(residual) < 1e-4,
+        info = paste("less one-sided H0 tcrit should satisfy BF01 = 30 at n =", n)
+    )
+}
+
 ## For nonzero nulls, one-sided H0 evidence must be computed after recentering
 ## the analysis prior around the tested null.
 shifted_args <- list(n = 100, n1 = 100, n2 = 110, null = 0.2,

@@ -110,6 +110,34 @@ if (increaseSearch$n > 20) {
                 info = "incremental z increase search should find first scheduled H0 crossing")
 }
 
+timingSchedule <- bfpwr:::.bfseq_schedule_spec(
+    looks = 3, timing = c(0.25, 0.55, 1), nrange = c(2, 200)
+)
+timingEval <- bfpwr:::.bfseq_z_schedule_evaluator(
+    k1 = k1, k0 = k0, usd = usd, null = 0, pm = pm,
+    psd = psd, dpm = dpm, dpsd = dpsd, type = "normal",
+    target = "h1", schedule = timingSchedule, strict = TRUE,
+    dots = list()
+)
+for (maxN in c(80, 123)) {
+    timingN <- bfpwr:::.bfseq_schedule_n(maxN = maxN,
+                                         schedule = timingSchedule)
+    timingDirect <- pbf01seq(k1 = k1, k0 = k0, se = usd/sqrt(timingN),
+                             n = timingN, pm = pm, psd = psd,
+                             dpm = dpm, dpsd = dpsd, type = "normal",
+                             strict = TRUE)
+    timingCached <- timingEval(maxN)
+    expect_equal(timingCached$result$cumpH1, timingDirect$cumpH1,
+                 tolerance = 1e-10,
+                 info = paste("cached z timing evaluator should match pbf01seq at maxN =", maxN))
+    expect_equal(timingCached$result$cumpH0, timingDirect$cumpH0,
+                 tolerance = 1e-10,
+                 info = paste("cached z timing evaluator should match H0 probabilities at maxN =", maxN))
+    expect_equal(timingCached$power, utils::tail(timingDirect$cumpH1, 1),
+                 tolerance = 1e-10,
+                 info = paste("cached z timing evaluator should return target probability at maxN =", maxN))
+}
+
 expect_error(
     nbf01seq(k1 = k1, k0 = k0, power = pow, usd = usd, pm = pm,
              psd = psd, dpm = dpm, dpsd = dpsd, looks = 3,

@@ -75,6 +75,10 @@ ptbf01. <- function(k, n, n1 = n, n2 = n, null = 0, plocation = 0,
     }
 
     ## determine effect estimate region where BF < k for specified sample size
+    dots <- list(...)
+    searchDots <- .bfpwr_integrate_dots(dots = dots,
+                                        rel.tol.default = 1e-2)
+    rootDots <- .bfpwr_uniroot_dots(dots = dots)
     se <- 1/sqrt(neff) # standard error of SMD assuming variance is known
     estsd <- sqrt(se^2 + dpsd^2) # standard deviation of SMD under design prior
     rootFun <- function(est) {
@@ -83,19 +87,24 @@ ptbf01. <- function(k, n, n1 = n, n2 = n, null = 0, plocation = 0,
               plocation = plocation - null, pscale = pscale, pdf = pdf,
               type = type, alternative = alternative, log = TRUE) - log(k)
     }
+    rootFunSearch <- function(est) {
+        do.call(tbf01, c(list(
+            t = (est - null)/se, n1 = n1, n2 = n2,
+            plocation = plocation - null, pscale = pscale, pdf = pdf,
+            type = type, alternative = alternative, log = TRUE
+        ), searchDots)) - log(k)
+    }
     region <- .tbf01_prior_region(plocation = plocation - null,
                                   pscale = pscale, pdf = pdf,
                                   alternative = alternative)
-    ## For boundary bracketing, use the original direct integral whenever it is
-    ## finite; fall back to the stable exact path only for underflow cases.
+    ## For boundary bracketing, use the fast direct integral as a scout. Any
+    ## candidate root is certified against the stable BF path before use.
     rootFunFast <- function(est) {
-        .tbf01_log_fast(t = (est - null)/se, df = df, neff = neff,
-                        plocation = plocation - null, pscale = pscale,
-                        pdf = pdf, region = region, ...) - log(k)
-    }
-    rootFunHybrid <- function(est) {
-        ans <- suppressWarnings(rootFunFast(est))
-        if (is.finite(ans)) ans else rootFun(est)
+        do.call(.tbf01_log_fast, c(list(
+            t = (est - null)/se, df = df, neff = neff,
+            plocation = plocation - null, pscale = pscale,
+            pdf = pdf, region = region
+        ), searchDots)) - log(k)
     }
 
     if (alternative == "two.sided") {
@@ -186,75 +195,18 @@ ptbf01. <- function(k, n, n1 = n, n2 = n, null = 0, plocation = 0,
     } else {
         ## one-sided alternatives
         if (!is.numeric(drange) && drange == "adaptive") {
-            ## Scan outward from the null and use BF01(null) to choose the side.
             searchLimit <- 256
-            f0 <- suppressWarnings(rootFun(null))
-            if (!is.finite(f0)) {
-                crit <- structure("non-finite root start", class = "try-error")
-            } else {
-                if (f0 == 0) {
-                    crit <- null
-                } else {
-                    direction <- if (alternative == "greater") {
-                        if (f0 > 0) 1 else -1
-                    } else {
-                        if (f0 > 0) -1 else 1
-                    }
-                    steps <- c(0.1, 0.25, 0.5, 1, 1.5, 2, 2.5, 3, 3.5)
-                    tailSteps <- c(4, 8, 16, 32, 64, 128, searchLimit)
-                    crit <- structure("adaptive search limit reached",
-                                      class = c("bfpwr_ptbf01_search_limit",
-                                                "try-error"))
-                    xprev <- null
-                    fprev <- f0
-                    for (step in steps) {
-                        x1 <- null + direction * se * step
-                        f1 <- suppressWarnings(rootFunHybrid(x1))
-                        if (is.finite(f1) && fprev * f1 <= 0) {
-                            interval <- sort(c(xprev, x1))
-                            crit <- try(stats::uniroot(f = rootFunHybrid,
-                                                       interval = interval,
-                                                       extendInt = "no",
-                                                       ...)$root,
-                                        silent = TRUE)
-                            break
-                        }
-                        if (is.finite(f1)) {
-                            xprev <- x1
-                            fprev <- f1
-                        }
-                    }
-                    if (inherits(crit, "try-error")) {
-                        ## Before stepping through the exact wrong-tail path,
-                        ## check whether the finite adaptive limit can bracket
-                        ## a root at all.
-                        xLimit <- null + direction * se * searchLimit
-                        fLimit <- suppressWarnings(rootFunHybrid(xLimit))
-                        if (is.finite(fLimit) && fprev * fLimit <= 0) {
-                            for (step in tailSteps) {
-                                x1 <- null + direction * se * step
-                                f1 <- if (step == searchLimit) {
-                                    fLimit
-                                } else {
-                                    suppressWarnings(rootFunHybrid(x1))
-                                }
-                                if (is.finite(f1) && fprev * f1 <= 0) {
-                                    interval <- sort(c(xprev, x1))
-                                    crit <- try(stats::uniroot(f = rootFunHybrid,
-                                                               interval = interval,
-                                                               extendInt = "no",
-                                                               ...)$root,
-                                                silent = TRUE)
-                                    break
-                                }
-                                if (is.finite(f1)) {
-                                    xprev <- x1
-                                    fprev <- f1
-                                }
-                            }
-                        }
-                    }
-                }
+            f0 <- .bfpwr_root_value(f = rootFunSearch, x = null)
+            search <- do.call(.bfpwr_one_sided_adaptive_root, c(list(
+                certify_fun = rootFunSearch, scout_fun = rootFunFast,
+                alternative = alternative, origin = null, step_scale = se,
+                try_opposite = FALSE, search_limit = searchLimit
+            ), rootDots))
+            crit <- search$root
+            if (inherits(crit, "try-error") && search$search_limit_reached) {
+                crit <- structure("adaptive search limit reached",
+                                  class = c("bfpwr_ptbf01_search_limit",
+                                            "try-error"))
             }
         } else {
             crit <- try(stats::uniroot(f = rootFun,
@@ -333,7 +285,12 @@ ptbf01. <- function(k, n, n1 = n, n2 = n, null = 0, plocation = 0,
 #'     critical values are searched for. Can be either set to a numerical range
 #'     or to \code{"adaptive"} (default) which determines the range in an
 #'     adaptive way from the other input parameters
-#' @param ... Other arguments passed to \code{stats::uniroot}
+#' @param ... Optional numerical controls. For numeric ranges and two-sided
+#'     adaptive searches, arguments are passed to \code{stats::uniroot}. In
+#'     adaptive one-sided searches, \code{subdivisions}, \code{rel.tol},
+#'     \code{abs.tol}, \code{stop.on.error}, and \code{keep.xy} are used for BF
+#'     integration, while \code{tol}, \code{maxiter}, \code{trace}, and
+#'     \code{check.conv} are passed to \code{stats::uniroot}.
 #'
 #' @inherit pbf01 return
 #'

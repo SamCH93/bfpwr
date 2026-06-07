@@ -87,35 +87,13 @@ ntbf01seq. <- function(k1, k0 = 1/k1, power, null = 0,
     schedule <- .bfseq_schedule_spec(looks = looks, timing = timing,
                                      minN = minN, by = by, nrange = nrange,
                                      lookMinN = lookMinN)
-    evalDesign <- if (identical(schedule$type, "increase")) {
-        .bfseq_t_increase_evaluator(
-            k1 = k1, k0 = k0, plocation = plocation - null,
-            pscale = pscale, pdf = pdf, dpm = dpm - null,
-            dpsd = dpsd, type = type, alternative = alternative,
-            target = target, ratio = ratio, schedule = schedule,
-            strict = strict, trange = trange, dots = list(...)
-        )
-    } else {
-        function(maxN) {
-            n1 <- .bfseq_schedule_n(maxN = maxN, schedule = schedule)
-            n2 <- if (type == "two.sample") {
-                as.integer(ceiling(n1*ratio))
-            } else {
-                n1
-            }
-            .bfseq_validate_schedule(n2)
-            design <- ptbf01seq(
-                k1 = k1, k0 = k0, n1 = n1, n2 = n2,
-                plocation = plocation - null, pscale = pscale, pdf = pdf,
-                dpm = dpm - null, dpsd = dpsd, type = type,
-                alternative = alternative, strict = strict, trange = trange,
-                ...
-            )
-            list(result = design,
-                 power = .bfseq_target_probability(design = design,
-                                                    target = target))
-        }
-    }
+    evalDesign <- .bfseq_t_schedule_evaluator(
+        k1 = k1, k0 = k0, plocation = plocation - null,
+        pscale = pscale, pdf = pdf, dpm = dpm - null,
+        dpsd = dpsd, type = type, alternative = alternative,
+        target = target, ratio = ratio, schedule = schedule,
+        strict = strict, trange = trange, dots = list(...)
+    )
 
     solver <- .bfseq_search(power = power, target = target, nrange = nrange,
                             schedule = schedule, evaluate = evalDesign,

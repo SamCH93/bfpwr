@@ -137,6 +137,38 @@ if (increaseSearch$n > 20) {
                 info = "incremental t increase search should find first scheduled H0 crossing")
 }
 
+tTimingSchedule <- bfpwr:::.bfseq_schedule_spec(
+    looks = 2, timing = c(0.4, 1), nrange = c(2, 80)
+)
+tTimingEval <- bfpwr:::.bfseq_t_schedule_evaluator(
+    k1 = k1, k0 = k0, plocation = 0, pscale = 1/sqrt(2), pdf = 1,
+    dpm = 0.5, dpsd = 0, type = "two.sample",
+    alternative = "two.sided", target = "h1", ratio = 1,
+    schedule = tTimingSchedule, strict = FALSE, trange = "adaptive",
+    dots = list()
+)
+for (maxN in c(30, 43)) {
+    tTimingN <- bfpwr:::.bfseq_schedule_n(maxN = maxN,
+                                          schedule = tTimingSchedule)
+    tTimingDirect <- suppressWarnings(
+        ptbf01seq(k1 = k1, k0 = k0, n1 = tTimingN, n2 = tTimingN,
+                  plocation = 0, pscale = 1/sqrt(2), pdf = 1,
+                  dpm = 0.5, dpsd = 0, type = "two.sample",
+                  alternative = "two.sided", strict = FALSE,
+                  trange = "adaptive")
+    )
+    tTimingCached <- suppressWarnings(tTimingEval(maxN))
+    expect_equal(tTimingCached$result$cumpH1, tTimingDirect$cumpH1,
+                 tolerance = 1e-10,
+                 info = paste("cached t timing evaluator should match ptbf01seq at maxN =", maxN))
+    expect_equal(tTimingCached$result$cumpH0, tTimingDirect$cumpH0,
+                 tolerance = 1e-10,
+                 info = paste("cached t timing evaluator should match H0 probabilities at maxN =", maxN))
+    expect_equal(tTimingCached$power, utils::tail(tTimingDirect$cumpH1, 1),
+                 tolerance = 1e-10,
+                 info = paste("cached t timing evaluator should return target probability at maxN =", maxN))
+}
+
 ratiores <- suppressWarnings(
     powertbf01seq(n = 20, k1 = k1, k0 = k0, dpm = 0.5, dpsd = 0,
                   alternative = "greater", looks = 2, ratio = 2,

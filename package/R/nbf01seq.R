@@ -81,27 +81,12 @@ nbf01seq. <- function(k1, k0 = 1/k1, power, usd = sqrt(2), null = 0,
 
     schedule <- .bfseq_schedule_spec(looks = looks, timing = timing,
                                      minN = minN, by = by, nrange = nrange)
-    evalDesign <- if (identical(schedule$type, "increase")) {
-        .bfseq_z_increase_evaluator(
-            k1 = k1, k0 = k0, usd = usd, null = null, pm = pm,
-            psd = psd, dpm = dpm, dpsd = dpsd, type = type,
-            target = target, schedule = schedule, strict = strict,
-            dots = list(...)
-        )
-    } else {
-        function(maxN) {
-            n <- .bfseq_schedule_n(maxN = maxN, schedule = schedule)
-            relpm <- if (type == "moment") NULL else pm - null
-            design <- pbf01seq(
-                k1 = k1, k0 = k0, se = usd/sqrt(n), n = n,
-                pm = relpm, psd = psd, dpm = dpm - null, dpsd = dpsd,
-                type = type, strict = strict, ...
-            )
-            list(result = design,
-                 power = .bfseq_target_probability(design = design,
-                                                    target = target))
-        }
-    }
+    evalDesign <- .bfseq_z_schedule_evaluator(
+        k1 = k1, k0 = k0, usd = usd, null = null, pm = pm,
+        psd = psd, dpm = dpm, dpsd = dpsd, type = type,
+        target = target, schedule = schedule, strict = strict,
+        dots = list(...)
+    )
 
     solver <- .bfseq_search(power = power, target = target, nrange = nrange,
                             schedule = schedule, evaluate = evalDesign,
