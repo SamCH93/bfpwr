@@ -108,19 +108,6 @@ ptbf01. <- function(k, n, n1 = n, n2 = n, null = 0, plocation = 0,
     }
 
     if (alternative == "two.sided") {
-        if (k > 1) {
-            ## check whether BF > k > 1 is achievable for given sample size
-            ## maximum BF is obtained when est = null
-            maxBF <- exp(rootFun(null) + log(k))
-            if (is.nan(maxBF)) return(NaN)
-            if (maxBF < k) {
-                if (lower.tail == FALSE) {
-                    return(0)
-                } else {
-                    return(1)
-                }
-            }
-        }
 
         ## guess search range based on search range from z-test BF
         ## TODO improve robustness of adaptive strategy
@@ -146,6 +133,47 @@ ptbf01. <- function(k, n, n1 = n, n2 = n, null = 0, plocation = 0,
             meant <- mean(drange)
             searchIntLow <- c(drange[1], meant)
             searchIntUp <- c(meant, drange[2])
+        }
+        if (k > 1) {
+            ## For centered two-sided priors BF01 is maximized at the null. For
+            ## shifted informed priors the maximum can move away from the null,
+            ## so use a bounded maximum only on the unsafe branch; the maximum
+            ## also gives a reliable split point for the two root searches.
+            fNull <- .bfpwr_root_value(f = rootFun, x = null)
+            if (is.nan(fNull)) return(NaN)
+            if (fNull < 0) {
+                if (plocation == null) {
+                    if (lower.tail == FALSE) {
+                        return(0)
+                    } else {
+                        return(1)
+                    }
+                } else {
+                    maxInt <- c(searchIntLow[1], searchIntUp[2])
+                    opt <- try(stats::optimize(f = function(est) {
+                                                   ans <- suppressWarnings(rootFun(est))
+                                                   if (is.finite(ans)) ans else -Inf
+                                               },
+                                               interval = maxInt,
+                                               maximum = TRUE),
+                               silent = TRUE)
+                    if (!inherits(opt, "try-error") &&
+                        is.finite(opt$objective)) {
+                        if (opt$objective < 0) {
+                            if (lower.tail == FALSE) {
+                                return(0)
+                            } else {
+                                return(1)
+                            }
+                        }
+                        if (opt$maximum > maxInt[1] &&
+                            opt$maximum < maxInt[2]) {
+                            searchIntLow <- c(maxInt[1], opt$maximum)
+                            searchIntUp <- c(opt$maximum, maxInt[2])
+                        }
+                    }
+                }
+            }
         }
         ## search for critical values. The lower and upper roots have opposite
         ## crossing directions, so use directional interval extension.

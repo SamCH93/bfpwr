@@ -151,6 +151,45 @@ expect_true(is.finite(twosided_adaptive) && twosided_adaptive > 0 &&
 expect_true(abs(twosided_adaptive - twosided_wide_range) < 5e-6,
             info = "two-sided adaptive search should match a bracketing two-root search")
 
+## Shifted informed two-sided priors can maximize BF01 away from the null.
+## The adaptive search must not declare k impossible just because BF01(null) < k.
+informed_two_sided_args <- list(k = 30, n = 25, plocation = 0.6,
+                                pscale = 0.15, pdf = 10,
+                                type = "one.sample",
+                                alternative = "two.sided",
+                                dpm = -0.5, dpsd = 0)
+informed_two_sided_h0 <- suppressWarnings(
+    do.call(ptbf01, c(informed_two_sided_args, list(lower.tail = FALSE)))
+)
+informed_se <- 1 / sqrt(informed_two_sided_args$n)
+informed_root_fun <- function(est) {
+    tbf01(t = est / informed_se,
+          n1 = informed_two_sided_args$n,
+          n2 = informed_two_sided_args$n,
+          plocation = informed_two_sided_args$plocation,
+          pscale = informed_two_sided_args$pscale,
+          pdf = informed_two_sided_args$pdf,
+          type = informed_two_sided_args$type,
+          alternative = informed_two_sided_args$alternative,
+          log = TRUE) - log(informed_two_sided_args$k)
+}
+informed_lower <- suppressWarnings(
+    stats::uniroot(informed_root_fun, c(-1.1, -0.8))$root
+)
+informed_upper <- suppressWarnings(
+    stats::uniroot(informed_root_fun, c(-0.3, 0))$root
+)
+informed_expected <- stats::pnorm(informed_upper,
+                                  mean = informed_two_sided_args$dpm,
+                                  sd = informed_se) -
+    stats::pnorm(informed_lower,
+                 mean = informed_two_sided_args$dpm,
+                 sd = informed_se)
+expect_true(is.finite(informed_two_sided_h0) && informed_two_sided_h0 > 0.9,
+            info = "two-sided informed-prior H0 probability should not collapse to zero")
+expect_equal(informed_two_sided_h0, informed_expected, tolerance = 1e-5,
+             info = "two-sided informed-prior ptbf01 should match explicit roots")
+
 tiny_upper_tail <- suppressWarnings(
     ptbf01(k = 3, n = 1000, plocation = 0, pscale = 1/sqrt(2), pdf = 1,
            dpm = 0.5, dpsd = 0, type = "two.sample",
