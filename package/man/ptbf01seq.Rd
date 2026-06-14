@@ -19,6 +19,7 @@ ptbf01seq(
   alternative = c("two.sided", "less", "greater"),
   strict = TRUE,
   trange = "adaptive",
+  tail.eps = 0.001,
   ...
 )
 }
@@ -29,7 +30,7 @@ evidence for \eqn{H_1})}
 
 \item{k0}{Bayes factor threshold in favor of \eqn{H_0}{H0} (i.e.,
 \eqn{\text{BF}_{01} \geq \code{k0} > 1}{BF01 > \code{k0} > 1} implies
-evidence for \eqn{H_1})}
+evidence for \eqn{H_0})}
 
 \item{n}{Sample size (per group)}
 
@@ -71,8 +72,18 @@ performed). Defaults to \code{TRUE}}
 
 \item{trange}{Critical \eqn{t}-statistic search strategy for the sequential
 stopping boundaries. Can be either \code{"adaptive"} (default) or a
-numeric interval. For one-sided adaptive searches, roots are bracketed up
-to \code{|t| <= 256}; pass a wider numeric interval to search farther.}
+numeric interval. For one-sided adaptive searches, \code{tail.eps}
+determines the predictive tail cutoff used to stop finite scans. Use a
+numeric interval to force exact boundary searches over that interval.}
+
+\item{tail.eps}{One-sided adaptive sequential boundary searches stop once the
+marginal predictive tail probability beyond the searched \eqn{t}
+statistic is at most \code{tail.eps}. The same cutoff is used for each
+adaptive boundary search; it is not split across looks or boundaries.
+If no boundary is found before the cutoff, that boundary is treated as
+unresolved with omitted marginal mass bounded by \code{tail.eps};
+smaller values search farther at additional computational cost. Defaults
+to \code{1e-3}.}
 
 \item{...}{Additional arguments passed to \code{mvtnorm::lpmvnorm}}
 }

@@ -157,9 +157,12 @@ intstages <- function(intregions, mean, sigma, method = "lpmvnorm", ...) {
     regionprobs <- vapply(stageregions,
                           FUN.VALUE = numeric(1),
                           FUN = function(region) {
-        ## NaN encodes that a boundary does not exist, so the region is empty.
+        ## NaN in generated regions encodes an empty stopping event.
         if (any(is.nan(region))) {
             p <- 0
+        } else if (any(is.na(region))) {
+            stop("Sequential integration received NA bounds for a non-empty region",
+                 call. = FALSE)
         } else if (i == 1) {
             p <- exp(.bfpwr_lpnorm_interval(lower = region[1,],
                                             upper = region[2,],
@@ -185,7 +188,12 @@ intstages <- function(intregions, mean, sigma, method = "lpmvnorm", ...) {
         return(p)
     })
 
-    sum(regionprobs, na.rm = TRUE)
+    if (any(is.na(regionprobs))) {
+        stop("Sequential integration returned NA/NaN for a non-empty region",
+             call. = FALSE)
+    }
+
+    sum(regionprobs)
 }
 
 
@@ -197,6 +205,9 @@ intstages <- function(intregions, mean, sigma, method = "lpmvnorm", ...) {
 #'
 #' @param zcrit0 Numeric vector of lower critical values (H0 boundaries).
 #' @param zcrit1 Numeric vector of upper critical values (H1 boundaries).
+#' @param direction Optional one-sided boundary direction, either
+#'     \code{"positive"} or \code{"negative"}. If omitted, inferred from the
+#'     supplied finite boundaries.
 #'
 #' @return
 #' A list with two components:
@@ -218,14 +229,26 @@ intstages <- function(intregions, mean, sigma, method = "lpmvnorm", ...) {
 #' genregions1(zcrit0, zcrit1)
 #'
 
-genregions1 <- function(zcrit0, zcrit1) {
+.bfseq_has_plain_na <- function(x) {
+    any(is.na(x) & !is.nan(x))
+}
+
+genregions1 <- function(zcrit0, zcrit1, direction = NULL) {
     stopifnot(all(is.numeric(zcrit0)),
               all(is.numeric(zcrit1)),
               length(zcrit0) == length(zcrit1))
+    if (.bfseq_has_plain_na(zcrit0) || .bfseq_has_plain_na(zcrit1)) {
+        stop("Critical values cannot contain NA; use NaN for empty boundaries.",
+             call. = FALSE)
+    }
 
     m <- length(zcrit1)
-    direction <- .bfseq_one_critical_direction(zcrit0 = zcrit0,
-                                               zcrit1 = zcrit1)
+    if (is.null(direction)) {
+        direction <- .bfseq_one_critical_direction(zcrit0 = zcrit0,
+                                                   zcrit1 = zcrit1)
+    }
+    stopifnot(length(direction) == 1,
+              direction %in% c("positive", "negative"))
     stages <- lapply(seq_len(m), function(i) {
         .bfseq_genregions1_stage(zcrit0 = zcrit0[seq_len(i)],
                                  zcrit1 = zcrit1[seq_len(i)],
@@ -238,6 +261,7 @@ genregions1 <- function(zcrit0, zcrit1) {
 
 .bfseq_one_critical_direction <- function(zcrit0, zcrit1) {
     H0nan <- is.nan(zcrit0)
+    finiteH0 <- !H0nan
     finite <- !H0nan & !is.nan(zcrit1)
     finiteH1 <- !is.nan(zcrit1)
     if (any(finite) && all(zcrit1[finite] >= zcrit0[finite])) {
@@ -252,6 +276,14 @@ genregions1 <- function(zcrit0, zcrit1) {
     if (!any(finite) && any(finiteH1) && all(zcrit1[finiteH1] <= 0)) {
         return("negative")
     }
+    if (!any(finite) && !any(finiteH1) &&
+        any(finiteH0) && all(zcrit0[finiteH0] >= 0)) {
+        return("positive")
+    }
+    if (!any(finite) && !any(finiteH1) &&
+        any(finiteH0) && all(zcrit0[finiteH0] <= 0)) {
+        return("negative")
+    }
     stop("Inconsistent critical values: direction cannot be inferred.")
 }
 
@@ -264,7 +296,10 @@ genregions1 <- function(zcrit0, zcrit1) {
         direction <- .bfseq_one_critical_direction(zcrit0 = zcrit0,
                                                    zcrit1 = zcrit1)
     }
+    stopifnot(length(direction) == 1,
+              direction %in% c("positive", "negative"))
     H0nan <- is.nan(zcrit0)
+    H1nan <- is.nan(zcrit1)
     i <- length(zcrit1)
     matH1 <- matrix(nrow = 2, ncol = i)
     for (j in seq_len(i)) {
@@ -280,9 +315,11 @@ genregions1 <- function(zcrit0, zcrit1) {
             if (direction == "positive") {
                 if (H0nan[j]) lower <- -Inf
                 else lower <- zcrit0[j]
-                upper <- zcrit1[j]
+                if (H1nan[j]) upper <- Inf
+                else upper <- zcrit1[j]
             } else {
-                lower <- zcrit1[j]
+                if (H1nan[j]) lower <- -Inf
+                else lower <- zcrit1[j]
                 if (H0nan[j]) upper <- Inf
                 else upper <- zcrit0[j]
             }
@@ -353,6 +390,10 @@ genregions2 <- function(zcrit0, zcrit1, strict = FALSE) {
         all(dim(zcrit0) == dim(zcrit1)),
         nrow(zcrit0) == 2
     )
+    if (.bfseq_has_plain_na(zcrit0) || .bfseq_has_plain_na(zcrit1)) {
+        stop("Critical values cannot contain NA; use NaN for empty boundaries.",
+             call. = FALSE)
+    }
 
     ## if (strict == TRUE & ncol(zcrit0) > 10) {
     ##     warning("strict = TRUE with many stages may cause numerical problems")
@@ -548,7 +589,8 @@ zcrit <- function(k, se, mu = NULL, tau, type = c("normal", "directional", "mome
     ans
 }
 
-.bfpwr_certified_root <- function(f, x0, x1, f0 = NaN, f1 = NaN, ...) {
+.bfpwr_certified_root <- function(f, x0, x1, f0 = NaN, f1 = NaN,
+                                  final_fun = f, tolerance = 1e-5, ...) {
     if (x0 == x1) {
         return(structure("degenerate root interval", class = "try-error"))
     }
@@ -562,10 +604,51 @@ zcrit <- function(k, se, mu = NULL, tau, type = c("normal", "directional", "mome
     if (!is.finite(f0) || !is.finite(f1) || f0*f1 > 0) {
         return(structure("root not bracketed", class = "try-error"))
     }
-    if (f0 == 0) return(x0)
-    if (f1 == 0) return(x1)
+    if (f0 == 0) {
+        if (identical(final_fun, f)) {
+            return(x0)
+        }
+        final0 <- .bfpwr_root_value(f = final_fun, x = x0)
+        if (is.finite(final0) && abs(final0) <= tolerance) {
+            return(x0)
+        }
+    }
+    if (f1 == 0) {
+        if (identical(final_fun, f)) {
+            return(x1)
+        }
+        final1 <- .bfpwr_root_value(f = final_fun, x = x1)
+        if (is.finite(final1) && abs(final1) <= tolerance) {
+            return(x1)
+        }
+    }
 
-    try(stats::uniroot(f = f, interval = sort(c(x0, x1)),
+    root <- try(stats::uniroot(f = f, interval = sort(c(x0, x1)),
+                               extendInt = "no", ...)$root,
+                silent = TRUE)
+    if (inherits(root, "try-error")) {
+        return(root)
+    }
+    if (identical(final_fun, f)) {
+        return(root)
+    }
+
+    residual <- .bfpwr_root_value(f = final_fun, x = root)
+    if (is.finite(residual) && abs(residual) <= tolerance) {
+        return(root)
+    }
+
+    final_f0 <- .bfpwr_root_value(f = final_fun, x = x0)
+    final_f1 <- .bfpwr_root_value(f = final_fun, x = x1)
+    if (!is.finite(final_f0) || !is.finite(final_f1) ||
+        final_f0*final_f1 > 0) {
+        return(structure("root not certified by final function",
+                         class = "try-error"))
+    }
+    if (final_f0 == 0) return(x0)
+    if (final_f1 == 0) return(x1)
+
+    try(stats::uniroot(f = final_fun, interval = sort(c(x0, x1)),
                        extendInt = "no", ...)$root,
         silent = TRUE)
 }
@@ -603,7 +686,334 @@ zcrit <- function(k, se, mu = NULL, tau, type = c("normal", "directional", "mome
     dots[keep]
 }
 
+.bfpwr_tcrit_call <- function(args) {
+    tcritWarnings <- character()
+    value <- withCallingHandlers(
+        do.call(tcrit, args),
+        warning = function(w) {
+            tcritWarnings <<- c(tcritWarnings, conditionMessage(w))
+            invokeRestart("muffleWarning")
+        }
+    )
+    list(value = value, warnings = tcritWarnings)
+}
+
+.bfpwr_tcrit_has_max_bf_warning <- function(warnings) {
+    any(grepl("maximum BF is less than k", warnings, fixed = TRUE))
+}
+
+.bfpwr_tcrit_result <- function(...) {
+    args <- list(...)
+    trange <- args$trange
+    if (is.null(trange)) {
+        trange <- "adaptive"
+    }
+
+    result <- .bfpwr_tcrit_call(args = args)
+    status <- .bfpwr_tcrit_status(value = result$value,
+                                  warnings = result$warnings,
+                                  trange = trange)
+    if (identical(status, "search_failed") &&
+        identical(args$alternative, "two.sided") &&
+        is.numeric(trange) &&
+        .bfpwr_tcrit_has_max_bf_warning(result$warnings)) {
+        adaptiveArgs <- args
+        adaptiveArgs$trange <- "adaptive"
+        adaptiveResult <- .bfpwr_tcrit_call(args = adaptiveArgs)
+        adaptiveStatus <- .bfpwr_tcrit_status(
+            value = adaptiveResult$value,
+            warnings = adaptiveResult$warnings,
+            trange = "adaptive"
+        )
+        if (identical(adaptiveStatus, "impossible")) {
+            status <- "impossible"
+        } else {
+            result$warnings <- unique(c(
+                result$warnings,
+                paste0(
+                    "numeric 'trange' does not contain the two-sided ",
+                    "BF01 = k boundary"
+                )
+            ))
+        }
+    }
+    list(
+        value = result$value,
+        status = status,
+        warnings = result$warnings
+    )
+}
+
+.bfpwr_tcrit_status <- function(value, warnings, trange = "adaptive") {
+    if (.bfpwr_tcrit_has_max_bf_warning(warnings)) {
+        if (is.numeric(trange)) {
+            return("search_failed")
+        }
+        return("impossible")
+    }
+    if (any(grepl("Adaptive t critical-value search reached",
+                  warnings, fixed = TRUE))) {
+        return("tail_cutoff")
+    }
+    if (any(grepl("requires 'search_limit'", warnings, fixed = TRUE))) {
+        return("error")
+    }
+    if (any(grepl("Numerical problems", warnings, fixed = TRUE))) {
+        return("search_failed")
+    }
+    if (length(value) > 0 && all(is.finite(value))) {
+        return("ok")
+    }
+    if (any(!is.finite(value))) {
+        return("search_failed")
+    }
+    "search_failed"
+}
+
+.bfpwr_tcrit_unhandled_warnings <- function(results) {
+    warnings <- unlist(lapply(results, `[[`, "warnings"), use.names = FALSE)
+    if (length(warnings) == 0) {
+        return(character())
+    }
+    known <- .bfpwr_tcrit_has_max_bf_warning(warnings) |
+        grepl("Adaptive t critical-value search reached", warnings,
+              fixed = TRUE) |
+        grepl("requires 'search_limit'", warnings, fixed = TRUE) |
+        grepl("Numerical problems", warnings, fixed = TRUE)
+    unique(warnings[!known])
+}
+
+.bfseq_t_boundary_statuses <- function(results) {
+    vapply(results, `[[`, character(1), "status")
+}
+
+.bfseq_t_boundary_status_message <- function(results, boundary,
+                                             looks = seq_along(results)) {
+    stopifnot(boundary %in% c("H0", "H1"))
+    if (length(looks) != length(results)) {
+        stop("internal error: boundary status look labels do not match results",
+             call. = FALSE)
+    }
+
+    statuses <- .bfseq_t_boundary_statuses(results)
+    allowed <- if (boundary == "H0") {
+        c("ok", "impossible", "tail_cutoff")
+    } else {
+        c("ok", "tail_cutoff")
+    }
+    invalid <- !(statuses %in% allowed)
+    if (!any(invalid)) {
+        return(NULL)
+    }
+
+    look <- which(invalid)[1]
+    warningText <- results[[look]]$warnings
+    detail <- if (length(warningText) > 0) {
+        paste(unique(warningText), collapse = "; ")
+    } else {
+        paste0("status: ", statuses[[look]])
+    }
+    paste0(
+        "Failed to compute ", boundary,
+        " sequential t stopping boundary at look ", looks[[look]], ": ",
+        detail,
+        ". Widen numeric 'trange' or use adaptive 'trange' with a smaller ",
+        "'tail.eps'."
+    )
+}
+
+.bfseq_validate_t_boundary_statuses <- function(results, boundary,
+                                               looks = seq_along(results)) {
+    msg <- .bfseq_t_boundary_status_message(results = results,
+                                            boundary = boundary,
+                                            looks = looks)
+    if (!is.null(msg)) {
+        stop(msg, call. = FALSE)
+    }
+    invisible(.bfseq_t_boundary_statuses(results))
+}
+
+.bfseq_warn_t_boundary_statuses <- function(results0, results1, tail.eps) {
+    statuses0 <- .bfseq_t_boundary_statuses(results0)
+    statuses1 <- .bfseq_t_boundary_statuses(results1)
+
+    unhandled <- .bfpwr_tcrit_unhandled_warnings(c(results0, results1))
+    for (msg in unhandled) {
+        warning(msg, call. = FALSE)
+    }
+
+    impossible <- sum(statuses0 == "impossible")
+    if (impossible > 0) {
+        warning(paste0(
+            "No H0 sequential t stopping boundary exists in ",
+            impossible,
+            " boundary search(es); the corresponding H0 stopping regions ",
+            "are treated as empty."
+        ), call. = FALSE)
+    }
+
+    tailCutoff <- sum(c(statuses0, statuses1) == "tail_cutoff")
+    if (tailCutoff > 0) {
+        warning(paste0(
+            "Adaptive t critical-value search reached the predictive tail ",
+            "cutoff in ",
+            tailCutoff,
+            " sequential boundary search(es); each unresolved boundary has ",
+            "marginal tail probability <= ", format(tail.eps),
+            ". Pass a wider numeric 'trange' interval to search exact bounds."
+        ), call. = FALSE)
+    }
+}
+
+.bfpwr_one_sided_direction <- function(alternative, f_origin) {
+    stopifnot(
+        alternative %in% c("greater", "less"),
+        length(f_origin) == 1,
+        is.numeric(f_origin),
+        is.finite(f_origin),
+        f_origin != 0
+    )
+
+    if (alternative == "greater") {
+        if (f_origin > 0) 1 else -1
+    } else {
+        if (f_origin > 0) -1 else 1
+    }
+}
+
+.bfpwr_one_sided_tail_limit <- function(direction, origin, step_scale, mean,
+                                        sd, tail.eps) {
+    stopifnot(
+        length(direction) == 1,
+        direction %in% c(-1, 1),
+        length(origin) == 1,
+        is.numeric(origin),
+        is.finite(origin),
+        length(step_scale) == 1,
+        is.numeric(step_scale),
+        is.finite(step_scale),
+        step_scale > 0,
+        length(mean) == 1,
+        is.numeric(mean),
+        is.finite(mean),
+        length(sd) == 1,
+        is.numeric(sd),
+        is.finite(sd),
+        sd > 0,
+        length(tail.eps) == 1,
+        is.numeric(tail.eps),
+        is.finite(tail.eps),
+        tail.eps > 0,
+        tail.eps < 0.5
+    )
+
+    if (direction > 0) {
+        limit <- stats::qnorm(p = tail.eps, mean = mean, sd = sd,
+                              lower.tail = FALSE)
+        if (!is.finite(limit) || limit <= origin) {
+            limit <- origin
+        }
+        tail_probability <- stats::pnorm(q = limit, mean = mean, sd = sd,
+                                         lower.tail = FALSE)
+    } else {
+        limit <- stats::qnorm(p = tail.eps, mean = mean, sd = sd,
+                              lower.tail = TRUE)
+        if (!is.finite(limit) || limit >= origin) {
+            limit <- origin
+        }
+        tail_probability <- stats::pnorm(q = limit, mean = mean, sd = sd,
+                                         lower.tail = TRUE)
+    }
+
+    list(
+        direction = direction,
+        limit = limit,
+        search_limit = abs(limit - origin)/step_scale,
+        tail_probability = tail_probability,
+        tail.eps = tail.eps
+    )
+}
+
+.bfpwr_one_sided_tail_limits <- function(origin, step_scale, mean, sd,
+                                         tail.eps) {
+    list(
+        positive = .bfpwr_one_sided_tail_limit(
+            direction = 1, origin = origin, step_scale = step_scale,
+            mean = mean, sd = sd, tail.eps = tail.eps
+        ),
+        negative = .bfpwr_one_sided_tail_limit(
+            direction = -1, origin = origin, step_scale = step_scale,
+            mean = mean, sd = sd, tail.eps = tail.eps
+        ),
+        tail.eps = tail.eps
+    )
+}
+
+.bfpwr_select_one_sided_search_limit <- function(search_limit, direction,
+                                                 origin, step_scale) {
+    stopifnot(
+        length(direction) == 1,
+        direction %in% c(-1, 1),
+        length(origin) == 1,
+        is.numeric(origin),
+        is.finite(origin),
+        length(step_scale) == 1,
+        is.numeric(step_scale),
+        is.finite(step_scale),
+        step_scale > 0
+    )
+
+    if (is.null(search_limit)) {
+        return(NULL)
+    }
+
+    if (is.numeric(search_limit) && length(search_limit) == 1) {
+        stopifnot(is.finite(search_limit), search_limit >= 0)
+        return(list(
+            direction = direction,
+            limit = origin + direction*step_scale*search_limit,
+            search_limit = search_limit,
+            tail_probability = NA_real_,
+            tail.eps = NA_real_
+        ))
+    }
+
+    stopifnot(is.list(search_limit))
+    selected <- if (direction > 0) search_limit$positive else search_limit$negative
+    stopifnot(
+        is.list(selected),
+        length(selected$search_limit) == 1,
+        is.numeric(selected$search_limit),
+        is.finite(selected$search_limit),
+        selected$search_limit >= 0
+    )
+    selected
+}
+
+.bfpwr_one_sided_adaptive_result <- function(root, search_limit_reached,
+                                             selected_limit = NULL) {
+    if (is.null(selected_limit)) {
+        selected_limit <- list(
+            direction = NA_real_,
+            limit = NA_real_,
+            search_limit = NA_real_,
+            tail_probability = NA_real_,
+            tail.eps = NA_real_
+        )
+    }
+    list(
+        root = root,
+        search_limit_reached = search_limit_reached,
+        direction = selected_limit$direction,
+        limit = selected_limit$limit,
+        search_limit = selected_limit$search_limit,
+        tail_probability = selected_limit$tail_probability,
+        tail.eps = selected_limit$tail.eps
+    )
+}
+
 .bfpwr_residual_certified_root <- function(scout_fun, certify_fun, x0, x1,
+                                           final_fun = certify_fun,
                                            tolerance = 1e-5, ...) {
     root <- try(stats::uniroot(f = scout_fun, interval = sort(c(x0, x1)),
                                extendInt = "no", ...)$root,
@@ -614,20 +1024,28 @@ zcrit <- function(k, se, mu = NULL, tau, type = c("normal", "directional", "mome
     }
 
     residual <- .bfpwr_root_value(f = certify_fun, x = root)
-    if (is.finite(residual) && abs(residual) <= tolerance) {
+    if (!is.finite(residual) || abs(residual) > tolerance) {
+        return(structure("scout root not certified", class = "try-error"))
+    }
+
+    final_residual <- .bfpwr_root_value(f = final_fun, x = root)
+    if (is.finite(final_residual) && abs(final_residual) <= tolerance) {
         return(root)
     }
 
-    structure("scout root not certified", class = "try-error")
+    structure("scout root not certified by final function",
+              class = "try-error")
 }
 
 ## One-sided adaptive boundary search. The fast scout function is used only to
-## locate candidate brackets; returned roots must be certified by certify_fun.
+## locate candidate brackets. search_fun performs stable bracket checks, while
+## returned roots and tail cutoffs must be certified by certify_fun.
 ## The return value is a list with root and search_limit_reached.
 .bfpwr_one_sided_adaptive_root <- function(certify_fun, scout_fun, alternative,
+                                           search_fun = certify_fun,
                                            origin = 0, step_scale = 1,
-                                           try_opposite = TRUE,
-                                           search_limit = 256,
+                                           try_opposite = FALSE,
+                                           search_limit = NULL,
                                            steps = c(0.1, 0.25, 0.5, 1, 1.5,
                                                      2, 2.5, 3, 3.5),
                                            tail_steps = c(4, 8, 16, 32, 64,
@@ -639,38 +1057,75 @@ zcrit <- function(k, se, mu = NULL, tau, type = c("normal", "directional", "mome
                                            ...) {
     f_origin <- .bfpwr_root_value(f = certify_fun, x = origin)
     if (!is.finite(f_origin)) {
-        return(list(
+        return(.bfpwr_one_sided_adaptive_result(
             root = structure("non-finite root start", class = "try-error"),
             search_limit_reached = FALSE
         ))
     }
     if (f_origin == 0) {
-        return(list(root = origin, search_limit_reached = FALSE))
+        return(.bfpwr_one_sided_adaptive_result(
+            root = origin, search_limit_reached = FALSE
+        ))
+    }
+    f_origin_search <- .bfpwr_root_value(f = search_fun, x = origin)
+    if (!is.finite(f_origin_search)) {
+        return(.bfpwr_one_sided_adaptive_result(
+            root = structure("non-finite search start", class = "try-error"),
+            search_limit_reached = FALSE
+        ))
     }
 
-    direction <- if (alternative == "greater") {
-        if (f_origin > 0) 1 else -1
+    expected_direction <- .bfpwr_one_sided_direction(alternative = alternative,
+                                                     f_origin = f_origin)
+    if (is.null(search_limit)) {
+        return(.bfpwr_one_sided_adaptive_result(
+            root = structure("missing finite search limit", class = "try-error"),
+            search_limit_reached = FALSE
+        ))
+    }
+
+    directions <- if (try_opposite) {
+        c(expected_direction, -expected_direction)
     } else {
-        if (f_origin > 0) -1 else 1
+        expected_direction
     }
-    directions <- if (try_opposite) c(direction, -direction) else direction
-    scan_steps <- sort(unique(c(steps, scout_tail_steps)))
-    scan_steps <- scan_steps[is.finite(scan_steps) & scan_steps > 0 &
-                             scan_steps <= search_limit]
-    if (!search_limit %in% scan_steps) {
-        scan_steps <- sort(c(scan_steps, search_limit))
-    }
-    tail_steps <- sort(unique(c(tail_steps, search_limit)))
-    tail_steps <- tail_steps[is.finite(tail_steps) & tail_steps > 0 &
-                             tail_steps <= search_limit]
-
     search_limit_reached <- FALSE
+    selected_limit <- NULL
     for (direction in directions) {
+        selected_limit <- .bfpwr_select_one_sided_search_limit(
+            search_limit = search_limit, direction = direction,
+            origin = origin, step_scale = step_scale
+        )
+        if (is.null(selected_limit)) {
+            return(.bfpwr_one_sided_adaptive_result(
+                root = structure("missing finite search limit",
+                                 class = "try-error"),
+                search_limit_reached = FALSE
+            ))
+        }
+        current_search_limit <- selected_limit$search_limit
+        if (current_search_limit <= 0) {
+            search_limit_reached <- TRUE
+            next
+        }
+
+        scan_steps <- sort(unique(c(steps, scout_tail_steps)))
+        scan_steps <- scan_steps[is.finite(scan_steps) & scan_steps > 0 &
+                                 scan_steps <= current_search_limit]
+        if (!current_search_limit %in% scan_steps) {
+            scan_steps <- sort(c(scan_steps, current_search_limit))
+        }
+        exact_tail_steps <- sort(unique(c(tail_steps, current_search_limit)))
+        exact_tail_steps <- exact_tail_steps[
+            is.finite(exact_tail_steps) & exact_tail_steps > 0 &
+                exact_tail_steps <= current_search_limit
+        ]
+
         last_finite_step <- 0
         last_finite_x <- origin
         finite_x <- numeric(0)
         scout_prev_x <- origin
-        scout_prev_f <- f_origin
+        scout_prev_f <- f_origin_search
 
         ## First use the fast direct integral only as a scout. A finite scout
         ## sign change is never returned unless the stable BF path certifies it.
@@ -682,18 +1137,26 @@ zcrit <- function(k, se, mu = NULL, tau, type = c("normal", "directional", "mome
             }
             if (is.finite(scout_prev_f) && scout_prev_f*f1 <= 0) {
                 root <- .bfpwr_residual_certified_root(
-                    scout_fun = scout_fun, certify_fun = certify_fun,
+                    scout_fun = scout_fun, certify_fun = search_fun,
+                    final_fun = certify_fun,
                     x0 = scout_prev_x, x1 = x1,
                     tolerance = scout_tolerance, ...
                 )
                 if (!inherits(root, "try-error")) {
-                    return(list(root = root, search_limit_reached = FALSE))
+                    return(.bfpwr_one_sided_adaptive_result(
+                        root = root, search_limit_reached = FALSE,
+                        selected_limit = selected_limit
+                    ))
                 }
                 root <- .bfpwr_certified_root(
-                    f = certify_fun, x0 = scout_prev_x, x1 = x1, ...
+                    f = search_fun, x0 = scout_prev_x, x1 = x1,
+                    final_fun = certify_fun, tolerance = scout_tolerance, ...
                 )
                 if (!inherits(root, "try-error")) {
-                    return(list(root = root, search_limit_reached = FALSE))
+                    return(.bfpwr_one_sided_adaptive_result(
+                        root = root, search_limit_reached = FALSE,
+                        selected_limit = selected_limit
+                    ))
                 }
             }
             scout_prev_x <- x1
@@ -703,18 +1166,19 @@ zcrit <- function(k, se, mu = NULL, tau, type = c("normal", "directional", "mome
             finite_x <- c(finite_x, x1)
         }
 
-        fprev <- f_origin
+        fprev <- f_origin_search
         xprev <- origin
+        certified_limit_finite <- FALSE
         if (last_finite_step > 0) {
-            f_last <- .bfpwr_root_value(f = certify_fun, x = last_finite_x)
-            if (is.finite(f_last) && f_origin*f_last <= 0) {
+            f_last <- .bfpwr_root_value(f = search_fun, x = last_finite_x)
+            if (is.finite(f_last) && f_origin_search*f_last <= 0) {
                 x_bracket0 <- origin
-                f_bracket0 <- f_origin
+                f_bracket0 <- f_origin_search
                 x_bracket1 <- last_finite_x
                 f_bracket1 <- f_last
                 if (length(finite_x) > 1) {
                     for (x_candidate in rev(finite_x[-length(finite_x)])) {
-                        f_candidate <- .bfpwr_root_value(f = certify_fun,
+                        f_candidate <- .bfpwr_root_value(f = search_fun,
                                                          x = x_candidate)
                         if (!is.finite(f_candidate)) {
                             next
@@ -729,61 +1193,125 @@ zcrit <- function(k, se, mu = NULL, tau, type = c("normal", "directional", "mome
                     }
                 }
                 root <- .bfpwr_certified_root(
-                    f = certify_fun, x0 = x_bracket0, x1 = x_bracket1,
-                    f0 = f_bracket0, f1 = f_bracket1, ...
+                    f = search_fun, x0 = x_bracket0, x1 = x_bracket1,
+                    f0 = f_bracket0, f1 = f_bracket1,
+                    final_fun = certify_fun, tolerance = scout_tolerance, ...
                 )
                 if (!inherits(root, "try-error")) {
-                    return(list(root = root, search_limit_reached = FALSE))
+                    return(.bfpwr_one_sided_adaptive_result(
+                        root = root, search_limit_reached = FALSE,
+                        selected_limit = selected_limit
+                    ))
                 }
             }
             if (is.finite(f_last)) {
                 fprev <- f_last
                 xprev <- last_finite_x
+                if (last_finite_step >= current_search_limit) {
+                    f_limit_final <- .bfpwr_root_value(f = certify_fun,
+                                                       x = last_finite_x)
+                    if (is.finite(f_limit_final) &&
+                        f_origin*f_limit_final <= 0) {
+                        root <- .bfpwr_certified_root(
+                            f = certify_fun, x0 = origin, x1 = last_finite_x,
+                            f0 = f_origin, f1 = f_limit_final, ...
+                        )
+                        if (!inherits(root, "try-error")) {
+                            return(.bfpwr_one_sided_adaptive_result(
+                                root = root, search_limit_reached = FALSE,
+                                selected_limit = selected_limit
+                            ))
+                        }
+                    }
+                    certified_limit_finite <- is.finite(f_limit_final) &&
+                        f_origin*f_limit_final > 0
+                }
             }
         }
-        if (last_finite_step >= search_limit) {
-            search_limit_reached <- TRUE
+        if (last_finite_step >= current_search_limit) {
+            search_limit_reached <- search_limit_reached ||
+                certified_limit_finite
             next
         }
 
         direction_limit_reached <- FALSE
-        exact_steps <- tail_steps[tail_steps > last_finite_step]
+        exact_steps <- exact_tail_steps[exact_tail_steps > last_finite_step]
         f_limit <- NaN
         limit_checked <- FALSE
         limit_ruled_out <- FALSE
         for (step in exact_steps) {
             x1 <- origin + direction*step_scale*step
-            f1 <- if (step >= search_limit && is.finite(f_limit)) {
+            f1 <- if (step >= current_search_limit && is.finite(f_limit)) {
                 f_limit
             } else {
-                .bfpwr_root_value(f = certify_fun, x = x1)
+                .bfpwr_root_value(f = search_fun, x = x1)
             }
             if (is.finite(f1) && fprev*f1 <= 0) {
                 root <- .bfpwr_certified_root(
-                    f = certify_fun, x0 = xprev, x1 = x1, f0 = fprev,
-                    f1 = f1, ...
+                    f = search_fun, x0 = xprev, x1 = x1, f0 = fprev,
+                    f1 = f1, final_fun = certify_fun,
+                    tolerance = scout_tolerance, ...
                 )
                 if (!inherits(root, "try-error")) {
-                    return(list(root = root, search_limit_reached = FALSE))
+                    return(.bfpwr_one_sided_adaptive_result(
+                        root = root, search_limit_reached = FALSE,
+                        selected_limit = selected_limit
+                    ))
                 }
             }
             if (is.finite(f1)) {
                 xprev <- x1
                 fprev <- f1
+                if (step >= current_search_limit) {
+                    f_limit_final <- .bfpwr_root_value(f = certify_fun,
+                                                       x = x1)
+                    if (is.finite(f_limit_final) &&
+                        f_origin*f_limit_final <= 0) {
+                        root <- .bfpwr_certified_root(
+                            f = certify_fun, x0 = origin, x1 = x1,
+                            f0 = f_origin, f1 = f_limit_final, ...
+                        )
+                        if (!inherits(root, "try-error")) {
+                            return(.bfpwr_one_sided_adaptive_result(
+                                root = root, search_limit_reached = FALSE,
+                                selected_limit = selected_limit
+                            ))
+                        }
+                    }
+                    direction_limit_reached <- is.finite(f_limit_final) &&
+                        f_origin*f_limit_final > 0
+                }
             }
-            direction_limit_reached <- step >= search_limit
             ## If the exact path is still far from the threshold, check the
             ## finite search limit before walking every tail step. Near-root
             ## cases continue locally instead of jumping to the search limit.
-            if (!limit_checked && step < search_limit && is.finite(fprev) &&
-                abs(fprev) > 0.1) {
-                x_limit <- origin + direction*step_scale*search_limit
-                f_limit <- .bfpwr_root_value(f = certify_fun, x = x_limit)
+            if (!limit_checked && step < current_search_limit &&
+                is.finite(fprev) && abs(fprev) > 0.1) {
+                x_limit <- origin + direction*step_scale*current_search_limit
+                f_limit <- .bfpwr_root_value(f = search_fun, x = x_limit)
                 limit_checked <- TRUE
-                direction_limit_reached <- TRUE
-                if (is.finite(f_limit) && fprev*f_limit > 0) {
-                    limit_ruled_out <- TRUE
-                    break
+                if (is.finite(f_limit)) {
+                    f_limit_final <- .bfpwr_root_value(f = certify_fun,
+                                                       x = x_limit)
+                    if (is.finite(f_limit_final) &&
+                        f_origin*f_limit_final <= 0) {
+                        root <- .bfpwr_certified_root(
+                            f = certify_fun, x0 = origin, x1 = x_limit,
+                            f0 = f_origin, f1 = f_limit_final, ...
+                        )
+                        if (!inherits(root, "try-error")) {
+                            return(.bfpwr_one_sided_adaptive_result(
+                                root = root, search_limit_reached = FALSE,
+                                selected_limit = selected_limit
+                            ))
+                        }
+                    }
+                    direction_limit_reached <- is.finite(f_limit_final) &&
+                        f_origin*f_limit_final > 0
+                    if (direction_limit_reached && fprev*f_limit > 0) {
+                        limit_ruled_out <- TRUE
+                        break
+                    }
                 }
             }
         }
@@ -795,8 +1323,11 @@ zcrit <- function(k, se, mu = NULL, tau, type = c("normal", "directional", "mome
         search_limit_reached <- search_limit_reached || direction_limit_reached
     }
 
-    list(root = structure("root not bracketed", class = "try-error"),
-         search_limit_reached = search_limit_reached)
+    .bfpwr_one_sided_adaptive_result(
+        root = structure("root not bracketed", class = "try-error"),
+        search_limit_reached = search_limit_reached,
+        selected_limit = selected_limit
+    )
 }
 
 
@@ -817,9 +1348,11 @@ zcrit <- function(k, se, mu = NULL, tau, type = c("normal", "directional", "mome
 #'     \code{"less"}, or \code{"greater"}. The latter two truncate the analysis
 #'     prior to negative and positive effects, respectively
 #' @param trange Numerical search strategy. Can be either \code{"adaptive"}
-#'     (default) or an interval. For one-sided adaptive searches, roots are
-#'     bracketed up to \code{|t| <= 256}; pass a wider numeric interval to
-#'     search farther.
+#'     (default) or an interval. One-sided adaptive searches require a finite
+#'     \code{search_limit} supplied by the caller.
+#' @param search_limit Finite one-sided adaptive search limit, either as a
+#'     scalar in \eqn{t}-statistic units or as the directional object returned
+#'     by \code{.bfpwr_one_sided_tail_limits()}.
 #' @param ... Optional numerical controls. For numeric ranges and two-sided
 #'     adaptive searches, arguments are passed to \code{stats::uniroot}. In
 #'     adaptive one-sided searches, \code{subdivisions}, \code{rel.tol},
@@ -851,8 +1384,12 @@ zcrit <- function(k, se, mu = NULL, tau, type = c("normal", "directional", "mome
 #' n1 <- n2 <- 100
 #' alternative <- "greater"
 #' k <- 6
+#' search_limit <- .bfpwr_one_sided_tail_limits(origin = 0, step_scale = 1,
+#'                                              mean = 0, sd = 2,
+#'                                              tail.eps = 1e-3)
 #' tcrit2 <- tcrit(k = k, n1 = n1, n2 = n2, plocation = plocation, pscale = pscale,
-#'                 pdf = pdf, alternative = alternative, type = type)
+#'                 pdf = pdf, alternative = alternative, type = type,
+#'                 search_limit = search_limit)
 #' plot(tseq, tbf01(t = tseq, n1 = n1, n2 = n2, plocation = plocation,
 #'                  pscale = pscale, pdf = pdf, alternative = alternative,
 #'                  type = type),
@@ -864,7 +1401,7 @@ zcrit <- function(k, se, mu = NULL, tau, type = c("normal", "directional", "mome
 #'
 #' @keywords internal
 tcrit <- function(k, n1, n2, plocation, pscale, pdf, type, alternative,
-                  trange = "adaptive", ...) {
+                  trange = "adaptive", search_limit = NULL, ...) {
 
     ## determine t-statistic for which BF = k
     dots <- list(...)
@@ -957,15 +1494,26 @@ tcrit <- function(k, n1, n2, plocation, pscale, pdf, type, alternative,
         }
     } else { # one-sided cases
         search_limit_reached <- FALSE
+        search_limit_missing <- FALSE
         if (!is.numeric(trange) && trange == "adaptive") {
-            searchLimit <- 256
-            search <- do.call(.bfpwr_one_sided_adaptive_root, c(list(
-                certify_fun = rootFunSearch, scout_fun = rootFunFast,
-                alternative = alternative, origin = 0, step_scale = 1,
-                try_opposite = TRUE, search_limit = searchLimit
-            ), rootDots))
-            res <- search$root
-            search_limit_reached <- search$search_limit_reached
+            if (is.null(search_limit)) {
+                search_limit_missing <- TRUE
+                warning(paste0(
+                    "Adaptive one-sided t critical-value search requires ",
+                    "'search_limit'"
+                ))
+                res <- structure("missing finite search limit",
+                                 class = "try-error")
+            } else {
+                search <- do.call(.bfpwr_one_sided_adaptive_root, c(list(
+                    certify_fun = rootFun, search_fun = rootFunSearch,
+                    scout_fun = rootFunFast, alternative = alternative,
+                    origin = 0, step_scale = 1, try_opposite = FALSE,
+                    search_limit = search_limit
+                ), rootDots))
+                res <- search$root
+                search_limit_reached <- search$search_limit_reached
+            }
         } else {
             searchint <- trange
             extend <- "no"
@@ -977,13 +1525,13 @@ tcrit <- function(k, n1, n2, plocation, pscale, pdf, type, alternative,
             })
         }
         if (inherits(res, "try-error")) {
-            if (search_limit_reached) {
+            if (search_limit_missing) {
+                tcrit <- NaN
+            } else if (search_limit_reached) {
                 warning(paste0(
-                    "Adaptive t critical-value search reached |t| <= ",
-                    searchLimit,
-                    " without bracketing BF01 = k; pass a wider numeric ",
-                    "'trange' interval to search for exact bounds beyond ",
-                    "this limit."
+                    "Adaptive t critical-value search reached the predictive ",
+                    "tail cutoff without bracketing BF01 = k; pass a wider ",
+                    "numeric 'trange' interval to search exact bounds."
                 ))
             } else {
                 warning("Numerical problems finding critical value")

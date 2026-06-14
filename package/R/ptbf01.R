@@ -2,7 +2,8 @@ ptbf01. <- function(k, n, n1 = n, n2 = n, null = 0, plocation = 0,
                     pscale = 1/sqrt(2), pdf = 1, dpm = plocation, dpsd = pscale,
                     type = c("two.sample", "one.sample", "paired"),
                     alternative = c("two.sided", "less", "greater"),
-                    lower.tail = TRUE, drange = "adaptive", ...) {
+                    lower.tail = TRUE, drange = "adaptive",
+                    tail.eps = 1e-3, ...) {
     ## input checks
     stopifnot(
         length(k) == 1,
@@ -50,6 +51,12 @@ ptbf01. <- function(k, n, n1 = n, n2 = n, null = 0, plocation = 0,
         length(lower.tail) == 1,
         is.logical(lower.tail),
         !is.na(lower.tail),
+
+        length(tail.eps) == 1,
+        is.numeric(tail.eps),
+        is.finite(tail.eps),
+        tail.eps > 0,
+        tail.eps < 0.5,
 
         (is.numeric(drange) && length(drange) == 2 && all(is.finite(drange)) &&
          drange[2] > drange[1]) || (is.character(drange) && length(drange) == 1 &&
@@ -108,7 +115,6 @@ ptbf01. <- function(k, n, n1 = n, n2 = n, null = 0, plocation = 0,
     }
 
     if (alternative == "two.sided") {
-
         ## guess search range based on search range from z-test BF
         ## TODO improve robustness of adaptive strategy
         if (!is.numeric(drange) && drange == "adaptive") {
@@ -223,18 +229,41 @@ ptbf01. <- function(k, n, n1 = n, n2 = n, null = 0, plocation = 0,
     } else {
         ## one-sided alternatives
         if (!is.numeric(drange) && drange == "adaptive") {
-            searchLimit <- 256
-            f0 <- .bfpwr_root_value(f = rootFunSearch, x = null)
-            search <- do.call(.bfpwr_one_sided_adaptive_root, c(list(
-                certify_fun = rootFunSearch, scout_fun = rootFunFast,
-                alternative = alternative, origin = null, step_scale = se,
-                try_opposite = FALSE, search_limit = searchLimit
-            ), rootDots))
-            crit <- search$root
-            if (inherits(crit, "try-error") && search$search_limit_reached) {
-                crit <- structure("adaptive search limit reached",
-                                  class = c("bfpwr_ptbf01_search_limit",
-                                            "try-error"))
+            f0 <- .bfpwr_root_value(f = rootFun, x = null)
+            if (is.finite(f0) && f0 != 0) {
+                tailLimits <- .bfpwr_one_sided_tail_limits(
+                    origin = null, step_scale = se,
+                    mean = dpm, sd = estsd, tail.eps = tail.eps
+                )
+                search <- do.call(.bfpwr_one_sided_adaptive_root, c(list(
+                    certify_fun = rootFun, search_fun = rootFunSearch,
+                    scout_fun = rootFunFast, alternative = alternative,
+                    origin = null,
+                    step_scale = se, try_opposite = FALSE,
+                    search_limit = tailLimits
+                ), rootDots))
+                crit <- search$root
+                searchLimit <- search$search_limit
+                searchLimitEst <- search$limit
+                searchLimitTail <- search$tail_probability
+                if (inherits(crit, "try-error")) {
+                    if (search$search_limit_reached) {
+                        crit <- structure(
+                            "predictive tail cutoff reached",
+                            class = c("bfpwr_ptbf01_search_limit",
+                                      "try-error")
+                        )
+                    } else {
+                        crit <- structure(
+                            "root not bracketed before tail cutoff",
+                            class = "try-error"
+                        )
+                    }
+                }
+            } else if (is.finite(f0) && f0 == 0) {
+                crit <- null
+            } else {
+                crit <- structure("non-finite root start", class = "try-error")
             }
         } else {
             crit <- try(stats::uniroot(f = rootFun,
@@ -246,22 +275,40 @@ ptbf01. <- function(k, n, n1 = n, n2 = n, null = 0, plocation = 0,
             if (!is.numeric(drange) && drange == "adaptive" &&
                 exists("f0", inherits = FALSE) && is.finite(f0) &&
                 inherits(crit, "bfpwr_ptbf01_search_limit")) {
-                warning(paste0(
-                    "Adaptive t power-boundary search reached |t| <= ",
-                    searchLimit,
-                    " without bracketing BF01 = k; returning the ",
-                    "boundary-free probability implied by the search. Pass ",
-                    "a wider numeric 'drange' interval to search for exact ",
-                    "bounds beyond this limit."
-                ))
+                if (exists("searchLimitEst", inherits = FALSE)) {
+                    fLimit <- if (searchLimit <= 0) {
+                        f0
+                    } else {
+                        .bfpwr_root_value(f = rootFun,
+                                          x = searchLimitEst)
+                    }
+                } else {
+                    fLimit <- NaN
+                }
+                if (!is.finite(fLimit) || f0*fLimit <= 0) {
+                    warning("Numerical problems finding critical value")
+                    logpow <- NaN
+                    logcomp <- NaN
+                } else {
+                    warning(paste0(
+                        "Adaptive t power-boundary search reached predictive ",
+                        "tail probability <= ", format(tail.eps),
+                        " without bracketing BF01 = k; returning the ",
+                        "boundary-free approximation implied by the search ",
+                        "(absolute error <= ",
+                        format(min(tail.eps, searchLimitTail)),
+                        "). Pass a numeric 'drange' interval to search exact ",
+                        "bounds."
+                    ))
                 ## No crossing was found within the finite scan. The sign at
                 ## the null determines whether all searched values are successes.
-                if (f0 < 0) {
-                    logpow <- 0
-                    logcomp <- -Inf
-                } else {
-                    logpow <- -Inf
-                    logcomp <- 0
+                    if (f0 < 0) {
+                        logpow <- 0
+                        logcomp <- -Inf
+                    } else {
+                        logpow <- -Inf
+                        logcomp <- 0
+                    }
                 }
             } else {
                 warning("Numerical problems finding critical value")
@@ -313,6 +360,13 @@ ptbf01. <- function(k, n, n1 = n, n2 = n, null = 0, plocation = 0,
 #'     critical values are searched for. Can be either set to a numerical range
 #'     or to \code{"adaptive"} (default) which determines the range in an
 #'     adaptive way from the other input parameters
+#' @param tail.eps One-sided adaptive searches stop once the remaining
+#'     predictive probability in the searched tail is at most this value. If no
+#'     boundary is found before that point, the boundary-free probability
+#'     implied by the searched side is returned and the omitted tail probability
+#'     is bounded by \code{tail.eps}. Smaller values search farther and can
+#'     recover extremely remote boundaries at additional computational cost.
+#'     Defaults to \code{1e-3}
 #' @param ... Optional numerical controls. For numeric ranges and two-sided
 #'     adaptive searches, arguments are passed to \code{stats::uniroot}. In
 #'     adaptive one-sided searches, \code{subdivisions}, \code{rel.tol},

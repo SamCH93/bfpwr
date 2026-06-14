@@ -19,7 +19,11 @@
 }
 
 .bfpwr_logspace_sum <- function(logx) {
-    logx <- logx[is.finite(logx)]
+    if (any(is.na(logx) | is.nan(logx) | logx == Inf)) {
+        stop("log-space sum received invalid non-finite values",
+             call. = FALSE)
+    }
+    logx <- logx[logx != -Inf]
     if (length(logx) == 0) {
         return(-Inf)
     }

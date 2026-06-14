@@ -16,7 +16,8 @@ powertbf01(
   alternative = c("two.sided", "less", "greater"),
   dpm = plocation,
   dpsd = pscale,
-  nrange = c(2, 10^4)
+  nrange = c(2, 10^4),
+  tail.eps = 0.001
 )
 }
 \arguments{
@@ -57,6 +58,14 @@ the design prior mean. Defaults to the analysis prior scale}
 \item{nrange}{Sample size search range over which numerical search is
 performed (only taken into account when \code{n} is \code{NULL}).
 Defaults to \code{c(2, 10^4)}}
+
+\item{tail.eps}{One-sided adaptive searches stop once the remaining
+predictive probability in the searched tail is at most this value. If no
+boundary is found before that point, the boundary-free probability
+implied by the searched side is returned and the omitted tail probability
+is bounded by \code{tail.eps}. Smaller values search farther and can
+recover extremely remote boundaries at additional computational cost.
+Defaults to \code{1e-3}}
 }
 \value{
 Object of class \code{"power.bftest"}, a list of the arguments

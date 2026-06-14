@@ -26,6 +26,7 @@ powertbf01seq(
   ratio = 1,
   strict = TRUE,
   trange = "adaptive",
+  tail.eps = 0.001,
   nextend = 0,
   search = c("adaptive", "exhaustive"),
   progress = NULL,
@@ -107,8 +108,18 @@ performed). Defaults to \code{TRUE}}
 
 \item{trange}{Critical \eqn{t}-statistic search strategy for the sequential
 stopping boundaries. Can be either \code{"adaptive"} (default) or a
-numeric interval. For one-sided adaptive searches, roots are bracketed up
-to \code{|t| <= 256}; pass a wider numeric interval to search farther.}
+numeric interval. For one-sided adaptive searches, \code{tail.eps}
+determines the predictive tail cutoff used to stop finite scans. Use a
+numeric interval to force exact boundary searches over that interval.}
+
+\item{tail.eps}{One-sided adaptive sequential boundary searches stop once the
+marginal predictive tail probability beyond the searched \eqn{t}
+statistic is at most \code{tail.eps}. The same cutoff is used for each
+adaptive boundary search; it is not split across looks or boundaries.
+If no boundary is found before the cutoff, that boundary is treated as
+unresolved with omitted marginal mass bounded by \code{tail.eps};
+smaller values search farther at additional computational cost. Defaults
+to \code{1e-3}.}
 
 \item{nextend}{Number of sample sizes beyond the solution used to check that
 the target probability does not drop below \code{power}. Non-integer
@@ -116,10 +127,14 @@ values are rounded up. Defaults to \code{0}.}
 
 \item{search}{Sample-size search rule for schedules generated from
 \code{looks}/\code{timing}. \code{"adaptive"} uses bracketing and binary
-search with local checks. \code{"exhaustive"} scans candidate maximum
-sample sizes until the first crossing. Ignored when \code{by} is
-supplied, where scheduled maximum sample sizes \code{minN + j * by} are
-scanned in increasing order. Defaults to \code{"adaptive"}.}
+search with local checks, and stops with a diagnostic if a transient
+invalid candidate invalidates the bracket. \code{"exhaustive"} scans the
+full feasible candidate maximum-sample-size range and returns the first
+finite candidate that reaches \code{power}, skipping transient invalid
+candidates and stopping at terminal invalid candidates. Ignored when
+\code{by} is supplied, where scheduled maximum sample sizes
+\code{minN + j * by} are scanned in increasing order. Defaults to
+\code{"adaptive"}.}
 
 \item{progress}{Optional function called after each newly evaluated
 candidate maximum sample size. A callback with arguments receives a list
@@ -145,9 +160,11 @@ This function provides a higher-level interface to
     \code{\link{ptbf01seq}}. If \code{power} is supplied, the returned
     design is evaluated at the searched maximum sample size, and
     \code{solver$reached} records whether the target was achieved within
-    \code{nrange}. If \code{n} is supplied, no search is performed and the
-    \code{solver} element records the achieved stopping probability for the
-    fixed schedule.
+\code{nrange}. If \code{n} is supplied, no search is performed and the
+\code{solver} element records the achieved stopping probability for the
+fixed schedule. For fixed-\code{n} increment schedules with missing
+\code{minN}, \code{nrange[1]} is used as the default first look, clamped
+to \code{n} when necessary.
 }
 \examples{
 powertbf01seq(n = 20, k1 = 1/2, k0 = 2, dpm = 0.5, dpsd = 0,

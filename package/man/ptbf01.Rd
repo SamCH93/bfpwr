@@ -19,6 +19,7 @@ ptbf01(
   alternative = c("two.sided", "less", "greater"),
   lower.tail = TRUE,
   drange = "adaptive",
+  tail.eps = 0.001,
   ...
 )
 }
@@ -68,6 +69,14 @@ data with effect estimates in the direction of the alternative}
 critical values are searched for. Can be either set to a numerical range
 or to \code{"adaptive"} (default) which determines the range in an
 adaptive way from the other input parameters}
+
+\item{tail.eps}{One-sided adaptive searches stop once the remaining
+predictive probability in the searched tail is at most this value. If no
+boundary is found before that point, the boundary-free probability
+implied by the searched side is returned and the omitted tail probability
+is bounded by \code{tail.eps}. Smaller values search farther and can
+recover extremely remote boundaries at additional computational cost.
+Defaults to \code{1e-3}}
 
 \item{...}{Optional numerical controls. For numeric ranges and two-sided
 adaptive searches, arguments are passed to \code{stats::uniroot}. In

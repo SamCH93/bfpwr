@@ -227,3 +227,194 @@ expect_false(synthetic$reached,
              info = "nextend should fail closed when stability cannot be certified")
 expect_true(is.nan(synthetic$n),
             info = "uncertified nextend search should return NaN sample size")
+
+searchPolicySchedule <- bfpwr:::.bfseq_schedule_spec(looks = 1,
+                                                     nrange = c(2, 20))
+searchPolicyResult <- function(maxN, power) {
+    list(result = list(cumpH1 = power, cumpH0 = 0, n = maxN),
+         power = power)
+}
+
+ordinarySearchError <- try(
+    bfpwr:::.bfseq_search(
+        power = 0.8,
+        target = "h1",
+        nrange = c(2, 20),
+        schedule = searchPolicySchedule,
+        evaluate = function(maxN) stop("ordinary evaluator bug")
+    ),
+    silent = TRUE
+)
+expect_true(
+    inherits(ordinarySearchError, "try-error") &&
+        grepl("ordinary evaluator bug",
+              conditionMessage(attr(ordinarySearchError, "condition")),
+              fixed = TRUE),
+    info = "ordinary sequential evaluator errors should propagate"
+)
+
+malformedSearchResult <- try(
+    bfpwr:::.bfseq_search(
+        power = 0.8,
+        target = "h1",
+        nrange = c(2, 20),
+        schedule = searchPolicySchedule,
+        evaluate = function(maxN) list(power = 0.1)
+    ),
+    silent = TRUE
+)
+expect_true(
+    inherits(malformedSearchResult, "try-error") &&
+        grepl("missing 'result'",
+              conditionMessage(attr(malformedSearchResult, "condition")),
+              fixed = TRUE),
+    info = "malformed sequential evaluator results should remain structural errors"
+)
+
+terminalInvalidSearch <- bfpwr:::.bfseq_search(
+    power = 0.8,
+    target = "h1",
+    nrange = c(2, 20),
+    schedule = searchPolicySchedule,
+    evaluate = function(maxN) {
+        if (maxN >= 4) {
+            bfpwr:::.bfseq_candidate_invalid(
+                "synthetic terminal invalid",
+                reason = "synthetic_terminal",
+                terminal = TRUE
+            )
+        }
+        searchPolicyResult(maxN, 0.2)
+    }
+)
+expect_false(terminalInvalidSearch$reached,
+             info = "terminal invalid candidates should stop adaptive search")
+expect_true(is.nan(terminalInvalidSearch$n),
+            info = "terminal invalid candidates should return unresolved n")
+expect_equal(terminalInvalidSearch$reason, "synthetic_terminal",
+             info = "terminal invalid candidate reason should be preserved")
+expect_true(terminalInvalidSearch$terminal,
+            info = "terminal invalid candidate status should be preserved")
+
+transientAdaptiveSearch <- bfpwr:::.bfseq_search(
+    power = 0.8,
+    target = "h1",
+    nrange = c(2, 20),
+    schedule = searchPolicySchedule,
+    evaluate = function(maxN) {
+        if (maxN == 4) {
+            bfpwr:::.bfseq_candidate_invalid(
+                "synthetic transient invalid",
+                reason = "synthetic_transient",
+                terminal = FALSE
+            )
+        }
+        searchPolicyResult(maxN, if (maxN >= 8) 0.9 else 0.2)
+    }
+)
+expect_false(transientAdaptiveSearch$reached,
+             info = "adaptive search should stop at transient invalid candidates")
+expect_true(
+    grepl("search = \"exhaustive\"", transientAdaptiveSearch$error,
+          fixed = TRUE),
+    info = "adaptive transient-invalid diagnostics should recommend exhaustive search"
+)
+expect_false(transientAdaptiveSearch$terminal,
+             info = "transient invalid candidate status should be preserved")
+
+transientExhaustiveSearch <- bfpwr:::.bfseq_search(
+    power = 0.8,
+    target = "h1",
+    nrange = c(2, 20),
+    schedule = searchPolicySchedule,
+    search = "exhaustive",
+    evaluate = function(maxN) {
+        if (maxN == 4) {
+            bfpwr:::.bfseq_candidate_invalid(
+                "synthetic transient invalid",
+                reason = "synthetic_transient",
+                terminal = FALSE
+            )
+        }
+        searchPolicyResult(maxN, if (maxN == 8) 0.9 else 0.2)
+    }
+)
+expect_equal(transientExhaustiveSearch$n, 8,
+             info = "exhaustive search should scan past transient invalid candidates")
+expect_true(transientExhaustiveSearch$reached,
+            info = "exhaustive search should return a later finite crossing")
+expect_false(
+    transientExhaustiveSearch$firstCrossingCertified,
+    info = "skipped invalid candidates should prevent absolute first-crossing certification"
+)
+
+terminalExhaustiveSearch <- bfpwr:::.bfseq_search(
+    power = 0.8,
+    target = "h1",
+    nrange = c(2, 20),
+    schedule = searchPolicySchedule,
+    search = "exhaustive",
+    evaluate = function(maxN) {
+        if (maxN == 4) {
+            bfpwr:::.bfseq_candidate_invalid(
+                "synthetic terminal invalid",
+                reason = "synthetic_terminal",
+                terminal = TRUE
+            )
+        }
+        searchPolicyResult(maxN, if (maxN >= 8) 0.9 else 0.2)
+    }
+)
+expect_false(terminalExhaustiveSearch$reached,
+             info = "exhaustive search should stop at terminal invalid candidates")
+expect_true(terminalExhaustiveSearch$terminal,
+            info = "exhaustive terminal-invalid diagnostics should retain terminal status")
+expect_true(
+    grepl("synthetic terminal invalid", terminalExhaustiveSearch$error,
+          fixed = TRUE),
+    info = "exhaustive terminal-invalid diagnostics should retain the invalid message"
+)
+
+nonfinitePowerSearch <- bfpwr:::.bfseq_search(
+    power = 0.8,
+    target = "h1",
+    nrange = c(2, 20),
+    schedule = searchPolicySchedule,
+    evaluate = function(maxN) {
+        searchPolicyResult(maxN, NaN)
+    }
+)
+expect_false(nonfinitePowerSearch$reached,
+             info = "non-finite evaluator power should be classified as invalid")
+expect_equal(nonfinitePowerSearch$reason, "nonfinite_power",
+             info = "non-finite evaluator power should retain a structured reason")
+expect_true(nonfinitePowerSearch$terminal,
+            info = "non-finite evaluator power should be terminal by default")
+
+islandAdaptiveSearch <- suppressWarnings(
+    bfpwr:::.bfseq_search(
+        power = 0.8,
+        target = "h1",
+        nrange = c(2, 20),
+        schedule = searchPolicySchedule,
+        evaluate = function(maxN) {
+            searchPolicyResult(maxN, if (maxN == 5) 0.9 else 0.2)
+        }
+    )
+)
+islandExhaustiveSearch <- bfpwr:::.bfseq_search(
+    power = 0.8,
+    target = "h1",
+    nrange = c(2, 20),
+    schedule = searchPolicySchedule,
+    search = "exhaustive",
+    evaluate = function(maxN) {
+        searchPolicyResult(maxN, if (maxN == 5) 0.9 else 0.2)
+    }
+)
+expect_true(is.nan(islandAdaptiveSearch$n),
+            info = "adaptive bracketing can miss an isolated early crossing")
+expect_equal(islandExhaustiveSearch$n, 5,
+             info = "exhaustive search should scan the full candidate range")
+expect_true(islandExhaustiveSearch$firstCrossingCertified,
+            info = "full-range exhaustive search should certify isolated first crossings")

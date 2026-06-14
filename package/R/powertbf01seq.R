@@ -12,7 +12,9 @@
 #'     \code{solver$reached} records whether the target was achieved within
 #'     \code{nrange}. If \code{n} is supplied, no search is performed and the
 #'     \code{solver} element records the achieved stopping probability for the
-#'     fixed schedule.
+#'     fixed schedule. For fixed-\code{n} increment schedules with missing
+#'     \code{minN}, \code{nrange[1]} is used as the default first look, clamped
+#'     to \code{n} when necessary.
 #'
 #' @inheritParams ntbf01seq
 #' @inheritParams powertbf01
@@ -46,11 +48,16 @@ powertbf01seq <- function(n = NULL, power = NULL, k1 = 1/10, k0 = 1/k1,
                           target = c("h1", "h0"), nrange = c(2, 10^4),
                           looks = 1, timing = NULL, minN = NULL, by = NULL,
                           ratio = 1, strict = TRUE, trange = "adaptive",
+                          tail.eps = 1e-3,
                           nextend = 0,
                           search = c("adaptive", "exhaustive"),
                           progress = NULL, ...) {
     if (is.null(n) == is.null(power)) {
         stop("exactly one of 'n' and 'power' must be NULL")
+    }
+    dotNames <- names(match.call(expand.dots = FALSE)$...)
+    if ("drange" %in% dotNames) {
+        stop("argument 'drange' was renamed to 'trange' in powertbf01seq")
     }
     type <- match.arg(type)
     alternative <- match.arg(alternative)
@@ -71,7 +78,13 @@ powertbf01seq <- function(n = NULL, power = NULL, k1 = 1/10, k0 = 1/k1,
         length(ratio) == 1,
         is.numeric(ratio),
         is.finite(ratio),
-        ratio > 0
+        ratio > 0,
+
+        length(tail.eps) == 1,
+        is.numeric(tail.eps),
+        is.finite(tail.eps),
+        tail.eps > 0,
+        tail.eps < 0.5
     )
     nextend <- .bfseq_normalize_nextend(nextend)
     progress <- .bfseq_validate_progress(progress)
@@ -83,13 +96,18 @@ powertbf01seq <- function(n = NULL, power = NULL, k1 = 1/10, k0 = 1/k1,
             dpm = dpm, dpsd = dpsd, type = type,
             alternative = alternative, target = target, nrange = nrange,
             looks = looks, timing = timing, minN = minN, by = by,
-            ratio = ratio, strict = strict, trange = trange, integer = TRUE,
-            nextend = nextend, search = search, details = TRUE,
+            ratio = ratio, strict = strict, trange = trange,
+            tail.eps = tail.eps, integer = TRUE, nextend = nextend,
+            search = search, details = TRUE,
             progress = progress, ...
         )
         design <- solver$result
         if (is.null(design)) {
-            stop("no valid sequential design could be computed within 'nrange'")
+            msg <- "no valid sequential design could be computed within 'nrange'"
+            if (!is.null(solver$error)) {
+                msg <- paste0(msg, ": ", solver$error)
+            }
+            stop(msg, call. = FALSE)
         }
     } else {
         stopifnot(
@@ -99,9 +117,12 @@ powertbf01seq <- function(n = NULL, power = NULL, k1 = 1/10, k0 = 1/k1,
             n >= 2
         )
         lookMinN <- if (type == "two.sample") .bfseq_ratio_look_min_n(ratio) else 2
+        fixedNrange <- .bfseq_fixed_schedule_range(
+            n = n, nrange = nrange, lookMinN = lookMinN
+        )
         schedule <- .bfseq_schedule_spec(looks = looks, timing = timing,
                                          minN = minN, by = by,
-                                         nrange = c(2, max(2, n)),
+                                         nrange = fixedNrange,
                                          lookMinN = lookMinN)
         n1 <- .bfseq_schedule_n(maxN = n, schedule = schedule)
         n2 <- if (type == "two.sample") {
@@ -109,12 +130,12 @@ powertbf01seq <- function(n = NULL, power = NULL, k1 = 1/10, k0 = 1/k1,
         } else {
             n1
         }
-        .bfseq_validate_schedule(n2)
         design <- ptbf01seq(
             k1 = k1, k0 = k0, n1 = n1, n2 = n2,
             plocation = plocation - null, pscale = pscale, pdf = pdf,
             dpm = dpm - null, dpsd = dpsd, type = type,
-            alternative = alternative, strict = strict, trange = trange, ...
+            alternative = alternative, strict = strict, trange = trange,
+            tail.eps = tail.eps, ...
         )
         solver <- .bfseq_fixed_solver(n = n, target = target, design = design,
                                       schedule = schedule, nextend = nextend)

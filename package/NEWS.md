@@ -1,6 +1,23 @@
 # bfpwr 0.3
 
-- bug fixes for numerical search of t-test critical values
+- add sequential sample-size search helpers `nbf01seq()`, `ntbf01seq()`,
+  `powerbf01seq()`, and `powertbf01seq()`
+- add sequential t-test stopping probabilities via `ptbf01seq()`
+- add `tail.eps` control for one-sided adaptive t critical-value searches;
+  the old fixed `|t| <= 256` stopping cap is replaced by a predictive-tail
+  probability cutoff
+- make one-sided adaptive t searches scan only the mathematically expected
+  direction and report unresolved finite searches with clearer diagnostics
+- fix two-sided `ptbf01()` power for shifted informed priors where BF01 is
+  maximized away from the null
+- make sequential sample-size search preserve typed numerical invalidity,
+  propagate structural evaluator errors, and give `search = "exhaustive"`
+  full-range semantics
+- make fixed-`n` sequential wrapper schedules round-trip searched increment
+  schedules by respecting `nrange[1]` as the default first look when `minN` is
+  missing
+- rename the sequential t boundary-search argument from `drange` to `trange`;
+  using `drange` now errors with a migration message
 - new contributor František Bartoš (<https://orcid.org/0000-0002-0018-5573>)
 
 # bfpwr 0.2

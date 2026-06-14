@@ -6,12 +6,17 @@ ntbf01seq. <- function(k1, k0 = 1/k1, power, null = 0,
                        target = c("h1", "h0"), nrange = c(2, 10^4),
                        looks = 1, timing = NULL, minN = NULL, by = NULL,
                        ratio = 1, strict = TRUE, trange = "adaptive",
+                       tail.eps = 1e-3,
                        integer = TRUE, nextend = 0,
                        search = c("adaptive", "exhaustive"),
                        details = FALSE,
                        progress = NULL, ...) {
     search <- match.arg(search)
     ## input checks
+    dotNames <- names(match.call(expand.dots = FALSE)$...)
+    if ("drange" %in% dotNames) {
+        stop("argument 'drange' was renamed to 'trange' in ntbf01seq")
+    }
     stopifnot(
         length(k1) == 1,
         is.numeric(k1),
@@ -69,6 +74,12 @@ ntbf01seq. <- function(k1, k0 = 1/k1, power, null = 0,
          trange[2] > trange[1]) || (is.character(trange) && length(trange) == 1 &&
                                     !is.na(trange) && trange == "adaptive"),
 
+        length(tail.eps) == 1,
+        is.numeric(tail.eps),
+        is.finite(tail.eps),
+        tail.eps > 0,
+        tail.eps < 0.5,
+
         length(integer) == 1,
         is.logical(integer),
         !is.na(integer),
@@ -92,7 +103,8 @@ ntbf01seq. <- function(k1, k0 = 1/k1, power, null = 0,
         pscale = pscale, pdf = pdf, dpm = dpm - null,
         dpsd = dpsd, type = type, alternative = alternative,
         target = target, ratio = ratio, schedule = schedule,
-        strict = strict, trange = trange, dots = list(...)
+        strict = strict, trange = trange, tail.eps = tail.eps,
+        dots = list(...)
     )
 
     solver <- .bfseq_search(power = power, target = target, nrange = nrange,
@@ -102,6 +114,9 @@ ntbf01seq. <- function(k1, k0 = 1/k1, power, null = 0,
 
     if (details) {
         return(solver)
+    }
+    if (!is.null(solver$error)) {
+        warning(solver$error, call. = FALSE)
     }
     if (integer) {
         return(ceiling(solver$n))
@@ -165,10 +180,16 @@ ntbf01seq <- function(k1, k0 = 1/k1, power, null = 0,
                       target = c("h1", "h0"), nrange = c(2, 10^4),
                       looks = 1, timing = NULL, minN = NULL, by = NULL,
                       ratio = 1, strict = TRUE, trange = "adaptive",
+                      tail.eps = 1e-3,
                       integer = TRUE, nextend = 0,
                       search = c("adaptive", "exhaustive"),
                       details = FALSE,
                       progress = NULL, ...) {
+    dotNames <- names(match.call(expand.dots = FALSE)$...)
+    if ("drange" %in% dotNames) {
+        stop("argument 'drange' was renamed to 'trange' in ntbf01seq")
+    }
+
     type <- if (missing(type)) {
         "two.sample"
     } else {
@@ -199,6 +220,7 @@ ntbf01seq <- function(k1, k0 = 1/k1, power, null = 0,
             alternative = alternative, target = target, nrange = nrange,
             looks = looks, timing = timing, minN = minN, by = by,
             ratio = ratio, strict = strict, trange = trange,
+            tail.eps = tail.eps,
             integer = integer, nextend = nextend, search = search,
             details = TRUE, progress = progress, ...
         ))
@@ -209,12 +231,13 @@ ntbf01seq <- function(k1, k0 = 1/k1, power, null = 0,
                                       "plocation", "pscale", "pdf",
                                       "dpm", "dpsd", "type",
                                       "alternative", "target", "ratio",
-                                      "integer"))
+                                      "tail.eps", "integer"))
     f(k1 = k1, k0 = k0, power = power, null = null,
       plocation = plocation, pscale = pscale, pdf = pdf,
       dpm = dpm, dpsd = dpsd, type = type, alternative = alternative,
       target = target, nrange = nrange, looks = looks, timing = timing,
       minN = minN, by = by, ratio = ratio, strict = strict,
-      trange = trange, integer = integer, nextend = nextend,
+      trange = trange, tail.eps = tail.eps, integer = integer,
+      nextend = nextend,
       search = search, details = FALSE, progress = progress, ...)
 }

@@ -11,7 +11,7 @@
 #'     evidence for \eqn{H_1})
 #' @param k0 Bayes factor threshold in favor of \eqn{H_0}{H0} (i.e.,
 #'     \eqn{\text{BF}_{01} \geq \code{k0} > 1}{BF01 > \code{k0} > 1} implies
-#'     evidence for \eqn{H_1})
+#'     evidence for \eqn{H_0})
 #' @param se Numeric vector of standard errors for each sequential stage
 #' @param n Optional numeric vector of sample sizes corresponding to \code{se}.
 #'     If supplied, the expected sample size is computed
@@ -533,11 +533,12 @@ plot.bfseqdesign <- function(x, plot = TRUE, nullplot = TRUE, zplot = FALSE,
                              pH1 = x$cumpH1, pInc = x$cumpInc)
         if (nullplot == TRUE) {
             if (x$test == "t") {
+                tail.eps <- if (is.null(x$tail.eps)) 1e-3 else x$tail.eps
                 x0 <- ptbf01seq(k1 = x$k1, k0 = x$k0, n1 = x$n1, n2 = x$n2,
                                 plocation = x$plocation, pscale = x$pscale,
                                 pdf = x$pdf, dpm = 0, dpsd = 0, type = x$type,
                                 alternative = x$alternative, trange = x$trange,
-                                strict = x$strict)
+                                strict = x$strict, tail.eps = tail.eps)
             } else {
                 x0 <- pbf01seq(k1 = x$k1, k0 = x$k0, se = x$se, pm = x$pm,
                                psd = x$psd, dpm = 0, dpsd = 0, type = x$type,

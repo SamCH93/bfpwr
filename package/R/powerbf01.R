@@ -351,22 +351,24 @@ plot.power.bftest <- function(x, nlim = c(2, 500), ngrid = 100, type = "l",
                        psd = x$psd, dpm = x$null, dpsd = 0,
                        lower.tail = FALSE, nrange = x$nrange)
     } else if (x$test == "t") {
+        tail.eps <- if (is.null(x$tail.eps)) 1e-3 else x$tail.eps
         powFun <- function(k, n, lower.tail = TRUE) {
             ptbf01(k = k, n = n, null = x$null, plocation = x$plocation,
                    pscale = x$pscale, pdf = x$pdf, alternative = x$alternative,
                    type = x$type, dpm = x$dpm, dpsd = x$dpsd,
-                   lower.tail = lower.tail)
+                   lower.tail = lower.tail, tail.eps = tail.eps)
         }
         powNullFun <- function(k, n, lower.tail = TRUE) {
             ptbf01(k = k, n = n, null = x$null, plocation = x$plocation,
                    pscale = x$pscale, pdf = x$pdf, alternative = x$alternative,
                    type = x$type, dpm = x$null, dpsd = 0,
-                   lower.tail = lower.tail)
+                   lower.tail = lower.tail, tail.eps = tail.eps)
         }
         nH0 <- ntbf01(k = 1/x$k, power = x$power, null = x$null,
                       plocation = x$plocation, pscale = x$pscale, pdf = x$pdf,
                       alternative = x$alternative, type = x$type, dpm = x$null,
-                      dpsd = 0, lower.tail = FALSE, nrange = x$nrange)
+                      dpsd = 0, lower.tail = FALSE, nrange = x$nrange,
+                      tail.eps = tail.eps)
     } else {
         ## binomial test
         powFun <- function(k, n, lower.tail = TRUE) {

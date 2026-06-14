@@ -25,6 +25,7 @@ ntbf01seq(
   ratio = 1,
   strict = TRUE,
   trange = "adaptive",
+  tail.eps = 0.001,
   integer = TRUE,
   nextend = 0,
   search = c("adaptive", "exhaustive"),
@@ -104,8 +105,18 @@ performed). Defaults to \code{TRUE}}
 
 \item{trange}{Critical \eqn{t}-statistic search strategy for the sequential
 stopping boundaries. Can be either \code{"adaptive"} (default) or a
-numeric interval. For one-sided adaptive searches, roots are bracketed up
-to \code{|t| <= 256}; pass a wider numeric interval to search farther.}
+numeric interval. For one-sided adaptive searches, \code{tail.eps}
+determines the predictive tail cutoff used to stop finite scans. Use a
+numeric interval to force exact boundary searches over that interval.}
+
+\item{tail.eps}{One-sided adaptive sequential boundary searches stop once the
+marginal predictive tail probability beyond the searched \eqn{t}
+statistic is at most \code{tail.eps}. The same cutoff is used for each
+adaptive boundary search; it is not split across looks or boundaries.
+If no boundary is found before the cutoff, that boundary is treated as
+unresolved with omitted marginal mass bounded by \code{tail.eps};
+smaller values search farther at additional computational cost. Defaults
+to \code{1e-3}.}
 
 \item{integer}{Logical indicating whether only integer valued sample sizes
 should be returned. If \code{TRUE} the required sample size is rounded to
@@ -122,10 +133,14 @@ scalar; vectorized inputs require \code{details = FALSE}. Defaults to
 
 \item{search}{Sample-size search rule for schedules generated from
 \code{looks}/\code{timing}. \code{"adaptive"} uses bracketing and binary
-search with local checks. \code{"exhaustive"} scans candidate maximum
-sample sizes until the first crossing. Ignored when \code{by} is
-supplied, where scheduled maximum sample sizes \code{minN + j * by} are
-scanned in increasing order. Defaults to \code{"adaptive"}.}
+search with local checks, and stops with a diagnostic if a transient
+invalid candidate invalidates the bracket. \code{"exhaustive"} scans the
+full feasible candidate maximum-sample-size range and returns the first
+finite candidate that reaches \code{power}, skipping transient invalid
+candidates and stopping at terminal invalid candidates. Ignored when
+\code{by} is supplied, where scheduled maximum sample sizes
+\code{minN + j * by} are scanned in increasing order. Defaults to
+\code{"adaptive"}.}
 
 \item{progress}{Optional function called after each newly evaluated
 candidate maximum sample size. A callback with arguments receives a list

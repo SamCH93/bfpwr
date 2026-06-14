@@ -19,6 +19,107 @@ expect_true(inherits(search$result, "bfseqdesign"),
             info = "sequential t search details should include design object")
 expect_equal(search$result$solver$n, search$n,
              info = "sequential t design should carry solver metadata")
+expect_equal(search$result$tail.eps, 1e-3,
+             info = "ntbf01seq search result should store default tail.eps")
+
+tailSearch <- suppressWarnings(
+    ntbf01seq(k1 = k1, k0 = k0, power = pow, dpm = 0.5, dpsd = 0,
+              alternative = "greater", looks = 2, nrange = c(2, 80),
+              strict = FALSE, details = TRUE, tail.eps = 1e-2)
+)
+expect_equal(tailSearch$result$tail.eps, 1e-2,
+             info = "ntbf01seq should pass custom tail.eps into computed designs")
+
+narrowRangeSearch <- suppressWarnings(
+    ntbf01seq(k1 = 1/10, k0 = 10, power = 0.8, dpm = 0.5, dpsd = 0.1,
+              type = "two.sample", alternative = "greater", target = "h1",
+              nrange = c(20, 40), strict = FALSE, trange = c(-1, 1),
+              details = TRUE)
+)
+expect_true(is.nan(narrowRangeSearch$n),
+            info = "ntbf01seq should reject searches with failed numeric t boundaries")
+expect_true(
+    grepl("Failed to compute", narrowRangeSearch$error, fixed = TRUE),
+    info = "ntbf01seq should report the failed boundary search in solver diagnostics"
+)
+narrowLookSearch <- suppressWarnings(
+    ntbf01seq(k1 = 0.9, k0 = 2, power = 0.8, dpm = 0.5, dpsd = 0,
+              alternative = "greater", timing = c(0.25, 0.5, 1),
+              nrange = c(80, 100), strict = FALSE, trange = c(-2, 1.5),
+              details = TRUE)
+)
+expect_true(
+    grepl("look 3", narrowLookSearch$error, fixed = TRUE),
+    info = "cached sequential t searches should report the failed look index"
+)
+narrowRangeWarning <- character()
+narrowRangeN <- withCallingHandlers(
+    ntbf01seq(k1 = 1/10, k0 = 10, power = 0.8, dpm = 0.5, dpsd = 0.1,
+              type = "two.sample", alternative = "greater", target = "h1",
+              nrange = c(20, 40), strict = FALSE, trange = c(-1, 1)),
+    warning = function(w) {
+        narrowRangeWarning <<- c(narrowRangeWarning, conditionMessage(w))
+        invokeRestart("muffleWarning")
+    }
+)
+expect_true(is.nan(narrowRangeN) &&
+                any(grepl("Failed to compute", narrowRangeWarning,
+                          fixed = TRUE)),
+            info = "ntbf01seq should warn with the boundary failure when details = FALSE")
+expect_false(any(grepl("Power = NaN", narrowRangeWarning, fixed = TRUE)),
+             info = "ntbf01seq should not warn with generic NaN power text for boundary failures")
+powerBoundaryFailure <- suppressWarnings(
+    try(
+        powertbf01seq(k1 = 1/10, k0 = 10, power = 0.8,
+                      dpm = 0.5, dpsd = 0.1, type = "two.sample",
+                      alternative = "greater", target = "h1",
+                      nrange = c(20, 40), strict = FALSE,
+                      trange = c(-1, 1)),
+        silent = TRUE
+    )
+)
+expect_true(
+    inherits(powerBoundaryFailure, "try-error") &&
+        grepl("Failed to compute",
+              conditionMessage(attr(powerBoundaryFailure, "condition")),
+              fixed = TRUE),
+    info = "powertbf01seq should preserve boundary failures from sample-size search"
+)
+
+fakeBoundaryEval <- function(n) {
+    if (n < 8) {
+        return(list(n = n, criterion = -0.1, power = 0.4,
+                    error = NULL, result = NULL))
+    }
+    list(n = n, criterion = NA_real_, power = NA_real_,
+         error = "boundary failure", result = NULL)
+}
+hiddenBoundaryFailure <- bfpwr:::.bfseq_search_before_invalid(
+    evalN = fakeBoundaryEval, validN = 4, invalidN = 16
+)
+expect_true(is.null(hiddenBoundaryFailure$upper) &&
+                identical(hiddenBoundaryFailure$limit$error,
+                          "boundary failure"),
+            info = "sample-size search should not hide boundary failures behind the last finite candidate")
+
+vectorTail <- suppressWarnings(
+    ntbf01seq(k1 = k1, k0 = k0, power = pow, dpm = 0.5, dpsd = 0,
+              alternative = "greater", looks = 2, nrange = c(2, 80),
+              strict = FALSE, integer = FALSE,
+              tail.eps = c(1e-2, 1e-3))
+)
+tailOne <- suppressWarnings(
+    ntbf01seq(k1 = k1, k0 = k0, power = pow, dpm = 0.5, dpsd = 0,
+              alternative = "greater", looks = 2, nrange = c(2, 80),
+              strict = FALSE, integer = FALSE, tail.eps = 1e-2)
+)
+tailTwo <- suppressWarnings(
+    ntbf01seq(k1 = k1, k0 = k0, power = pow, dpm = 0.5, dpsd = 0,
+              alternative = "greater", looks = 2, nrange = c(2, 80),
+              strict = FALSE, integer = FALSE, tail.eps = 1e-3)
+)
+expect_equal(as.numeric(vectorTail), c(tailOne, tailTwo),
+             info = "ntbf01seq should vectorize over tail.eps like other scalar controls")
 
 progressEvents <- list()
 progressSearch <- suppressWarnings(
@@ -70,6 +171,34 @@ expect_true(inherits(powres, "bfseqdesign"),
             info = "powertbf01seq should return a sequential design")
 expect_equal(powres$solver$n, search$n,
              info = "powertbf01seq should use ntbf01seq search result")
+
+powTail <- suppressWarnings(
+    powertbf01seq(n = 20, k1 = k1, k0 = k0, dpm = 0.5, dpsd = 0,
+                  alternative = "greater", looks = 2, strict = FALSE,
+                  tail.eps = 1e-2)
+)
+expect_equal(powTail$tail.eps, 1e-2,
+             info = "powertbf01seq should pass custom tail.eps in fixed-n mode")
+
+old_drange_nt <- try(
+    ntbf01seq(k1 = k1, k0 = k0, power = pow, dpm = 0.5, dpsd = 0,
+              alternative = "greater", looks = 2, nrange = c(2, 80),
+              strict = FALSE, drange = c(-2, 6)),
+    silent = TRUE
+)
+expect_true(inherits(old_drange_nt, "try-error") &&
+                grepl("renamed to 'trange'", old_drange_nt, fixed = TRUE),
+            info = "ntbf01seq should fail immediately on deprecated drange")
+
+old_drange_power <- try(
+    powertbf01seq(power = pow, k1 = k1, k0 = k0, dpm = 0.5, dpsd = 0,
+                  alternative = "greater", looks = 2, nrange = c(2, 80),
+                  strict = FALSE, drange = c(-2, 6)),
+    silent = TRUE
+)
+expect_true(inherits(old_drange_power, "try-error") &&
+                grepl("renamed to 'trange'", old_drange_power, fixed = TRUE),
+            info = "powertbf01seq should fail immediately on deprecated drange")
 
 powerProgressEvents <- list()
 powerProgress <- suppressWarnings(
@@ -137,6 +266,21 @@ if (increaseSearch$n > 20) {
                 info = "incremental t increase search should find first scheduled H0 crossing")
 }
 
+fixedIncrease <- suppressWarnings(
+    powertbf01seq(n = increaseSearch$n, k1 = 1/10, k0 = 10,
+                  dpm = 0, dpsd = 0, type = "two.sample",
+                  alternative = "two.sided", target = "h0",
+                  minN = 20, by = 20, nrange = c(20, 800),
+                  strict = FALSE)
+)
+expect_equal(fixedIncrease$n1, increaseSearch$result$n1,
+             info = "powertbf01seq fixed-n mode should preserve searched increment n1 schedule")
+expect_equal(fixedIncrease$n2, increaseSearch$result$n2,
+             info = "powertbf01seq fixed-n mode should preserve searched increment n2 schedule")
+expect_equal(utils::tail(fixedIncrease$cumpH0, 1), increaseSearch$actualPower,
+             tolerance = 1e-10,
+             info = "powertbf01seq fixed-n mode should round-trip searched increment power")
+
 tTimingSchedule <- bfpwr:::.bfseq_schedule_spec(
     looks = 2, timing = c(0.4, 1), nrange = c(2, 80)
 )
@@ -145,7 +289,7 @@ tTimingEval <- bfpwr:::.bfseq_t_schedule_evaluator(
     dpm = 0.5, dpsd = 0, type = "two.sample",
     alternative = "two.sided", target = "h1", ratio = 1,
     schedule = tTimingSchedule, strict = FALSE, trange = "adaptive",
-    dots = list()
+    tail.eps = 1e-2, dots = list()
 )
 for (maxN in c(30, 43)) {
     tTimingN <- bfpwr:::.bfseq_schedule_n(maxN = maxN,
@@ -155,7 +299,7 @@ for (maxN in c(30, 43)) {
                   plocation = 0, pscale = 1/sqrt(2), pdf = 1,
                   dpm = 0.5, dpsd = 0, type = "two.sample",
                   alternative = "two.sided", strict = FALSE,
-                  trange = "adaptive")
+                  trange = "adaptive", tail.eps = 1e-2)
     )
     tTimingCached <- suppressWarnings(tTimingEval(maxN))
     expect_equal(tTimingCached$result$cumpH1, tTimingDirect$cumpH1,
@@ -167,6 +311,8 @@ for (maxN in c(30, 43)) {
     expect_equal(tTimingCached$power, utils::tail(tTimingDirect$cumpH1, 1),
                  tolerance = 1e-10,
                  info = paste("cached t timing evaluator should return target probability at maxN =", maxN))
+    expect_equal(tTimingCached$result$tail.eps, 1e-2,
+                 info = paste("cached t timing evaluator should retain tail.eps at maxN =", maxN))
 }
 
 ratiores <- suppressWarnings(
@@ -178,6 +324,16 @@ expect_equal(ratiores$n2, ceiling(ratiores$n1*2),
              info = "powertbf01seq should apply two-sample allocation ratio")
 expect_equal(ratiores$ratio, 2,
              info = "powertbf01seq should retain allocation ratio")
+
+smallRatio <- suppressWarnings(
+    powertbf01seq(n = 25, k1 = k1, k0 = k0, dpm = 0.5, dpsd = 0,
+                  alternative = "greater", by = 1, minN = 6,
+                  ratio = 0.2, strict = FALSE)
+)
+expect_true(inherits(smallRatio, "bfseqdesign"),
+            info = "powertbf01seq fixed-n mode should allow non-decreasing n2 schedules")
+expect_true(any(diff(smallRatio$n2) == 0),
+            info = "small allocation ratios can validly repeat group-2 sample sizes")
 
 fixedTicks <- 0L
 suppressWarnings(

@@ -182,6 +182,17 @@ expect_true(inherits(fixed, "bfseqdesign"),
 expect_equal(max(fixed$n), 60,
              info = "powerbf01seq fixed-n mode should use requested final n")
 
+fixedIncrease <- powerbf01seq(n = increaseSearch$n, k1 = 1/10, k0 = 10,
+                              pm = 0, psd = 1/sqrt(2), dpm = 0, dpsd = 0,
+                              type = "two.sample", bftype = "normal",
+                              target = "h0", minN = 20, by = 20,
+                              nrange = c(20, 1200), strict = FALSE)
+expect_equal(fixedIncrease$n, increaseSearch$result$n,
+             info = "powerbf01seq fixed-n mode should preserve searched increment schedule")
+expect_equal(utils::tail(fixedIncrease$cumpH0, 1), increaseSearch$actualPower,
+             tolerance = 1e-10,
+             info = "powerbf01seq fixed-n mode should round-trip searched increment power")
+
 fixedTicks <- 0L
 powerbf01seq(n = 60, k1 = k1, k0 = k0, pm = pm, psd = psd,
              dpm = dpm, dpsd = dpsd, looks = 3,

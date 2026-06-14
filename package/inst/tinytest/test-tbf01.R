@@ -19,15 +19,21 @@ expect_true(length(res) == 3, info = "tbf01 should handle vector inputs")
 expect_equal(log(res), logres,
              info = "tbf01 should return log(tbf01) when log = TRUE")
 
+tcrit_search_limit <- bfpwr:::.bfpwr_one_sided_tail_limits(
+    origin = 0, step_scale = 1, mean = 0, sd = 20, tail.eps = 1e-6
+)
+
 less_crit <- suppressWarnings(
     bfpwr:::tcrit(k = 30, n1 = 41, n2 = 41, plocation = 0,
                   pscale = 1/sqrt(2), pdf = 1, type = "two.sample",
-                  alternative = "less", trange = "adaptive")
+                  alternative = "less", trange = "adaptive",
+                  search_limit = tcrit_search_limit)
 )
 greater_crit <- suppressWarnings(
     bfpwr:::tcrit(k = 30, n1 = 41, n2 = 41, plocation = 0,
                   pscale = 1/sqrt(2), pdf = 1, type = "two.sample",
-                  alternative = "greater", trange = "adaptive")
+                  alternative = "greater", trange = "adaptive",
+                  search_limit = tcrit_search_limit)
 )
 less_residual <- suppressWarnings(
     tbf01(t = less_crit, n1 = 41, n2 = 41, plocation = 0,
@@ -45,6 +51,126 @@ expect_equal(less_crit, -greater_crit, tolerance = 1e-5,
              info = "mirrored one-sided adaptive tcrit roots should agree")
 expect_true(max(abs(c(less_residual, greater_residual))) < 1e-4,
             info = "one-sided adaptive tcrit roots should satisfy BF01 threshold")
+
+tcrit_missing_limit_warning <- NULL
+tcrit_missing_limit <- withCallingHandlers(
+    bfpwr:::tcrit(k = 30, n1 = 41, n2 = 41, plocation = 0,
+                  pscale = 1/sqrt(2), pdf = 1, type = "two.sample",
+                  alternative = "greater", trange = "adaptive"),
+    warning = function(w) {
+        tcrit_missing_limit_warning <<- conditionMessage(w)
+        invokeRestart("muffleWarning")
+    }
+)
+expect_true(is.nan(tcrit_missing_limit),
+            info = "one-sided adaptive tcrit should require an explicit search limit")
+expect_true(grepl("requires 'search_limit'", tcrit_missing_limit_warning,
+                  fixed = TRUE),
+            info = "one-sided adaptive tcrit should warn clearly when search_limit is missing")
+
+seen_x <- numeric(0)
+always_positive <- function(x) {
+    seen_x <<- c(seen_x, x)
+    1
+}
+no_root <- bfpwr:::.bfpwr_one_sided_adaptive_root(
+    certify_fun = always_positive,
+    scout_fun = always_positive,
+    alternative = "greater",
+    origin = 0,
+    step_scale = 1,
+    search_limit = 1
+)
+expect_true(inherits(no_root$root, "try-error"),
+            info = "one-sided helper should report no root when expected side has no crossing")
+expect_true(all(seen_x >= 0),
+            info = "one-sided helper should not retry the opposite side by default")
+
+nonfinite_limit_fun <- function(x) {
+    if (x >= 10) {
+        return(NaN)
+    }
+    1
+}
+nonfinite_limit <- bfpwr:::.bfpwr_one_sided_adaptive_root(
+    certify_fun = nonfinite_limit_fun,
+    scout_fun = nonfinite_limit_fun,
+    alternative = "greater",
+    origin = 0,
+    step_scale = 1,
+    search_limit = 10,
+    steps = 1,
+    scout_tail_steps = 1,
+    tail_steps = 10
+)
+expect_true(inherits(nonfinite_limit$root, "try-error"),
+            info = "one-sided helper should report no root with non-finite limit values")
+expect_false(nonfinite_limit$search_limit_reached,
+             info = "one-sided helper should not convert non-finite limit values to tail cutoffs")
+
+search_root <- function(x) 1 - x
+final_root <- function(x) 2 - x
+full_certified_root <- bfpwr:::.bfpwr_one_sided_adaptive_root(
+    certify_fun = final_root,
+    search_fun = search_root,
+    scout_fun = search_root,
+    alternative = "greater",
+    origin = 0,
+    step_scale = 1,
+    search_limit = 3
+)
+expect_equal(
+    full_certified_root$root,
+    2,
+    tolerance = 1e-8,
+    info = "one-sided helper should return the root certified by the final function"
+)
+expect_false(
+    full_certified_root$search_limit_reached,
+    info = "one-sided helper should not treat a relaxed-search root as final certification"
+)
+
+search_finite_limit <- function(x) 1
+final_nonfinite_limit <- function(x) {
+    if (x >= 10) {
+        return(NaN)
+    }
+    1
+}
+nonfinite_final_limit <- bfpwr:::.bfpwr_one_sided_adaptive_root(
+    certify_fun = final_nonfinite_limit,
+    search_fun = search_finite_limit,
+    scout_fun = search_finite_limit,
+    alternative = "greater",
+    origin = 0,
+    step_scale = 1,
+    search_limit = 10,
+    steps = 1,
+    scout_tail_steps = 1,
+    tail_steps = 10
+)
+expect_true(
+    inherits(nonfinite_final_limit$root, "try-error"),
+    info = "one-sided helper should fail when the final function is non-finite at the limit"
+)
+expect_false(
+    nonfinite_final_limit$search_limit_reached,
+    info = "one-sided helper should not report a tail cutoff from only the relaxed search function"
+)
+
+expect_equal(
+    bfpwr:::.bfpwr_tcrit_status(
+        value = 1,
+        warnings = "Numerical problems finding critical value"
+    ),
+    "search_failed",
+    info = "tcrit status should not ignore failure warnings for finite values"
+)
+expect_equal(
+    bfpwr:::.bfpwr_tcrit_status(value = numeric(0), warnings = character()),
+    "search_failed",
+    info = "tcrit status should not treat empty results as valid"
+)
 
 if (!bfpwr_run_extended_tests()) {
     exit_file(bfpwr_extended_skip_message(

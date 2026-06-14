@@ -12,7 +12,9 @@
 #'     \code{solver$reached} records whether the target was achieved within
 #'     \code{nrange}. If \code{n} is supplied, no search is performed and the
 #'     \code{solver} element records the achieved stopping probability for the
-#'     fixed schedule.
+#'     fixed schedule. For fixed-\code{n} increment schedules with missing
+#'     \code{minN}, \code{nrange[1]} is used as the default first look, clamped
+#'     to \code{n} when necessary.
 #'
 #' @inheritParams nbf01seq
 #' @inheritParams powerbf01
@@ -114,7 +116,11 @@ powerbf01seq <- function(n = NULL, power = NULL, k1 = 1/10, k0 = 1/k1,
         )
         design <- solver$result
         if (is.null(design)) {
-            stop("no valid sequential design could be computed within 'nrange'")
+            msg <- "no valid sequential design could be computed within 'nrange'"
+            if (!is.null(solver$error)) {
+                msg <- paste0(msg, ": ", solver$error)
+            }
+            stop(msg, call. = FALSE)
         }
     } else {
         stopifnot(
@@ -123,9 +129,10 @@ powerbf01seq <- function(n = NULL, power = NULL, k1 = 1/10, k0 = 1/k1,
             is.finite(n),
             n >= 2
         )
+        fixedNrange <- .bfseq_fixed_schedule_range(n = n, nrange = nrange)
         schedule <- .bfseq_schedule_spec(looks = looks, timing = timing,
                                          minN = minN, by = by,
-                                         nrange = c(2, max(2, n)))
+                                         nrange = fixedNrange)
         nseq <- .bfseq_schedule_n(maxN = n, schedule = schedule)
         relpm <- if (bftype == "moment") NULL else pm - null
         design <- pbf01seq(

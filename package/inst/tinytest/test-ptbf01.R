@@ -21,17 +21,25 @@ common_args <- list(n = regression_n, null = 0, plocation = 0, pscale = 0.707,
 greater_adaptive <- suppressWarnings(
     do.call(ptbf01, c(list(k = 1/10, alternative = "greater"), common_args))
 )
+greater_adaptive_precise <- suppressWarnings(
+    do.call(ptbf01, c(list(k = 1/10, alternative = "greater",
+                           tail.eps = 1e-8), common_args))
+)
 greater_positive_range <- suppressWarnings(
     do.call(ptbf01, c(list(k = 1/10, alternative = "greater", drange = c(0, 2)),
                       common_args))
 )
 expect_true(is.finite(greater_adaptive) && greater_adaptive < 0.01,
             info = "greater one-sided adaptive search should not select the lower root")
-expect_true(abs(greater_adaptive - greater_positive_range) < 5e-6,
-            info = "greater one-sided adaptive search should match positive-side search")
+expect_true(abs(greater_adaptive_precise - greater_positive_range) < 5e-6,
+            info = "greater one-sided adaptive search with small tail.eps should match positive-side search")
 
 less_adaptive <- suppressWarnings(
     do.call(ptbf01, c(list(k = 1/10, alternative = "less"), common_args))
+)
+less_adaptive_precise <- suppressWarnings(
+    do.call(ptbf01, c(list(k = 1/10, alternative = "less",
+                           tail.eps = 1e-8), common_args))
 )
 less_negative_range <- suppressWarnings(
     do.call(ptbf01, c(list(k = 1/10, alternative = "less", drange = c(-2, 0)),
@@ -39,8 +47,8 @@ less_negative_range <- suppressWarnings(
 )
 expect_true(is.finite(less_adaptive) && less_adaptive < 0.01,
             info = "less one-sided adaptive search should not select the upper root")
-expect_true(abs(less_adaptive - less_negative_range) < 5e-6,
-            info = "less one-sided adaptive search should match negative-side search")
+expect_true(abs(less_adaptive_precise - less_negative_range) < 5e-6,
+            info = "less one-sided adaptive search with small tail.eps should match negative-side search")
 
 h0_adaptive <- suppressWarnings(
     do.call(ptbf01, c(list(k = 10, alternative = "greater", lower.tail = FALSE),
@@ -70,6 +78,25 @@ expect_equal(impossible_h0, 0,
 expect_true(grepl("Adaptive t power-boundary search reached", limit_warning,
                   fixed = TRUE),
             info = "one-sided ptbf01 should warn when adaptive boundary search reaches its limit")
+expect_true(grepl("absolute error <= 0.001", limit_warning, fixed = TRUE),
+            info = "one-sided ptbf01 search-limit warning should report the tail-eps error bound")
+
+wide_tail_limit <- bfpwr:::.bfpwr_one_sided_tail_limit(
+    direction = 1, origin = 0, step_scale = 1/sqrt(1e8),
+    mean = 0, sd = sqrt(1 + 1/1e8), tail.eps = 1e-3
+)
+expect_true(wide_tail_limit$search_limit > 256,
+            info = "predictive-tail search limit should replace the old fixed cap")
+expect_equal(wide_tail_limit$tail_probability, 1e-3, tolerance = 1e-12,
+             info = "predictive-tail search limit should match requested tail.eps")
+
+power_obj <- suppressWarnings(
+    powertbf01(n = 5, k = 10, plocation = 0, pscale = 0.707, pdf = 1,
+               type = "two.sample", alternative = "greater",
+               dpm = 0, dpsd = 0, tail.eps = 1e-2)
+)
+expect_equal(power_obj$tail.eps, 1e-2,
+             info = "powertbf01 should store the fixed-design tail.eps control")
 
 ## Regression cases for one-sided H0 roots that previously trusted a fast
 ## wrong-tail scout root. Reference values are certified by tbf01() below.
@@ -77,13 +104,17 @@ wrong_tail_tcrit_cases <- data.frame(
     n = c(28, 41),
     expected_tcrit = c(26.089665, 7.588086)
 )
+tcrit_search_limit <- bfpwr:::.bfpwr_one_sided_tail_limits(
+    origin = 0, step_scale = 1, mean = 0, sd = 20, tail.eps = 1e-6
+)
 for (i in seq_len(nrow(wrong_tail_tcrit_cases))) {
     n <- wrong_tail_tcrit_cases$n[i]
     crit <- suppressWarnings(
         bfpwr:::tcrit(k = 30, n1 = n, n2 = n,
                       plocation = 0, pscale = 1/sqrt(2), pdf = 1,
                       type = "two.sample", alternative = "less",
-                      trange = "adaptive")
+                      trange = "adaptive",
+                      search_limit = tcrit_search_limit)
     )
     residual <- suppressWarnings(
         tbf01(t = crit, n1 = n, n2 = n,

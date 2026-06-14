@@ -96,6 +96,9 @@ nbf01seq. <- function(k1, k0 = 1/k1, power, usd = sqrt(2), null = 0,
     if (details) {
         return(solver)
     }
+    if (!is.null(solver$error)) {
+        warning(solver$error, call. = FALSE)
+    }
     if (integer) {
         return(ceiling(solver$n))
     }
@@ -150,10 +153,14 @@ nbf01seq. <- function(k1, k0 = 1/k1, power, usd = sqrt(2), null = 0,
 #'     values are rounded up. Defaults to \code{0}.
 #' @param search Sample-size search rule for schedules generated from
 #'     \code{looks}/\code{timing}. \code{"adaptive"} uses bracketing and binary
-#'     search with local checks. \code{"exhaustive"} scans candidate maximum
-#'     sample sizes until the first crossing. Ignored when \code{by} is
-#'     supplied, where scheduled maximum sample sizes \code{minN + j * by} are
-#'     scanned in increasing order. Defaults to \code{"adaptive"}.
+#'     search with local checks, and stops with a diagnostic if a transient
+#'     invalid candidate invalidates the bracket. \code{"exhaustive"} scans the
+#'     full feasible candidate maximum-sample-size range and returns the first
+#'     finite candidate that reaches \code{power}, skipping transient invalid
+#'     candidates and stopping at terminal invalid candidates. Ignored when
+#'     \code{by} is supplied, where scheduled maximum sample sizes
+#'     \code{minN + j * by} are scanned in increasing order. Defaults to
+#'     \code{"adaptive"}.
 #' @param details Logical indicating whether the full search result should be
 #'     returned instead of only the maximum sample size. The detailed result is
 #'     scalar; vectorized inputs require \code{details = FALSE}. Defaults to

@@ -2,7 +2,8 @@ ntbf01. <- function(k, power, null = 0, plocation = 0, pscale = 1/sqrt(2),
                     pdf = 1, type = c("two.sample", "one.sample", "paired"),
                     alternative = c("two.sided", "less", "greater"),
                     dpm = plocation, dpsd = pscale, lower.tail = TRUE,
-                    integer = TRUE, nrange = c(2, 10^4), ...) {
+                    integer = TRUE, nrange = c(2, 10^4),
+                    tail.eps = 1e-3, ...) {
     ## input checks
     stopifnot(
         length(k) == 1,
@@ -58,7 +59,13 @@ ntbf01. <- function(k, power, null = 0, plocation = 0, pscale = 1/sqrt(2),
 
         length(integer) == 1,
         is.logical(integer),
-        !is.na(integer)
+        !is.na(integer),
+
+        length(tail.eps) == 1,
+        is.numeric(tail.eps),
+        is.finite(tail.eps),
+        tail.eps > 0,
+        tail.eps < 0.5
     )
     type <- match.arg(type)
     alternative <- match.arg(alternative)
@@ -70,7 +77,7 @@ ntbf01. <- function(k, power, null = 0, plocation = 0, pscale = 1/sqrt(2),
             ptbf01(k = k, n = n, null = null, plocation = plocation,
                    pscale = pscale, pdf = pdf, dpm = dpm, dpsd = dpsd,
                    type = type, alternative = alternative,
-                   lower.tail = lower.tail, ...) - power
+                   lower.tail = lower.tail, tail.eps = tail.eps, ...) - power
         })
     }
 
@@ -91,6 +98,12 @@ ntbf01. <- function(k, power, null = 0, plocation = 0, pscale = 1/sqrt(2),
 #' @inheritParams nbf01
 #' @param nrange Sample size search range over which numerical search is
 #'     performed. Defaults to \code{c(2, 10^4)}
+#' @param tail.eps One-sided adaptive power-boundary searches stop once the
+#'     remaining predictive probability in the searched tail is at most this
+#'     value. If a fixed-\code{n} power evaluation reaches that cutoff before
+#'     finding a boundary, the returned 0/1 tail probability has omitted mass
+#'     bounded by \code{tail.eps}. Smaller values search farther. Defaults to
+#'     \code{1e-3}
 #'
 #' @inherit nbf01 return
 #'

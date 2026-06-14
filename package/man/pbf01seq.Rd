@@ -25,7 +25,7 @@ evidence for \eqn{H_1})}
 
 \item{k0}{Bayes factor threshold in favor of \eqn{H_0}{H0} (i.e.,
 \eqn{\text{BF}_{01} \geq \code{k0} > 1}{BF01 > \code{k0} > 1} implies
-evidence for \eqn{H_1})}
+evidence for \eqn{H_0})}
 
 \item{se}{Numeric vector of standard errors for each sequential stage}
 

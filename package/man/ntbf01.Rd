@@ -18,6 +18,7 @@ ntbf01(
   lower.tail = TRUE,
   integer = TRUE,
   nrange = c(2, 10^4),
+  tail.eps = 0.001,
   ...
 )
 }
@@ -63,6 +64,13 @@ the next larger integer. Defaults to \code{TRUE}}
 
 \item{nrange}{Sample size search range over which numerical search is
 performed. Defaults to \code{c(2, 10^4)}}
+
+\item{tail.eps}{One-sided adaptive power-boundary searches stop once the
+remaining predictive probability in the searched tail is at most this
+value. If a fixed-\code{n} power evaluation reaches that cutoff before
+finding a boundary, the returned 0/1 tail probability has omitted mass
+bounded by \code{tail.eps}. Smaller values search farther. Defaults to
+\code{1e-3}}
 
 \item{...}{Other arguments passed to \code{stats::uniroot}}
 }

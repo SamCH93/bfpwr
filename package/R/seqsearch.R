@@ -69,6 +69,27 @@
          lookMinN = lookMinN)
 }
 
+.bfseq_fixed_schedule_range <- function(n, nrange, lookMinN = 2) {
+    stopifnot(
+        length(n) == 1,
+        is.numeric(n),
+        is.finite(n),
+        length(nrange) == 2,
+        is.numeric(nrange),
+        all(is.finite(nrange)),
+        nrange[1] >= 2,
+        nrange[2] >= nrange[1],
+        length(lookMinN) == 1,
+        is.numeric(lookMinN),
+        is.finite(lookMinN),
+        lookMinN >= 2
+    )
+    n <- as.integer(ceiling(n))
+    lower <- max(as.integer(ceiling(nrange[1])),
+                 as.integer(ceiling(lookMinN)))
+    c(min(lower, n), n)
+}
+
 .bfseq_schedule_n <- function(maxN, schedule) {
     maxN <- as.integer(ceiling(maxN))
 
@@ -150,6 +171,139 @@
     min(maximumN, max(currentN + 1L, as.integer(ceiling(2*currentN))))
 }
 
+.bfseq_candidate_invalid <- function(message, reason = "invalid",
+                                     terminal = TRUE, power = NA_real_,
+                                     result = NULL) {
+    stopifnot(
+        length(message) == 1,
+        is.character(message),
+        !is.na(message),
+        length(reason) == 1,
+        is.character(reason),
+        !is.na(reason),
+        length(terminal) == 1,
+        is.logical(terminal),
+        !is.na(terminal)
+    )
+    condition <- structure(
+        list(message = message, reason = reason, terminal = terminal,
+             power = power, result = result),
+        class = c("bfseq_candidate_invalid", "error", "condition")
+    )
+    stop(condition)
+}
+
+.bfseq_make_candidate <- function(n, criterion, power, error = NULL,
+                                  result = NULL, status = "ok",
+                                  reason = NULL, terminal = FALSE) {
+    list(n = n, criterion = criterion, power = power, error = error,
+         result = result, status = status, reason = reason,
+         terminal = terminal)
+}
+
+.bfseq_validate_evaluation <- function(value) {
+    if (!is.list(value)) {
+        stop("sequential search evaluator must return a list", call. = FALSE)
+    }
+    if (!("power" %in% names(value))) {
+        stop("sequential search evaluator result is missing 'power'",
+             call. = FALSE)
+    }
+    if (!("result" %in% names(value))) {
+        stop("sequential search evaluator result is missing 'result'",
+             call. = FALSE)
+    }
+    if (!is.numeric(value$power) || length(value$power) != 1) {
+        stop("sequential search evaluator 'power' must be a scalar numeric value",
+             call. = FALSE)
+    }
+    invisible(TRUE)
+}
+
+.bfseq_candidate_is_finite <- function(candidate) {
+    is.finite(candidate$criterion)
+}
+
+.bfseq_candidate_reached <- function(candidate) {
+    .bfseq_candidate_is_finite(candidate) && candidate$criterion >= 0
+}
+
+.bfseq_candidate_is_invalid <- function(candidate) {
+    !.bfseq_candidate_is_finite(candidate)
+}
+
+.bfseq_candidate_is_terminal <- function(candidate) {
+    .bfseq_candidate_is_invalid(candidate) && isTRUE(candidate$terminal)
+}
+
+.bfseq_adaptive_invalid_candidate <- function(candidate) {
+    if (.bfseq_candidate_is_invalid(candidate) && !isTRUE(candidate$terminal)) {
+        candidate$error <- paste0(
+            candidate$error,
+            "; adaptive sample-size bracketing encountered a transient ",
+            "invalid candidate and cannot certify the search beyond that ",
+            "point. Use search = \"exhaustive\" to scan past transient ",
+            "invalid candidates."
+        )
+    }
+    candidate
+}
+
+.bfseq_invalid_scan_error <- function(invalids) {
+    terminal <- vapply(invalids, function(x) isTRUE(x$terminal), logical(1))
+    transientCount <- sum(!terminal)
+    terminalCount <- sum(terminal)
+    first <- invalids[[1]]
+    last <- invalids[[length(invalids)]]
+
+    paste0(
+        "sample-size search encountered ", length(invalids),
+        " invalid candidate(s) while scanning the candidate range",
+        " (transient: ", transientCount, ", terminal: ", terminalCount, ")",
+        "; first invalid n = ", first$n,
+        if (!is.null(first$reason)) paste0(" [", first$reason, "]") else "",
+        ": ", first$error,
+        if (length(invalids) > 1) {
+            paste0(
+                "; last invalid n = ", last$n,
+                if (!is.null(last$reason)) paste0(" [", last$reason, "]") else "",
+                ": ", last$error
+            )
+        } else {
+            ""
+        },
+        "; finite candidates did not reach the target"
+    )
+}
+
+.bfseq_invalid_scan_candidate <- function(limit, invalids) {
+    if (is.null(limit) || .bfseq_candidate_is_invalid(limit)) {
+        limit <- invalids[[length(invalids)]]
+    }
+    .bfseq_make_candidate(
+        n = limit$n,
+        criterion = NA_real_,
+        power = limit$power,
+        error = .bfseq_invalid_scan_error(invalids),
+        result = limit$result,
+        status = "invalid",
+        reason = "invalid_scan",
+        terminal = any(vapply(invalids, function(x) isTRUE(x$terminal),
+                              logical(1)))
+    )
+}
+
+.bfseq_certification_invalid_candidate <- function(candidate) {
+    if (.bfseq_candidate_is_invalid(candidate) && !isTRUE(candidate$terminal)) {
+        candidate$error <- paste0(
+            candidate$error,
+            "; sample-size stability certification encountered a transient ",
+            "invalid candidate and cannot certify the returned sample size."
+        )
+    }
+    candidate
+}
+
 .bfseq_search <- function(power, target, nrange, schedule, evaluate,
                           nextend = 0, progress = NULL,
                           search = c("adaptive", "exhaustive")) {
@@ -184,17 +338,37 @@
         }
 
         evaluations <<- evaluations + 1L
-        value <- try(evaluate(n), silent = TRUE)
-        if (inherits(value, "try-error")) {
-            out <- list(n = n, criterion = NA_real_, power = NA_real_,
-                        error = conditionMessage(attr(value, "condition")),
-                        result = NULL)
+        value <- tryCatch(
+            evaluate(n),
+            bfseq_candidate_invalid = function(e) e
+        )
+        if (inherits(value, "bfseq_candidate_invalid")) {
+            invalidPower <- if (is.null(value$power)) NA_real_ else value$power
+            invalidResult <- if (is.null(value$result)) NULL else value$result
+            invalidReason <- if (is.null(value$reason)) "invalid" else value$reason
+            invalidTerminal <- if (is.null(value$terminal)) TRUE else
+                isTRUE(value$terminal)
+            out <- .bfseq_make_candidate(
+                n = n, criterion = NA_real_, power = invalidPower,
+                error = conditionMessage(value), result = invalidResult,
+                status = "invalid", reason = invalidReason,
+                terminal = invalidTerminal
+            )
         } else {
+            .bfseq_validate_evaluation(value)
             achieved <- value$power
-            out <- list(n = n, criterion = achieved - power, power = achieved,
-                        error = NULL, result = value$result)
-            if (!is.finite(out$criterion)) {
-                out$error <- "non-finite sequential stopping probability"
+            if (!is.finite(achieved)) {
+                out <- .bfseq_make_candidate(
+                    n = n, criterion = NA_real_, power = achieved,
+                    error = "non-finite sequential stopping probability",
+                    result = value$result, status = "invalid",
+                    reason = "nonfinite_power", terminal = TRUE
+                )
+            } else {
+                out <- .bfseq_make_candidate(
+                    n = n, criterion = achieved - power, power = achieved,
+                    error = NULL, result = value$result
+                )
             }
         }
         assign(key, out, envir = cache)
@@ -210,14 +384,31 @@
                 targetPower = power,
                 actualPower = out$power,
                 criterion = out$criterion,
-                reached = is.finite(out$criterion) && out$criterion >= 0,
+                reached = .bfseq_candidate_reached(out),
                 nrange = bounds,
                 schedule = .bfseq_schedule_summary(schedule),
                 search = search,
-                error = out$error
+                error = out$error,
+                status = out$status,
+                reason = out$reason,
+                terminal = out$terminal
             )
         )
         out
+    }
+
+    if (identical(search, "exhaustive")) {
+        candidates <- if (is.null(increaseCandidates)) {
+            lowerN:upperLimit
+        } else {
+            increaseCandidates
+        }
+        return(.bfseq_search_full_range(
+            power = power, target = target, nrange = bounds,
+            schedule = schedule, evalN = evalN, candidates = candidates,
+            nextend = nextend, search = search,
+            getEvaluations = function() evaluations, setPhase = setPhase
+        ))
     }
 
     if (!is.null(increaseCandidates)) {
@@ -232,7 +423,7 @@
 
     phase <- "lower"
     lower <- evalN(lowerN)
-    if (is.finite(lower$criterion) && lower$criterion >= 0) {
+    if (.bfseq_candidate_reached(lower)) {
         phase <- "certify"
         certified <- .bfseq_certify_nextend(evalN = evalN, foundN = lower$n,
                                             upperLimit = upperLimit,
@@ -245,18 +436,28 @@
                                     nextend = nextend, search = search,
                                     firstCrossingCertified = TRUE))
     }
+    if (.bfseq_candidate_is_invalid(lower)) {
+        limit <- .bfseq_adaptive_invalid_candidate(lower)
+        return(.bfseq_solver_result(candidate = limit,
+                                    target = target, targetPower = power,
+                                    nrange = bounds, schedule = schedule,
+                                    evaluations = evaluations,
+                                    reached = FALSE, nextend = 0,
+                                    search = search,
+                                    firstCrossingCertified = FALSE))
+    }
 
     phase <- "bracket"
     bracket <- .bfseq_find_bracket(evalN = evalN, lower = lower,
                                    lowerN = lowerN, upperLimit = upperLimit)
 
     if (is.null(bracket$upper)) {
-        limit <- bracket$limit
-        if (!is.null(limit$error)) {
-            warning("upper bound of sample size search range ('nrange') leads to Power = NaN")
+        limit <- if (.bfseq_candidate_is_invalid(bracket$limit)) {
+            .bfseq_adaptive_invalid_candidate(bracket$limit)
         } else {
-            warning("upper bound of sample size search range ('nrange') leads to lower power than specified")
+            bracket$limit
         }
+        .bfseq_warn_search_limit(limit)
         return(.bfseq_solver_result(candidate = limit,
                                     target = target, targetPower = power,
                                     nrange = bounds, schedule = schedule,
@@ -285,15 +486,15 @@
 
 .bfseq_find_bracket <- function(evalN, lower, lowerN, upperLimit) {
     currentN <- lowerN
-    lastFinite <- if (is.finite(lower$criterion)) lower else NULL
+    lastFinite <- if (.bfseq_candidate_is_finite(lower)) lower else NULL
 
     while (currentN < upperLimit) {
         candidateN <- .bfseq_next_search_candidate(currentN, upperLimit)
         candidate <- evalN(candidateN)
 
-        if (is.finite(candidate$criterion)) {
+        if (.bfseq_candidate_is_finite(candidate)) {
             lastFinite <- candidate
-            if (candidate$criterion >= 0) {
+            if (.bfseq_candidate_reached(candidate)) {
                 return(list(lowerN = currentN, upper = candidate,
                             limit = NULL))
             }
@@ -303,6 +504,10 @@
             }
             currentN <- candidateN
             next
+        }
+
+        if (!.bfseq_candidate_is_terminal(candidate)) {
+            return(list(lowerN = currentN, upper = NULL, limit = candidate))
         }
 
         boundary <- .bfseq_search_before_invalid(evalN = evalN,
@@ -328,28 +533,32 @@
 
 .bfseq_search_before_invalid <- function(evalN, validN, invalidN) {
     lastFinite <- evalN(validN)
-    solved <- if (is.finite(lastFinite$criterion) &&
-                  lastFinite$criterion >= 0) lastFinite else NULL
+    lastInvalid <- evalN(invalidN)
+    solved <- if (.bfseq_candidate_reached(lastFinite)) lastFinite else NULL
 
     while ((invalidN - validN) > 1) {
         midpoint <- floor((validN + invalidN)/2)
         current <- evalN(midpoint)
 
-        if (is.finite(current$criterion)) {
+        if (.bfseq_candidate_is_finite(current)) {
             validN <- midpoint
             lastFinite <- current
-            if (current$criterion >= 0) {
+            if (.bfseq_candidate_reached(current)) {
                 solved <- current
             }
         } else {
             invalidN <- midpoint
+            lastInvalid <- current
         }
     }
 
     if (!is.null(solved)) {
         return(list(upper = solved, limit = NULL))
     }
-    if (is.finite(lastFinite$criterion)) {
+    if (!is.null(lastInvalid) && .bfseq_candidate_is_invalid(lastInvalid)) {
+        return(list(upper = NULL, limit = lastInvalid))
+    }
+    if (.bfseq_candidate_is_finite(lastFinite)) {
         return(list(upper = NULL, limit = lastFinite))
     }
     list(upper = NULL, limit = NULL)
@@ -367,24 +576,45 @@
 .bfseq_search_increase <- function(power, target, nrange, schedule, evalN,
                                    candidates, nextend, search,
                                    getEvaluations, setPhase) {
+    .bfseq_search_full_range(
+        power = power, target = target, nrange = nrange, schedule = schedule,
+        evalN = evalN, candidates = candidates, nextend = nextend,
+        search = search, getEvaluations = getEvaluations,
+        setPhase = setPhase
+    )
+}
+
+.bfseq_search_full_range <- function(power, target, nrange, schedule, evalN,
+                                     candidates, nextend, search,
+                                     getEvaluations, setPhase) {
     setPhase("scan")
     found <- NULL
     limit <- NULL
+    invalids <- list()
+    skippedBeforeFound <- FALSE
     for (candidateN in candidates) {
         current <- evalN(candidateN)
         limit <- current
-        if (is.finite(current$criterion) && current$criterion >= 0) {
+        if (.bfseq_candidate_is_invalid(current)) {
+            invalids[[length(invalids) + 1L]] <- current
+            if (.bfseq_candidate_is_terminal(current)) {
+                break
+            }
+            next
+        }
+        if (.bfseq_candidate_reached(current)) {
             found <- current
+            skippedBeforeFound <- length(invalids) > 0
             break
         }
     }
 
     if (is.null(found)) {
-        if (!is.null(limit$error)) {
-            warning("upper bound of sample size search range ('nrange') leads to Power = NaN")
-        } else {
-            warning("upper bound of sample size search range ('nrange') leads to lower power than specified")
+        if (length(invalids) > 0) {
+            limit <- .bfseq_invalid_scan_candidate(limit = limit,
+                                                   invalids = invalids)
         }
+        .bfseq_warn_search_limit(limit)
         return(.bfseq_solver_result(candidate = limit,
                                     target = target, targetPower = power,
                                     nrange = nrange, schedule = schedule,
@@ -405,7 +635,19 @@
                          evaluations = getEvaluations(),
                          reached = certified$reached, nextend = nextend,
                          search = search,
-                         firstCrossingCertified = TRUE)
+                         firstCrossingCertified = !skippedBeforeFound)
+}
+
+.bfseq_warn_search_limit <- function(limit) {
+    if (is.null(limit)) {
+        return(invisible(NULL))
+    }
+    if (!is.null(limit$error)) {
+        return(invisible(NULL))
+    }
+    warning("upper bound of sample size search range ('nrange') leads to lower power than specified",
+            call. = FALSE)
+    invisible(NULL)
 }
 
 .bfseq_certify_increase_candidates <- function(evalN, candidates, foundN,
@@ -426,6 +668,15 @@
             }
             checkIndex <- index:end
             checked <- lapply(candidates[checkIndex], evalN)
+            invalid <- vapply(checked, .bfseq_candidate_is_invalid, logical(1))
+            if (any(invalid)) {
+                return(list(
+                    candidate = .bfseq_certification_invalid_candidate(
+                        checked[[which(invalid)[1]]]
+                    ),
+                    reached = FALSE
+                ))
+            }
             criteria <- vapply(checked, `[[`, numeric(1), "criterion")
             if (all(is.finite(criteria) & criteria >= 0)) {
                 break
@@ -455,7 +706,14 @@
     while ((upperN - lowerN) > 1) {
         midpoint <- floor((lowerN + upperN)/2)
         current <- evalN(midpoint)
-        if (is.finite(current$criterion) && current$criterion >= 0) {
+        if (.bfseq_candidate_is_invalid(current)) {
+            return(list(
+                candidate = .bfseq_adaptive_invalid_candidate(current),
+                reached = FALSE,
+                firstCrossingCertified = FALSE
+            ))
+        }
+        if (.bfseq_candidate_reached(current)) {
             upperN <- midpoint
         } else {
             lowerN <- midpoint
@@ -481,7 +739,7 @@
         }
         for (candidateN in minimumN:foundN) {
             current <- evalN(candidateN)
-            if (is.finite(current$criterion) && current$criterion >= 0) {
+            if (.bfseq_candidate_reached(current)) {
                 foundN <- candidateN
                 break
             }
@@ -501,7 +759,7 @@
 .bfseq_local_first_success <- function(evalN, foundN, minimumN) {
     while (foundN > minimumN) {
         previous <- evalN(foundN - 1L)
-        if (!is.finite(previous$criterion) || previous$criterion < 0) {
+        if (!.bfseq_candidate_reached(previous)) {
             break
         }
         foundN <- foundN - 1L
@@ -532,7 +790,7 @@
     repeat {
         candidateN <- max(minimumN, foundN - step)
         current <- evalN(candidateN)
-        if (is.finite(current$criterion) && current$criterion >= 0) {
+        if (.bfseq_candidate_reached(current)) {
             return(candidateN)
         }
         if (candidateN <= minimumN) {
@@ -553,6 +811,15 @@
             }
             checkN <- foundN:(foundN + nextend)
             checked <- lapply(checkN, evalN)
+            invalid <- vapply(checked, .bfseq_candidate_is_invalid, logical(1))
+            if (any(invalid)) {
+                return(list(
+                    candidate = .bfseq_certification_invalid_candidate(
+                        checked[[which(invalid)[1]]]
+                    ),
+                    reached = FALSE
+                ))
+            }
             criteria <- vapply(checked, `[[`, numeric(1), "criterion")
             if (all(is.finite(criteria) & criteria >= 0)) {
                 break
@@ -575,6 +842,13 @@
                                  schedule, evaluations, reached, nextend,
                                  search, firstCrossingCertified) {
     n <- if (isTRUE(reached)) candidate$n else NaN
+    status <- if (is.null(candidate$status)) {
+        if (.bfseq_candidate_is_invalid(candidate)) "invalid" else "ok"
+    } else {
+        candidate$status
+    }
+    reason <- if (is.null(candidate$reason)) NULL else candidate$reason
+    terminal <- isTRUE(candidate$terminal)
     result <- candidate$result
     if (!is.null(result)) {
         result$solver <- list(
@@ -590,6 +864,9 @@
             nextend = nextend,
             search = search,
             firstCrossingCertified = isTRUE(reached) && isTRUE(firstCrossingCertified),
+            status = status,
+            reason = reason,
+            terminal = terminal,
             error = candidate$error
         )
     }
@@ -607,6 +884,9 @@
         nextend = nextend,
         search = search,
         firstCrossingCertified = isTRUE(reached) && isTRUE(firstCrossingCertified),
+        status = status,
+        reason = reason,
+        terminal = terminal,
         error = candidate$error,
         result = result
     )
@@ -627,6 +907,9 @@
         nextend = .bfseq_normalize_nextend(nextend),
         search = NA_character_,
         firstCrossingCertified = NA,
+        status = "ok",
+        reason = NULL,
+        terminal = FALSE,
         error = NULL
     )
 }
@@ -643,10 +926,12 @@
     list(se = se, zk0 = zk0, zk1 = zk1)
 }
 
-.bfseq_stage_regions <- function(boundaries, oneCritical, strict) {
+.bfseq_stage_regions <- function(boundaries, oneCritical, strict,
+                                 direction = NULL) {
     if (oneCritical) {
         return(.bfseq_genregions1_stage(zcrit0 = boundaries$zk0,
-                                        zcrit1 = boundaries$zk1))
+                                        zcrit1 = boundaries$zk1,
+                                        direction = direction))
     }
     .bfseq_genregions2_stage(zcrit0 = boundaries$zk0,
                              zcrit1 = boundaries$zk1,
@@ -665,6 +950,14 @@
                           mean = pars$mean,
                           sigma = pars$sigma),
                      dots))
+    if (!is.numeric(pH1) || length(pH1) != 1 || !is.finite(pH1) ||
+        !is.numeric(pH0) || length(pH0) != 1 || !is.finite(pH0)) {
+        .bfseq_candidate_invalid(
+            "non-finite sequential stage probability",
+            reason = "stage_probability",
+            terminal = TRUE
+        )
+    }
     list(pH1 = pH1, pH0 = pH0)
 }
 
@@ -756,12 +1049,21 @@
 .bfseq_t_schedule_evaluator <- function(k1, k0, plocation, pscale, pdf,
                                          dpm, dpsd, type, alternative, target,
                                          ratio, schedule, strict, trange,
-                                         dots) {
+                                         tail.eps = 1e-3, dots) {
     oneCritical <- alternative != "two.sided"
+    regionDirection <- if (alternative == "greater") {
+        "positive"
+    } else if (alternative == "less") {
+        "negative"
+    } else {
+        NULL
+    }
+    adaptiveOneSided <- oneCritical && !is.numeric(trange) &&
+        trange == "adaptive"
     boundaryCache <- new.env(parent = emptyenv())
     stageCache <- new.env(parent = emptyenv())
 
-    getBoundary <- function(n1) {
+    getBoundary <- function(n1, look = NA_integer_) {
         n2 <- if (type == "two.sample") {
             as.integer(ceiling(n1*ratio))
         } else {
@@ -772,39 +1074,61 @@
             return(get(key, envir = boundaryCache, inherits = FALSE))
         }
 
-        warnings <- 0L
-        evalTcrit <- function(...) {
-            withCallingHandlers(
-                tcrit(...),
-                warning = function(w) {
-                    if (grepl("Adaptive t critical-value search reached",
-                              conditionMessage(w), fixed = TRUE)) {
-                        warnings <<- warnings + 1L
-                    }
-                    invokeRestart("muffleWarning")
-                }
-            )
-        }
         if (type == "two.sample") {
             neff <- 1/(1/n1 + 1/n2)
         } else {
             neff <- n1
         }
+        se <- 1/sqrt(neff)
+        searchLimit <- if (adaptiveOneSided) {
+            .bfpwr_one_sided_tail_limits(
+                origin = 0, step_scale = 1, mean = dpm/se,
+                sd = sqrt(1 + (dpsd/se)^2), tail.eps = tail.eps
+            )
+        } else {
+            NULL
+        }
+        zk0Result <- .bfpwr_tcrit_result(
+            k = k0, n1 = n1, n2 = n2, plocation = plocation,
+            pscale = pscale, pdf = pdf, alternative = alternative,
+            type = type, trange = trange, search_limit = searchLimit
+        )
+        zk1Result <- .bfpwr_tcrit_result(
+            k = k1, n1 = n1, n2 = n2, plocation = plocation,
+            pscale = pscale, pdf = pdf, alternative = alternative,
+            type = type, trange = trange, search_limit = searchLimit
+        )
+        zk0Message <- .bfseq_t_boundary_status_message(
+            list(zk0Result), boundary = "H0", looks = look
+        )
+        if (!is.null(zk0Message)) {
+            .bfseq_candidate_invalid(
+                zk0Message, reason = "t_boundary", terminal = TRUE
+            )
+        }
+        zk1Message <- .bfseq_t_boundary_status_message(
+            list(zk1Result), boundary = "H1", looks = look
+        )
+        if (!is.null(zk1Message)) {
+            .bfseq_candidate_invalid(
+                zk1Message, reason = "t_boundary", terminal = TRUE
+            )
+        }
+        unhandled <- .bfpwr_tcrit_unhandled_warnings(list(zk0Result,
+                                                          zk1Result))
+        for (msg in unhandled) {
+            warning(msg, call. = FALSE)
+        }
+
         out <- list(
             n1 = n1,
             n2 = n2,
-            se = 1/sqrt(neff),
-            zk0 = evalTcrit(
-                k = k0, n1 = n1, n2 = n2, plocation = plocation,
-                pscale = pscale, pdf = pdf, alternative = alternative,
-                type = type, trange = trange
-            ),
-            zk1 = evalTcrit(
-                k = k1, n1 = n1, n2 = n2, plocation = plocation,
-                pscale = pscale, pdf = pdf, alternative = alternative,
-                type = type, trange = trange
-            ),
-            warnings = warnings
+            se = se,
+            zk0 = zk0Result$value,
+            zk1 = zk1Result$value,
+            warnings = sum(c(zk0Result$status, zk1Result$status) ==
+                               "tail_cutoff"),
+            impossible = as.integer(zk0Result$status == "impossible")
         )
         assign(key, out, envir = boundaryCache)
         out
@@ -818,12 +1142,14 @@
             return(get(key, envir = stageCache, inherits = FALSE))
         }
 
-        bounds <- lapply(n1, getBoundary)
+        bounds <- lapply(seq_along(n1), function(i) getBoundary(n1[[i]],
+                                                                 look = i))
         boundaries <- .bfseq_boundary_data(bounds = bounds,
                                            oneCritical = oneCritical)
         regions <- .bfseq_stage_regions(boundaries = boundaries,
                                         oneCritical = oneCritical,
-                                        strict = strict)
+                                        strict = strict,
+                                        direction = regionDirection)
         out <- .bfseq_stage_stop_probabilities(regions = regions,
                                                se = boundaries$se,
                                                dpm = dpm,
@@ -835,19 +1161,32 @@
 
     function(maxN) {
         n1 <- .bfseq_schedule_n(maxN = maxN, schedule = schedule)
-        bounds <- lapply(n1, getBoundary)
+        bounds <- lapply(seq_along(n1), function(i) getBoundary(n1[[i]],
+                                                                 look = i))
         n2 <- vapply(bounds, `[[`, numeric(1), "n2")
         boundaries <- .bfseq_boundary_data(bounds = bounds,
                                            oneCritical = oneCritical)
         searchLimitWarnings <- sum(vapply(bounds, `[[`, integer(1),
-                                           "warnings"))
+                                            "warnings"))
+        impossibleWarnings <- sum(vapply(bounds, `[[`, integer(1),
+                                          "impossible"))
+        if (impossibleWarnings > 0) {
+            warning(paste0(
+                "No H0 sequential t stopping boundary exists in ",
+                impossibleWarnings,
+                " boundary search(es); the corresponding H0 stopping ",
+                "regions are treated as empty."
+            ), call. = FALSE)
+        }
         if (searchLimitWarnings > 0) {
             warning(paste0(
-                "Adaptive t critical-value search reached |t| <= 256 in ",
+                "Adaptive t critical-value search reached the predictive ",
+                "tail cutoff in ",
                 searchLimitWarnings,
-                " sequential boundary search(es); pass a wider numeric ",
-                "'trange' interval to search for exact bounds beyond this ",
-                "limit."
+                " sequential boundary search(es); each unresolved boundary ",
+                "has marginal tail probability <= ", format(tail.eps),
+                ". Pass a wider numeric 'trange' interval to search exact ",
+                "bounds."
             ))
         }
 
@@ -867,6 +1206,7 @@
             dpsd = dpsd, plocation = plocation, pscale = pscale,
             pdf = pdf, alternative = alternative, type = type,
             trange = trange, strict = strict, test = "t",
+            tail.eps = tail.eps,
             zk1 = boundaries$zk1, zk0 = boundaries$zk0,
             EN1 = moments1$EN, EN2 = moments2$EN,
             VarN1 = moments1$VarN, VarN2 = moments2$VarN,
