@@ -246,8 +246,15 @@ ptbf01. <- function(k, n, n1 = n, n2 = n, null = 0, plocation = 0,
                 searchLimit <- search$search_limit
                 searchLimitEst <- search$limit
                 searchLimitTail <- search$tail_probability
+                searchStatus <- search$status
                 if (inherits(crit, "try-error")) {
-                    if (search$search_limit_reached) {
+                    if (identical(searchStatus, "impossible")) {
+                        crit <- structure(
+                            "BF01 = k appears unattainable",
+                            class = c("bfpwr_ptbf01_impossible",
+                                      "try-error")
+                        )
+                    } else if (search$search_limit_reached) {
                         crit <- structure(
                             "predictive tail cutoff reached",
                             class = c("bfpwr_ptbf01_search_limit",
@@ -274,7 +281,8 @@ ptbf01. <- function(k, n, n1 = n, n2 = n, null = 0, plocation = 0,
         if (inherits(crit, "try-error")) {
             if (!is.numeric(drange) && drange == "adaptive" &&
                 exists("f0", inherits = FALSE) && is.finite(f0) &&
-                inherits(crit, "bfpwr_ptbf01_search_limit")) {
+                (inherits(crit, "bfpwr_ptbf01_search_limit") ||
+                 inherits(crit, "bfpwr_ptbf01_impossible"))) {
                 if (exists("searchLimitEst", inherits = FALSE)) {
                     fLimit <- if (searchLimit <= 0) {
                         f0
@@ -290,16 +298,25 @@ ptbf01. <- function(k, n, n1 = n, n2 = n, null = 0, plocation = 0,
                     logpow <- NaN
                     logcomp <- NaN
                 } else {
-                    warning(paste0(
-                        "Adaptive t power-boundary search reached predictive ",
-                        "tail probability <= ", format(tail.eps),
-                        " without bracketing BF01 = k; returning the ",
-                        "boundary-free approximation implied by the search ",
-                        "(absolute error <= ",
-                        format(min(tail.eps, searchLimitTail)),
-                        "). Pass a numeric 'drange' interval to search exact ",
-                        "bounds."
-                    ))
+                    if (inherits(crit, "bfpwr_ptbf01_impossible")) {
+                        warning(paste0(
+                            "BF01 = k appears unattainable for this ",
+                            "one-sided t test; returning the boundary-free ",
+                            "approximation implied by the search."
+                        ))
+                    } else {
+                        warning(paste0(
+                            "Adaptive t power-boundary search reached ",
+                            "predictive tail probability <= ",
+                            format(tail.eps),
+                            " without bracketing BF01 = k; returning the ",
+                            "boundary-free approximation implied by the ",
+                            "search (absolute error <= ",
+                            format(min(tail.eps, searchLimitTail)),
+                            "). Pass a numeric 'drange' interval to search ",
+                            "exact bounds."
+                        ))
+                    }
                 ## No crossing was found within the finite scan. The sign at
                 ## the null determines whether all searched values are successes.
                     if (f0 < 0) {

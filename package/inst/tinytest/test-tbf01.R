@@ -158,6 +158,86 @@ expect_false(
     info = "one-sided helper should not report a tail cutoff from only the relaxed search function"
 )
 
+flat_missing_root <- bfpwr:::.bfpwr_one_sided_adaptive_root(
+    certify_fun = function(x) -1 - 1/(abs(x) + 1),
+    scout_fun = function(x) -1 - 1/(abs(x) + 1),
+    alternative = "greater",
+    origin = 0,
+    step_scale = 1,
+    search_limit = 64,
+    steps = 1,
+    scout_tail_steps = 1,
+    tail_steps = 64
+)
+expect_equal(
+    flat_missing_root$status,
+    "impossible",
+    info = "one-sided helper should distinguish flat unattainable roots from finite cutoffs"
+)
+
+near_limit_missing_root <- bfpwr:::.bfpwr_one_sided_adaptive_root(
+    certify_fun = function(x) -1/(abs(x) + 1),
+    scout_fun = function(x) -1/(abs(x) + 1),
+    alternative = "greater",
+    origin = 0,
+    step_scale = 1,
+    search_limit = 64,
+    steps = 1,
+    scout_tail_steps = 1,
+    tail_steps = 64
+)
+expect_equal(
+    near_limit_missing_root$status,
+    "tail_cutoff",
+    info = "one-sided helper should not call near-threshold finite cutoffs impossible"
+)
+
+tcrit_impossible_warning <- NULL
+tcrit_impossible <- withCallingHandlers(
+    bfpwr:::tcrit(k = 20, n1 = 15, n2 = 15, plocation = 0,
+                  pscale = 1/sqrt(2), pdf = 1, type = "two.sample",
+                  alternative = "greater", trange = "adaptive",
+                  search_limit = 64),
+    warning = function(w) {
+        tcrit_impossible_warning <<- conditionMessage(w)
+        invokeRestart("muffleWarning")
+    }
+)
+expect_true(is.nan(tcrit_impossible),
+            info = "one-sided tcrit should return NaN when BF01 = k is unattainable")
+expect_true(grepl("appears unattainable", tcrit_impossible_warning,
+                  fixed = TRUE),
+            info = "one-sided tcrit should not recommend widening trange for unattainable roots")
+
+expect_equal(
+    bfpwr:::.bfpwr_tcrit_status(
+        value = NaN,
+        warnings = "BF01 = k appears unattainable for this one-sided t test"
+    ),
+    "impossible",
+    info = "tcrit status should classify one-sided unattainable-root warnings"
+)
+
+seq_impossible_warning <- NULL
+withCallingHandlers(
+    bfpwr:::.bfseq_warn_t_boundary_statuses(
+        results0 = list(list(value = NaN, status = "impossible",
+                             warnings = "BF01 = k appears unattainable")),
+        results1 = list(list(value = 1, status = "ok",
+                             warnings = character())),
+        tail.eps = 1e-3
+    ),
+    warning = function(w) {
+        seq_impossible_warning <<- conditionMessage(w)
+        invokeRestart("muffleWarning")
+    }
+)
+expect_true(grepl("No H0 sequential t stopping boundary exists",
+                  seq_impossible_warning, fixed = TRUE),
+            info = "sequential t diagnostics should aggregate impossible H0 boundaries separately")
+expect_false(grepl("Pass a wider", seq_impossible_warning, fixed = TRUE),
+             info = "impossible H0 boundary diagnostics should not recommend wider trange")
+
 expect_equal(
     bfpwr:::.bfpwr_tcrit_status(
         value = 1,

@@ -698,8 +698,9 @@ zcrit <- function(k, se, mu = NULL, tau, type = c("normal", "directional", "mome
     list(value = value, warnings = tcritWarnings)
 }
 
-.bfpwr_tcrit_has_max_bf_warning <- function(warnings) {
-    any(grepl("maximum BF is less than k", warnings, fixed = TRUE))
+.bfpwr_tcrit_has_impossible_warning <- function(warnings) {
+    any(grepl("maximum BF is less than k", warnings, fixed = TRUE) |
+            grepl("BF01 = k appears unattainable", warnings, fixed = TRUE))
 }
 
 .bfpwr_tcrit_result <- function(...) {
@@ -716,7 +717,7 @@ zcrit <- function(k, se, mu = NULL, tau, type = c("normal", "directional", "mome
     if (identical(status, "search_failed") &&
         identical(args$alternative, "two.sided") &&
         is.numeric(trange) &&
-        .bfpwr_tcrit_has_max_bf_warning(result$warnings)) {
+        .bfpwr_tcrit_has_impossible_warning(result$warnings)) {
         adaptiveArgs <- args
         adaptiveArgs$trange <- "adaptive"
         adaptiveResult <- .bfpwr_tcrit_call(args = adaptiveArgs)
@@ -745,7 +746,7 @@ zcrit <- function(k, se, mu = NULL, tau, type = c("normal", "directional", "mome
 }
 
 .bfpwr_tcrit_status <- function(value, warnings, trange = "adaptive") {
-    if (.bfpwr_tcrit_has_max_bf_warning(warnings)) {
+    if (.bfpwr_tcrit_has_impossible_warning(warnings)) {
         if (is.numeric(trange)) {
             return("search_failed")
         }
@@ -775,7 +776,7 @@ zcrit <- function(k, se, mu = NULL, tau, type = c("normal", "directional", "mome
     if (length(warnings) == 0) {
         return(character())
     }
-    known <- .bfpwr_tcrit_has_max_bf_warning(warnings) |
+    known <- .bfpwr_tcrit_has_impossible_warning(warnings) |
         grepl("Adaptive t critical-value search reached", warnings,
               fixed = TRUE) |
         grepl("requires 'search_limit'", warnings, fixed = TRUE) |
@@ -991,7 +992,8 @@ zcrit <- function(k, se, mu = NULL, tau, type = c("normal", "directional", "mome
 }
 
 .bfpwr_one_sided_adaptive_result <- function(root, search_limit_reached,
-                                             selected_limit = NULL) {
+                                             selected_limit = NULL,
+                                             status = NULL) {
     if (is.null(selected_limit)) {
         selected_limit <- list(
             direction = NA_real_,
@@ -1001,15 +1003,67 @@ zcrit <- function(k, se, mu = NULL, tau, type = c("normal", "directional", "mome
             tail.eps = NA_real_
         )
     }
+    if (is.null(status)) {
+        status <- if (!inherits(root, "try-error")) {
+            "ok"
+        } else if (search_limit_reached) {
+            "tail_cutoff"
+        } else {
+            "search_failed"
+        }
+    }
     list(
         root = root,
         search_limit_reached = search_limit_reached,
+        status = status,
         direction = selected_limit$direction,
         limit = selected_limit$limit,
         search_limit = selected_limit$search_limit,
         tail_probability = selected_limit$tail_probability,
         tail.eps = selected_limit$tail.eps
     )
+}
+
+.bfpwr_one_sided_limit_status <- function(f_origin, f_limit, certify_fun,
+                                          direction, origin, step_scale,
+                                          search_limit,
+                                          impossible_margin = 0.05,
+                                          flat_tolerance = 0.01,
+                                          flat_fraction = 0.05) {
+    if (!is.finite(f_origin) || !is.finite(f_limit)) {
+        return("search_failed")
+    }
+    if (f_origin*f_limit <= 0) {
+        return("ok")
+    }
+
+    ## A same-signed finite predictive cutoff usually means only that the root
+    ## was not found before the user-visible tail-mass bound. Classify a missing
+    ## one-sided H0 root as unattainable only when a farther certified probe is
+    ## flat and still materially away from BF01 = k. This avoids labeling roots
+    ## just beyond the finite cutoff as mathematically impossible.
+    status <- "tail_cutoff"
+    if (!is.finite(search_limit) || search_limit < 16 ||
+        abs(f_limit) < impossible_margin) {
+        return(status)
+    }
+
+    probe_step <- search_limit/2
+    if (!is.finite(probe_step) || probe_step <= 0 ||
+        probe_step >= search_limit) {
+        return(status)
+    }
+    probe_x <- origin + direction*step_scale*probe_step
+    f_probe <- .bfpwr_root_value(f = certify_fun, x = probe_x)
+    if (!is.finite(f_probe) || f_origin*f_probe <= 0) {
+        return(status)
+    }
+
+    flat_bound <- max(flat_tolerance, flat_fraction*abs(f_limit))
+    if (abs(f_limit - f_probe) <= flat_bound) {
+        return("impossible")
+    }
+    status
 }
 
 .bfpwr_residual_certified_root <- function(scout_fun, certify_fun, x0, x1,
@@ -1090,6 +1144,7 @@ zcrit <- function(k, se, mu = NULL, tau, type = c("normal", "directional", "mome
         expected_direction
     }
     search_limit_reached <- FALSE
+    search_limit_status <- "search_failed"
     selected_limit <- NULL
     for (direction in directions) {
         selected_limit <- .bfpwr_select_one_sided_search_limit(
@@ -1106,6 +1161,7 @@ zcrit <- function(k, se, mu = NULL, tau, type = c("normal", "directional", "mome
         current_search_limit <- selected_limit$search_limit
         if (current_search_limit <= 0) {
             search_limit_reached <- TRUE
+            search_limit_status <- "tail_cutoff"
             next
         }
 
@@ -1225,6 +1281,17 @@ zcrit <- function(k, se, mu = NULL, tau, type = c("normal", "directional", "mome
                     }
                     certified_limit_finite <- is.finite(f_limit_final) &&
                         f_origin*f_limit_final > 0
+                    if (certified_limit_finite) {
+                        search_limit_status <- .bfpwr_one_sided_limit_status(
+                            f_origin = f_origin,
+                            f_limit = f_limit_final,
+                            certify_fun = certify_fun,
+                            direction = direction,
+                            origin = origin,
+                            step_scale = step_scale,
+                            search_limit = current_search_limit
+                        )
+                    }
                 }
             }
         }
@@ -1280,6 +1347,17 @@ zcrit <- function(k, se, mu = NULL, tau, type = c("normal", "directional", "mome
                     }
                     direction_limit_reached <- is.finite(f_limit_final) &&
                         f_origin*f_limit_final > 0
+                    if (direction_limit_reached) {
+                        search_limit_status <- .bfpwr_one_sided_limit_status(
+                            f_origin = f_origin,
+                            f_limit = f_limit_final,
+                            certify_fun = certify_fun,
+                            direction = direction,
+                            origin = origin,
+                            step_scale = step_scale,
+                            search_limit = current_search_limit
+                        )
+                    }
                 }
             }
             ## If the exact path is still far from the threshold, check the
@@ -1308,6 +1386,17 @@ zcrit <- function(k, se, mu = NULL, tau, type = c("normal", "directional", "mome
                     }
                     direction_limit_reached <- is.finite(f_limit_final) &&
                         f_origin*f_limit_final > 0
+                    if (direction_limit_reached) {
+                        search_limit_status <- .bfpwr_one_sided_limit_status(
+                            f_origin = f_origin,
+                            f_limit = f_limit_final,
+                            certify_fun = certify_fun,
+                            direction = direction,
+                            origin = origin,
+                            step_scale = step_scale,
+                            search_limit = current_search_limit
+                        )
+                    }
                     if (direction_limit_reached && fprev*f_limit > 0) {
                         limit_ruled_out <- TRUE
                         break
@@ -1326,7 +1415,9 @@ zcrit <- function(k, se, mu = NULL, tau, type = c("normal", "directional", "mome
     .bfpwr_one_sided_adaptive_result(
         root = structure("root not bracketed", class = "try-error"),
         search_limit_reached = search_limit_reached,
-        selected_limit = selected_limit
+        selected_limit = selected_limit,
+        status = if (search_limit_reached) search_limit_status else
+            "search_failed"
     )
 }
 
@@ -1495,6 +1586,7 @@ tcrit <- function(k, n1, n2, plocation, pscale, pdf, type, alternative,
     } else { # one-sided cases
         search_limit_reached <- FALSE
         search_limit_missing <- FALSE
+        search_status <- "search_failed"
         if (!is.numeric(trange) && trange == "adaptive") {
             if (is.null(search_limit)) {
                 search_limit_missing <- TRUE
@@ -1513,6 +1605,7 @@ tcrit <- function(k, n1, n2, plocation, pscale, pdf, type, alternative,
                 ), rootDots))
                 res <- search$root
                 search_limit_reached <- search$search_limit_reached
+                search_status <- search$status
             }
         } else {
             searchint <- trange
@@ -1527,6 +1620,11 @@ tcrit <- function(k, n1, n2, plocation, pscale, pdf, type, alternative,
         if (inherits(res, "try-error")) {
             if (search_limit_missing) {
                 tcrit <- NaN
+            } else if (identical(search_status, "impossible")) {
+                warning(paste0(
+                    "BF01 = k appears unattainable for this one-sided ",
+                    "t test; no critical value exists in the searched tail."
+                ))
             } else if (search_limit_reached) {
                 warning(paste0(
                     "Adaptive t critical-value search reached the predictive ",
