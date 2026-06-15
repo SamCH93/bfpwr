@@ -129,61 +129,9 @@ pbf01seq <- function(k1, k0 = 1/k1, se, n = NULL, pm = NULL, psd, dpm = pm,
         stopifnot(psd > 0)
     }
 
-    ## get marginal mean and covariance matrix
-    pars <- predpars(se = se, dpm = dpm, dpsd = dpsd)
-    mean <- pars$mean
-    sigma <- pars$sigma
-
-
-    ## get integration regions based on BFs with one critical value
-    if ((type == "normal" & psd == 0) | type == "directional") {
-        ## get region where evidence for H1 in each stage
-        zk0 <- zcrit(k = k0, se = se, mu = pm, tau = psd, type = type)
-        zk1 <- zcrit(k = k1, se = se, mu = pm, tau = psd, type = type)
-        intregions <- genregions1(zcrit0 = zk0, zcrit1 = zk1)
-    } else {
-        ## get integration regions based on BFs with two critical values
-        zk0 <- sapply(X = se, FUN = function(sei) {
-            zcrit(k = k0, se = sei, mu = pm, tau = psd, type = type)
-        })
-        zk1 <- sapply(X = se, FUN = function(sei) {
-            zcrit(k = k1, se = sei, mu = pm, tau = psd, type = type)
-        })
-        intregions <- genregions2(zcrit0 = zk0, zcrit1 = zk1, strict = strict)
-    }
-
-    ## compute stage-wise stopping probabilities
-    pH1 <- intstages(intregions = intregions$H1, mean = mean, sigma = sigma,
-                     ...)
-    pH0 <- intstages(intregions = intregions$H0, mean = mean, sigma = sigma,
-                     ...)
-
-    ## compute cumulate stopping probabilities
-    cumpH1 <- cumsum(pH1)
-    cumpH0 <- cumsum(pH0)
-    cumpInc <- 1 - cumpH1 - cumpH0 # inconclusive evidence
-
-    ## compute expected sample size and variance of sample size
-    if (!is.null(n)) {
-    EN <- sum((pH1 + pH0)*n) + # stopping evidence for H0/H1 in stage n
-        (1 - sum(pH1 + pH0))*max(n) # no evidence until last stage
-    EN2 <- sum((pH1 + pH0)*n^2) +
-        (1 - sum(pH1 + pH0))*max(n^2)
-    VarN <- EN2 - EN^2
-    } else {
-        EN <- NA
-        VarN <- NA
-    }
-
-    ## put everything together
-    out <- structure(list("k1" = k1, "k0" = k0, "se" = se, "n" = n, "pm" = pm,
-                          "psd" = psd, "dpm" = dpm, "dpsd" = dpsd,
-                          "type" = type, "strict" = strict, "test" = "z",
-                          "zk1" = zk1, "zk0" = zk0, "EN" = EN, "VarN" = VarN,
-                          "cumpH1" = cumpH1, "cumpH0" = cumpH0,
-                          "cumpInc" = cumpInc),
-                     class = "bfseqdesign")
-    return(out)
+    .bfseq_build_z_design(k1 = k1, k0 = k0, se = se, n = n,
+                          pm = pm, psd = psd, dpm = dpm, dpsd = dpsd,
+                          type = type, strict = strict, dots = list(...))
 }
 
 ## ## compare to simulation-based probabilities
@@ -534,11 +482,17 @@ plot.bfseqdesign <- function(x, plot = TRUE, nullplot = TRUE, zplot = FALSE,
         if (nullplot == TRUE) {
             if (x$test == "t") {
                 tail.eps <- if (is.null(x$tail.eps)) 1e-3 else x$tail.eps
+                tail.nquad <- if (is.null(x$tail.nquad)) {
+                    .tbf01_tail_nquad_default
+                } else {
+                    x$tail.nquad
+                }
                 x0 <- ptbf01seq(k1 = x$k1, k0 = x$k0, n1 = x$n1, n2 = x$n2,
                                 plocation = x$plocation, pscale = x$pscale,
                                 pdf = x$pdf, dpm = 0, dpsd = 0, type = x$type,
                                 alternative = x$alternative, trange = x$trange,
-                                strict = x$strict, tail.eps = tail.eps)
+                                strict = x$strict, tail.eps = tail.eps,
+                                tail.nquad = tail.nquad)
             } else {
                 x0 <- pbf01seq(k1 = x$k1, k0 = x$k0, se = x$se, pm = x$pm,
                                psd = x$psd, dpm = 0, dpsd = 0, type = x$type,

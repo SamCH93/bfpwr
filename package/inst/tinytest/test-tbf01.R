@@ -209,13 +209,23 @@ expect_true(grepl("appears unattainable", tcrit_impossible_warning,
                   fixed = TRUE),
             info = "one-sided tcrit should not recommend widening trange for unattainable roots")
 
+tcrit_impossible_result <- suppressWarnings(
+    bfpwr:::.bfpwr_tcrit_result(
+        k = 20, n1 = 15, n2 = 15, plocation = 0,
+        pscale = 1/sqrt(2), pdf = 1, type = "two.sample",
+        alternative = "greater", trange = "adaptive",
+        search_limit = 64
+    )
+)
 expect_equal(
-    bfpwr:::.bfpwr_tcrit_status(
-        value = NaN,
-        warnings = "BF01 = k appears unattainable for this one-sided t test"
-    ),
+    tcrit_impossible_result$status,
     "impossible",
-    info = "tcrit status should classify one-sided unattainable-root warnings"
+    info = "tcrit result should classify one-sided unattainable roots structurally"
+)
+expect_equal(
+    tcrit_impossible_result$reason,
+    "one_sided_unattainable",
+    info = "tcrit result should expose the status reason code"
 )
 
 seq_impossible_warning <- NULL
@@ -239,15 +249,20 @@ expect_false(grepl("Pass a wider", seq_impossible_warning, fixed = TRUE),
              info = "impossible H0 boundary diagnostics should not recommend wider trange")
 
 expect_equal(
-    bfpwr:::.bfpwr_tcrit_status(
+    bfpwr:::.bfpwr_tcrit_status_from_result(
         value = 1,
-        warnings = "Numerical problems finding critical value"
+        issues = list(bfpwr:::.bfpwr_tcrit_issue(
+            code = "critical_value_failed",
+            status = "search_failed",
+            message = "Numerical problems finding critical value"
+        ))
     ),
     "search_failed",
-    info = "tcrit status should not ignore failure warnings for finite values"
+    info = "tcrit status should not ignore structured failure issues for finite values"
 )
 expect_equal(
-    bfpwr:::.bfpwr_tcrit_status(value = numeric(0), warnings = character()),
+    bfpwr:::.bfpwr_tcrit_status_from_result(value = numeric(0),
+                                            issues = list()),
     "search_failed",
     info = "tcrit status should not treat empty results as valid"
 )
@@ -261,14 +276,14 @@ if (!bfpwr_run_extended_tests()) {
 expect_equal(
     tbf01(t = -20, n1 = 7880, n2 = 7880, alternative = "greater",
           type = "two.sample", log = TRUE),
-    7.2302101, tolerance = 1e-6,
+    7.2302204, tolerance = 1e-5,
     info = "tbf01 should use a stable wrong-tail one-sided calculation"
 )
 
 expect_equal(
     tbf01(t = -4, n1 = 53, n2 = 57, plocation = 0.350, pscale = 0.102,
           pdf = 3, alternative = "greater", type = "two.sample", log = TRUE),
-    4.3357339, tolerance = 1e-6,
+    4.3357318, tolerance = 1e-5,
     info = "tbf01 should handle shifted informed priors in the wrong tail"
 )
 

@@ -914,60 +914,6 @@
     )
 }
 
-.bfseq_boundary_data <- function(bounds, oneCritical) {
-    se <- vapply(bounds, `[[`, numeric(1), "se")
-    if (oneCritical) {
-        zk0 <- vapply(bounds, function(x) x$zk0[[1]], numeric(1))
-        zk1 <- vapply(bounds, function(x) x$zk1[[1]], numeric(1))
-    } else {
-        zk0 <- do.call(cbind, lapply(bounds, `[[`, "zk0"))
-        zk1 <- do.call(cbind, lapply(bounds, `[[`, "zk1"))
-    }
-    list(se = se, zk0 = zk0, zk1 = zk1)
-}
-
-.bfseq_stage_regions <- function(boundaries, oneCritical, strict,
-                                 direction = NULL) {
-    if (oneCritical) {
-        return(.bfseq_genregions1_stage(zcrit0 = boundaries$zk0,
-                                        zcrit1 = boundaries$zk1,
-                                        direction = direction))
-    }
-    .bfseq_genregions2_stage(zcrit0 = boundaries$zk0,
-                             zcrit1 = boundaries$zk1,
-                             strict = strict)
-}
-
-.bfseq_stage_stop_probabilities <- function(regions, se, dpm, dpsd, dots) {
-    pars <- predpars(se = se, dpm = dpm, dpsd = dpsd)
-    pH1 <- do.call(.bfseq_intstage,
-                   c(list(stageregions = regions$H1,
-                          mean = pars$mean,
-                          sigma = pars$sigma),
-                     dots))
-    pH0 <- do.call(.bfseq_intstage,
-                   c(list(stageregions = regions$H0,
-                          mean = pars$mean,
-                          sigma = pars$sigma),
-                     dots))
-    if (!is.numeric(pH1) || length(pH1) != 1 || !is.finite(pH1) ||
-        !is.numeric(pH0) || length(pH0) != 1 || !is.finite(pH0)) {
-        .bfseq_candidate_invalid(
-            "non-finite sequential stage probability",
-            reason = "stage_probability",
-            terminal = TRUE
-        )
-    }
-    list(pH1 = pH1, pH0 = pH0)
-}
-
-.bfseq_sample_size_moments <- function(pH1, pH0, n) {
-    stopProb <- pH1 + pH0
-    EN <- sum(stopProb*n) + (1 - sum(stopProb))*max(n)
-    EN2 <- sum(stopProb*n^2) + (1 - sum(stopProb))*max(n^2)
-    list(EN = EN, VarN = EN2 - EN^2)
-}
-
 .bfseq_z_schedule_evaluator <- function(k1, k0, usd, null, pm, psd, dpm,
                                          dpsd, type, target, schedule,
                                          strict, dots) {
@@ -995,7 +941,7 @@
         out
     }
 
-    evalStage <- function(n) {
+    evalStage <- function(n, bounds = NULL) {
         ## The whole prefix is the cache key because terminal-stage regions
         ## depend on all previous continuation regions.
         key <- paste(n, collapse = "\r")
@@ -1003,42 +949,26 @@
             return(get(key, envir = stageCache, inherits = FALSE))
         }
 
-        bounds <- lapply(n, getBoundary)
-        boundaries <- .bfseq_boundary_data(bounds = bounds,
-                                           oneCritical = oneCritical)
-        regions <- .bfseq_stage_regions(boundaries = boundaries,
-                                        oneCritical = oneCritical,
-                                        strict = strict)
-        out <- .bfseq_stage_stop_probabilities(regions = regions,
-                                               se = boundaries$se,
-                                               dpm = reldpm,
-                                               dpsd = dpsd,
-                                               dots = dots)
+        if (is.null(bounds)) {
+            bounds <- lapply(n, getBoundary)
+        }
+        out <- .bfseq_stage_probabilities_from_bounds(
+            bounds = bounds, oneCritical = oneCritical, strict = strict,
+            direction = NULL, dpm = reldpm, dpsd = dpsd, dots = dots
+        )
         assign(key, out, envir = stageCache)
         out
     }
 
     function(maxN) {
         n <- .bfseq_schedule_n(maxN = maxN, schedule = schedule)
-        bounds <- lapply(n, getBoundary)
-        boundaries <- .bfseq_boundary_data(bounds = bounds,
-                                           oneCritical = oneCritical)
-        stages <- lapply(seq_along(n), function(i) evalStage(n[seq_len(i)]))
-        pH1 <- vapply(stages, `[[`, numeric(1), "pH1")
-        pH0 <- vapply(stages, `[[`, numeric(1), "pH0")
-        cumpH1 <- cumsum(pH1)
-        cumpH0 <- cumsum(pH0)
-        cumpInc <- 1 - cumpH1 - cumpH0
-        moments <- .bfseq_sample_size_moments(pH1 = pH1, pH0 = pH0, n = n)
-
-        design <- structure(list(
-            k1 = k1, k0 = k0, se = boundaries$se, n = n, pm = relpm,
+        design <- .bfseq_build_z_design(
+            k1 = k1, k0 = k0, se = usd/sqrt(n), n = n, pm = relpm,
             psd = psd, dpm = reldpm, dpsd = dpsd, type = type,
-            strict = strict, test = "z", zk1 = boundaries$zk1,
-            zk0 = boundaries$zk0, EN = moments$EN,
-            VarN = moments$VarN, cumpH1 = cumpH1, cumpH0 = cumpH0,
-            cumpInc = cumpInc
-        ), class = "bfseqdesign")
+            strict = strict, dots = dots,
+            getBoundary = function(i) getBoundary(n[[i]]),
+            evalStage = function(i, bounds) evalStage(n[seq_len(i)], bounds)
+        )
 
         list(result = design,
              power = .bfseq_target_probability(design = design,
@@ -1049,7 +979,9 @@
 .bfseq_t_schedule_evaluator <- function(k1, k0, plocation, pscale, pdf,
                                          dpm, dpsd, type, alternative, target,
                                          ratio, schedule, strict, trange,
-                                         tail.eps = 1e-3, dots) {
+                                         tail.eps = 1e-3,
+                                         tail.nquad = .tbf01_tail_nquad_default,
+                                         dots) {
     oneCritical <- alternative != "two.sided"
     regionDirection <- if (alternative == "greater") {
         "positive"
@@ -1091,12 +1023,14 @@
         zk0Result <- .bfpwr_tcrit_result(
             k = k0, n1 = n1, n2 = n2, plocation = plocation,
             pscale = pscale, pdf = pdf, alternative = alternative,
-            type = type, trange = trange, search_limit = searchLimit
+            type = type, trange = trange, search_limit = searchLimit,
+            tail.nquad = tail.nquad
         )
         zk1Result <- .bfpwr_tcrit_result(
             k = k1, n1 = n1, n2 = n2, plocation = plocation,
             pscale = pscale, pdf = pdf, alternative = alternative,
-            type = type, trange = trange, search_limit = searchLimit
+            type = type, trange = trange, search_limit = searchLimit,
+            tail.nquad = tail.nquad
         )
         zk0Message <- .bfseq_t_boundary_status_message(
             list(zk0Result), boundary = "H0", looks = look
@@ -1134,7 +1068,7 @@
         out
     }
 
-    evalStage <- function(n1) {
+    evalStage <- function(n1, bounds = NULL) {
         ## The whole prefix is the cache key because terminal-stage regions
         ## depend on all previous continuation regions.
         key <- paste(n1, collapse = "\r")
@@ -1142,19 +1076,14 @@
             return(get(key, envir = stageCache, inherits = FALSE))
         }
 
-        bounds <- lapply(seq_along(n1), function(i) getBoundary(n1[[i]],
-                                                                 look = i))
-        boundaries <- .bfseq_boundary_data(bounds = bounds,
-                                           oneCritical = oneCritical)
-        regions <- .bfseq_stage_regions(boundaries = boundaries,
-                                        oneCritical = oneCritical,
-                                        strict = strict,
-                                        direction = regionDirection)
-        out <- .bfseq_stage_stop_probabilities(regions = regions,
-                                               se = boundaries$se,
-                                               dpm = dpm,
-                                               dpsd = dpsd,
-                                               dots = dots)
+        if (is.null(bounds)) {
+            bounds <- lapply(seq_along(n1), function(i) getBoundary(n1[[i]],
+                                                                     look = i))
+        }
+        out <- .bfseq_stage_probabilities_from_bounds(
+            bounds = bounds, oneCritical = oneCritical, strict = strict,
+            direction = regionDirection, dpm = dpm, dpsd = dpsd, dots = dots
+        )
         assign(key, out, envir = stageCache)
         out
     }
@@ -1164,8 +1093,6 @@
         bounds <- lapply(seq_along(n1), function(i) getBoundary(n1[[i]],
                                                                  look = i))
         n2 <- vapply(bounds, `[[`, numeric(1), "n2")
-        boundaries <- .bfseq_boundary_data(bounds = bounds,
-                                           oneCritical = oneCritical)
         searchLimitWarnings <- sum(vapply(bounds, `[[`, integer(1),
                                             "warnings"))
         impossibleWarnings <- sum(vapply(bounds, `[[`, integer(1),
@@ -1190,28 +1117,14 @@
             ))
         }
 
-        stages <- lapply(seq_along(n1), function(i) evalStage(n1[seq_len(i)]))
-        pH1 <- vapply(stages, `[[`, numeric(1), "pH1")
-        pH0 <- vapply(stages, `[[`, numeric(1), "pH0")
-        cumpH1 <- cumsum(pH1)
-        cumpH0 <- cumsum(pH0)
-        cumpInc <- 1 - cumpH1 - cumpH0
-
-        moments1 <- .bfseq_sample_size_moments(pH1 = pH1, pH0 = pH0,
-                                               n = n1)
-        moments2 <- .bfseq_sample_size_moments(pH1 = pH1, pH0 = pH0,
-                                               n = n2)
-        design <- structure(list(
-            k1 = k1, k0 = k0, n1 = n1, n2 = n2, dpm = dpm,
-            dpsd = dpsd, plocation = plocation, pscale = pscale,
-            pdf = pdf, alternative = alternative, type = type,
-            trange = trange, strict = strict, test = "t",
-            tail.eps = tail.eps,
-            zk1 = boundaries$zk1, zk0 = boundaries$zk0,
-            EN1 = moments1$EN, EN2 = moments2$EN,
-            VarN1 = moments1$VarN, VarN2 = moments2$VarN,
-            cumpH1 = cumpH1, cumpH0 = cumpH0, cumpInc = cumpInc
-        ), class = "bfseqdesign")
+        design <- .bfseq_build_t_design(
+            k1 = k1, k0 = k0, bounds = bounds, dpm = dpm, dpsd = dpsd,
+            plocation = plocation, pscale = pscale, pdf = pdf,
+            alternative = alternative, type = type, trange = trange,
+            strict = strict, tail.eps = tail.eps, tail.nquad = tail.nquad,
+            dots = dots,
+            evalStage = function(i, bounds) evalStage(n1[seq_len(i)], bounds)
+        )
 
         list(result = design,
              power = .bfseq_target_probability(design = design,
