@@ -1382,8 +1382,20 @@ search_validation_status_table <- function() {
 search_validation_summary_table <- function() {
     summary <- read_search_validation_csv("search-validation-summary.csv")
     if (nrow(summary) == 0) return(data.frame())
+    if (!"evaluated_rows" %in% names(summary)) {
+        summary$evaluated_rows <- summary$package_reached
+    }
+    if (!"package_certified" %in% names(summary)) {
+        summary$package_certified <- NA_integer_
+    }
+    if (!"package_errors" %in% names(summary)) {
+        summary$package_errors <- NA_integer_
+    }
+    if (!"n_different" %in% names(summary)) {
+        summary$n_different <- NA_integer_
+    }
     keep <- summary$target_source == "sequential_schedule_crossing" &
-        summary$package_reached > 0
+        summary$evaluated_rows > 0
     out <- summary[keep, , drop = FALSE]
     if (nrow(out) == 0) return(data.frame())
     out <- out[order(out$family, out$bf_type, out$search_profile_id),
@@ -1393,13 +1405,14 @@ search_validation_summary_table <- function() {
         "BF type" = out$bf_type,
         "Search profile" = gsub("_", " ", out$search_profile_id,
                                 fixed = TRUE),
-        "Rows" = fmt_count(out$rows),
-        "Simulation achieved" = fmt_count(out$simulation_achieved),
-        "Package reached" = fmt_count(out$package_reached),
-        "Median n ratio" = fmt_number(out$median_n_ratio),
-        "P90 fractional error" =
+        "Evaluated rows" = fmt_count(out$evaluated_rows),
+        "Reached" = fmt_count(out$package_reached),
+        "Certified" = fmt_count(out$package_certified),
+        "Errors" = fmt_count(out$package_errors),
+        "n differs" = fmt_count(out$n_different),
+        "P90 abs fractional n error" =
             fmt_number(out$p90_abs_fractional_error),
-        "Max fractional error" =
+        "Max abs fractional n error" =
             fmt_number(out$max_abs_fractional_error),
         check.names = FALSE,
         stringsAsFactors = FALSE
@@ -1769,10 +1782,11 @@ if (!corpus_available) {
     if (nrow(compact_summary) > 0) {
         latex_table(compact_summary,
                     caption = paste(
-                        "Sequential sample-size search rows evaluated by",
-                        "the package.",
-                        "The n ratio compares package and simulation first",
-                        "crossing sample sizes."))
+                        "Package-evaluated sequential sample-size search",
+                        "rows.",
+                        "Only rows sent to the package search are counted;",
+                        "fractional n error compares package and simulation",
+                        "first crossing sample sizes."))
     }
 
     status <- search_validation_status_table()

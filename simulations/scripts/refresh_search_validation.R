@@ -20,8 +20,16 @@ summarize_search <- function(comparison) {
                              drop = TRUE, sep = "\r")
     rows <- lapply(split(comparison, split_key), function(x) {
         reference_z <- x$package_reference_prob_z
-        comparable <- x$package_reached %in% TRUE
+        evaluated <- !is.na(x$package_reached)
+        reached <- x$package_reached %in% TRUE
+        certified <- reached & x$package_first_crossing_certified %in% TRUE
+        package_errors <- evaluated & !is.na(x$package_error) &
+            nzchar(x$package_error)
+        comparable <- reached
         reference_comparable <- !is.na(reference_z)
+        n_comparable <- reached & is.finite(x$package_n) &
+            is.finite(x$simulation_n)
+        n_different <- n_comparable & x$package_n != x$simulation_n
         data.frame(
             family = x$family[[1]],
             mode = x$mode[[1]],
@@ -30,8 +38,15 @@ summarize_search <- function(comparison) {
             target_source = x$target_source[[1]],
             rows = nrow(x),
             simulation_achieved = safe_sum(x$sim_achieved),
+            evaluated_rows = safe_sum(evaluated),
             package_reached = safe_sum(x$package_reached %in% TRUE),
+            package_certified = safe_sum(certified),
+            package_errors = safe_sum(package_errors),
+            package_not_reached = safe_sum(evaluated & !reached),
+            package_not_certified = safe_sum(reached & !certified),
+            n_different = safe_sum(n_different),
             comparable = safe_sum(comparable),
+            n_comparable = safe_sum(n_comparable),
             reference_comparable = safe_sum(reference_comparable),
             median_n_ratio = if (any(comparable, na.rm = TRUE)) {
                 stats::median(x$n_ratio[comparable], na.rm = TRUE)
