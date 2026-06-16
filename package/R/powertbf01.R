@@ -37,7 +37,8 @@ powertbf01 <- function(n = NULL, power = NULL, k = 1/10, null = 0,
                        type = c("two.sample", "one.sample", "paired"),
                        alternative = c("two.sided", "less", "greater"),
                        dpm = plocation, dpsd = pscale, nrange = c(2, 10^4),
-                       tail.eps = 1e-3) {
+                       tail.eps = 1e-3,
+                       tail.nquad = 128) {
     ## input checks
     if (is.null(n) && is.null(power)) {
         stop("exactly one of 'n' and 'power' must be NULL")
@@ -94,7 +95,9 @@ powertbf01 <- function(n = NULL, power = NULL, k = 1/10, null = 0,
         is.numeric(tail.eps),
         is.finite(tail.eps),
         tail.eps > 0,
-        tail.eps < 0.5
+        tail.eps < 0.5,
+
+        .tbf01_valid_tail_nquad(tail.nquad)
     )
     type <- match.arg(type)
     alternative <- match.arg(alternative)
@@ -104,21 +107,22 @@ powertbf01 <- function(n = NULL, power = NULL, k = 1/10, null = 0,
         n <- ntbf01(k = k, power = power, null = null, plocation = plocation,
                     pscale = pscale, pdf = pdf, type = type,
                     alternative = alternative, dpm = dpm, dpsd = dpsd,
-                    integer = FALSE, nrange = nrange, tail.eps = tail.eps)
+                    integer = FALSE, nrange = nrange, tail.eps = tail.eps,
+                    tail.nquad = tail.nquad)
     } else {
         ## determine power
         power <- ptbf01(k = k, n = n, null = null, plocation = plocation,
                         pscale = pscale, pdf = pdf, type = type,
                         alternative = alternative, dpm = dpm, dpsd = dpsd,
-                        tail.eps = tail.eps)
+                        tail.eps = tail.eps, tail.nquad = tail.nquad)
     }
 
     ## return object
     structure(list(n = n, power = power, sd = 1, null = null,
                    alternative = alternative, plocation = plocation,
                    pscale = pscale, pdf = pdf, dpm = dpm, dpsd = dpsd, k = k,
-                   nrange = nrange, tail.eps = tail.eps, type = type,
-                   test = "t"),
+                   nrange = nrange, tail.eps = tail.eps,
+                   tail.nquad = tail.nquad, type = type, test = "t"),
               class = "power.bftest")
 
 }

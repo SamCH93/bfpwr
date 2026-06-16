@@ -71,6 +71,8 @@ expect_true(grepl("marginal tail probability <= 0.001", limit_warning,
             info = "ptbf01seq adaptive-limit warning should report the per-boundary tail-eps cutoff")
 expect_equal(missing_h0$tail.eps, 1e-3,
              info = "ptbf01seq should store the sequential tail.eps control")
+expect_equal(missing_h0$tail.nquad, 128,
+             info = "ptbf01seq should store the default sequential tail.nquad control")
 
 missing_h1_continuation <- bfpwr:::genregions1(
     zcrit0 = c(NaN, 0),
@@ -134,10 +136,12 @@ custom_tail <- suppressWarnings(
     ptbf01seq(k1 = 1/10, k0 = 10, n = 20, plocation = 0,
               pscale = 0.707, pdf = 1, type = "two.sample",
               alternative = "greater", dpm = 0.5, dpsd = 0.1,
-              tail.eps = 1e-2)
+              tail.eps = 1e-2, tail.nquad = 64)
 )
 expect_equal(custom_tail$tail.eps, 1e-2,
              info = "ptbf01seq should preserve custom tail.eps values")
+expect_equal(custom_tail$tail.nquad, 64,
+             info = "ptbf01seq should preserve custom tail.nquad values")
 
 custom_limit_warning <- NULL
 suppressWarnings(
@@ -247,20 +251,6 @@ bad_tail <- try(
 )
 expect_true(inherits(bad_tail, "try-error"),
             info = "ptbf01seq should validate tail.eps")
-
-old_drange <- try(
-    ptbf01seq(k1 = 1/10, k0 = 10, n = 100, plocation = 0,
-              pscale = 0.707, pdf = 1, type = "two.sample",
-              alternative = "greater", dpm = 0.5, dpsd = 0.1,
-              drange = c(-2, 6)),
-    silent = TRUE
-)
-expect_true(
-    inherits(old_drange, "try-error") &&
-        grepl("renamed to 'trange'",
-              conditionMessage(attr(old_drange, "condition")), fixed = TRUE),
-    info = "ptbf01seq should no longer accept drange"
-)
 
 ## ## do not run these tests for the moment, because they are there to verify
 ## ## the power with simulation which takes a long time to run

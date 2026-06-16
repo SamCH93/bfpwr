@@ -3,7 +3,8 @@ ntbf01. <- function(k, power, null = 0, plocation = 0, pscale = 1/sqrt(2),
                     alternative = c("two.sided", "less", "greater"),
                     dpm = plocation, dpsd = pscale, lower.tail = TRUE,
                     integer = TRUE, nrange = c(2, 10^4),
-                    tail.eps = 1e-3, ...) {
+                    tail.eps = 1e-3,
+                    tail.nquad = 128, ...) {
     ## input checks
     stopifnot(
         length(k) == 1,
@@ -65,7 +66,9 @@ ntbf01. <- function(k, power, null = 0, plocation = 0, pscale = 1/sqrt(2),
         is.numeric(tail.eps),
         is.finite(tail.eps),
         tail.eps > 0,
-        tail.eps < 0.5
+        tail.eps < 0.5,
+
+        .tbf01_valid_tail_nquad(tail.nquad)
     )
     type <- match.arg(type)
     alternative <- match.arg(alternative)
@@ -77,7 +80,8 @@ ntbf01. <- function(k, power, null = 0, plocation = 0, pscale = 1/sqrt(2),
             ptbf01(k = k, n = n, null = null, plocation = plocation,
                    pscale = pscale, pdf = pdf, dpm = dpm, dpsd = dpsd,
                    type = type, alternative = alternative,
-                   lower.tail = lower.tail, tail.eps = tail.eps, ...) - power
+                   lower.tail = lower.tail, tail.eps = tail.eps,
+                   tail.nquad = tail.nquad, ...) - power
         })
     }
 

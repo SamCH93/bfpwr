@@ -15,6 +15,7 @@ tbf01(
   type = c("two.sample", "one.sample", "paired"),
   alternative = c("two.sided", "less", "greater"),
   log = FALSE,
+  tail.nquad = 128,
   ...
 )
 }
@@ -46,7 +47,12 @@ the analysis prior to negative and positive effects, respectively.}
 \item{log}{Logical indicating whether the natural logarithm of the Bayes
 factor should be returned. Defaults to \code{FALSE}}
 
-\item{...}{Additional arguments passed to \code{stats::integrate}}
+\item{tail.nquad}{Number of Gauss-Legendre quadrature nodes used for stable
+wrong-tail one-sided calculations. Larger values are more accurate but
+slower. Defaults to \code{128}.}
+
+\item{...}{Additional arguments passed to \code{stats::integrate} for the
+direct one-dimensional Bayes factor integral.}
 }
 \value{
 Bayes factor in favor of the null hypothesis over the alternative
@@ -80,7 +86,9 @@ change score
 \details{
 The Bayes factor is implemented as in equation (5) in Gronau et al.
 (2020), and using suitable truncation in case of one-sided alternatives.
-Integration is performed numerically with \code{stats::integrate}.
+Most calculations use \code{stats::integrate}. Extreme wrong-tail
+one-sided calculations use fixed Gauss-Legendre quadrature to avoid
+noncentral-\eqn{t} underflow.
 }
 \examples{
 ## analyses from Rouder et al. (2009):

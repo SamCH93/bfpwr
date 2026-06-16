@@ -26,6 +26,7 @@ ntbf01seq(
   strict = TRUE,
   trange = "adaptive",
   tail.eps = 0.001,
+  tail.nquad = 128,
   integer = TRUE,
   nextend = 0,
   search = c("adaptive", "exhaustive"),
@@ -117,6 +118,10 @@ If no boundary is found before the cutoff, that boundary is treated as
 unresolved with omitted marginal mass bounded by \code{tail.eps};
 smaller values search farther at additional computational cost. Defaults
 to \code{1e-3}.}
+
+\item{tail.nquad}{Number of Gauss-Legendre quadrature nodes used by
+\code{\link{tbf01}} for stable wrong-tail one-sided calculations. Larger
+values are more accurate but slower. Defaults to \code{128}.}
 
 \item{integer}{Logical indicating whether only integer valued sample sizes
 should be returned. If \code{TRUE} the required sample size is rounded to

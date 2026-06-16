@@ -20,6 +20,7 @@ ptbf01(
   lower.tail = TRUE,
   drange = "adaptive",
   tail.eps = 0.001,
+  tail.nquad = 128,
   ...
 )
 }
@@ -77,6 +78,10 @@ implied by the searched side is returned and the omitted tail probability
 is bounded by \code{tail.eps}. Smaller values search farther and can
 recover extremely remote boundaries at additional computational cost.
 Defaults to \code{1e-3}}
+
+\item{tail.nquad}{Number of Gauss-Legendre quadrature nodes used by
+\code{\link{tbf01}} for stable wrong-tail one-sided calculations. Larger
+values are more accurate but slower. Defaults to \code{128}.}
 
 \item{...}{Optional numerical controls. For numeric ranges and two-sided
 adaptive searches, arguments are passed to \code{stats::uniroot}. In

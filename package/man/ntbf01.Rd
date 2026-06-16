@@ -19,6 +19,7 @@ ntbf01(
   integer = TRUE,
   nrange = c(2, 10^4),
   tail.eps = 0.001,
+  tail.nquad = 128,
   ...
 )
 }
@@ -71,6 +72,10 @@ value. If a fixed-\code{n} power evaluation reaches that cutoff before
 finding a boundary, the returned 0/1 tail probability has omitted mass
 bounded by \code{tail.eps}. Smaller values search farther. Defaults to
 \code{1e-3}}
+
+\item{tail.nquad}{Number of Gauss-Legendre quadrature nodes used by
+\code{\link{tbf01}} for stable wrong-tail one-sided calculations. Larger
+values are more accurate but slower. Defaults to \code{128}.}
 
 \item{...}{Other arguments passed to \code{stats::uniroot}}
 }

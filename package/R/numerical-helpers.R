@@ -33,31 +33,57 @@
 
 .bfpwr_lpnorm_interval <- function(lower, upper, mean = 0, sd = 1) {
     ## log P(lower < X < upper), computed from the more stable tail.
-    if (is.infinite(lower) && lower < 0 && is.infinite(upper) && upper > 0) {
-        return(0)
-    }
-    if (is.infinite(lower) && lower < 0) {
-        return(stats::pnorm(q = upper, mean = mean, sd = sd,
-                            lower.tail = TRUE, log.p = TRUE))
-    }
-    if (is.infinite(upper) && upper > 0) {
-        return(stats::pnorm(q = lower, mean = mean, sd = sd,
-                            lower.tail = FALSE, log.p = TRUE))
+    n <- max(length(lower), length(upper), length(mean), length(sd))
+    lower <- rep(lower, length.out = n)
+    upper <- rep(upper, length.out = n)
+    mean <- rep(mean, length.out = n)
+    sd <- rep(sd, length.out = n)
+
+    ans <- rep(NA_real_, n)
+    lower_inf <- is.infinite(lower) & lower < 0
+    upper_inf <- is.infinite(upper) & upper > 0
+
+    all_real <- lower_inf & upper_inf
+    ans[all_real] <- 0
+    left_tail <- lower_inf & !upper_inf
+    ans[left_tail] <- stats::pnorm(q = upper[left_tail],
+                                   mean = mean[left_tail], sd = sd[left_tail],
+                                   lower.tail = TRUE, log.p = TRUE)
+    right_tail <- !lower_inf & upper_inf
+    ans[right_tail] <- stats::pnorm(q = lower[right_tail],
+                                    mean = mean[right_tail],
+                                    sd = sd[right_tail],
+                                    lower.tail = FALSE, log.p = TRUE)
+
+    finite_interval <- is.na(ans)
+    if (any(finite_interval)) {
+        log_lower <- stats::pnorm(q = lower[finite_interval],
+                                  mean = mean[finite_interval],
+                                  sd = sd[finite_interval],
+                                  lower.tail = TRUE, log.p = TRUE)
+        log_upper <- stats::pnorm(q = upper[finite_interval],
+                                  mean = mean[finite_interval],
+                                  sd = sd[finite_interval],
+                                  lower.tail = TRUE, log.p = TRUE)
+        lower_scale <- log_upper + log1p(-exp(log_lower - log_upper))
+        lower_scale[log_lower == log_upper] <- -Inf
+
+        log_lower_tail <- stats::pnorm(q = lower[finite_interval],
+                                       mean = mean[finite_interval],
+                                       sd = sd[finite_interval],
+                                       lower.tail = FALSE, log.p = TRUE)
+        log_upper_tail <- stats::pnorm(q = upper[finite_interval],
+                                       mean = mean[finite_interval],
+                                       sd = sd[finite_interval],
+                                       lower.tail = FALSE, log.p = TRUE)
+        upper_scale <- log_lower_tail +
+            log1p(-exp(log_upper_tail - log_lower_tail))
+        upper_scale[log_lower_tail == log_upper_tail] <- -Inf
+
+        ans[finite_interval] <- pmax(lower_scale, upper_scale, na.rm = TRUE)
     }
 
-    log_lower <- stats::pnorm(q = lower, mean = mean, sd = sd,
-                              lower.tail = TRUE, log.p = TRUE)
-    log_upper <- stats::pnorm(q = upper, mean = mean, sd = sd,
-                              lower.tail = TRUE, log.p = TRUE)
-    lower_scale <- .bfpwr_logspace_sub(log_upper, log_lower)
-
-    log_lower_tail <- stats::pnorm(q = lower, mean = mean, sd = sd,
-                                   lower.tail = FALSE, log.p = TRUE)
-    log_upper_tail <- stats::pnorm(q = upper, mean = mean, sd = sd,
-                                   lower.tail = FALSE, log.p = TRUE)
-    upper_scale <- .bfpwr_logspace_sub(log_lower_tail, log_upper_tail)
-
-    max(lower_scale, upper_scale, na.rm = TRUE)
+    if (n == 1) unname(ans) else ans
 }
 
 .bfpwr_lpbeta_interval <- function(lower, upper, shape1, shape2) {
@@ -98,4 +124,27 @@
         log_upper <- log_odds - .bfpwr_log1pexp(log_odds)
         stats::qnorm(p = log_upper, lower.tail = FALSE, log.p = TRUE)
     }
+}
+
+.bfpwr_gauss_legendre_cache <- new.env(parent = emptyenv())
+
+.bfpwr_gauss_legendre <- function(n) {
+    key <- as.character(n)
+    if (exists(key, envir = .bfpwr_gauss_legendre_cache, inherits = FALSE)) {
+        return(get(key, envir = .bfpwr_gauss_legendre_cache, inherits = FALSE))
+    }
+
+    i <- seq_len(n - 1)
+    beta <- i/sqrt(4*i^2 - 1)
+    J <- matrix(0, nrow = n, ncol = n)
+    J[cbind(i, i + 1)] <- beta
+    J[cbind(i + 1, i)] <- beta
+    eig <- eigen(J, symmetric = TRUE)
+    o <- order(eig$values)
+    ans <- list(
+        x = (eig$values[o] + 1)/2,
+        w = eig$vectors[1, o]^2
+    )
+    assign(key, ans, envir = .bfpwr_gauss_legendre_cache)
+    ans
 }

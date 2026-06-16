@@ -49,15 +49,12 @@ powertbf01seq <- function(n = NULL, power = NULL, k1 = 1/10, k0 = 1/k1,
                           looks = 1, timing = NULL, minN = NULL, by = NULL,
                           ratio = 1, strict = TRUE, trange = "adaptive",
                           tail.eps = 1e-3,
+                          tail.nquad = 128,
                           nextend = 0,
                           search = c("adaptive", "exhaustive"),
                           progress = NULL, ...) {
     if (is.null(n) == is.null(power)) {
         stop("exactly one of 'n' and 'power' must be NULL")
-    }
-    dotNames <- names(match.call(expand.dots = FALSE)$...)
-    if ("drange" %in% dotNames) {
-        stop("argument 'drange' was renamed to 'trange' in powertbf01seq")
     }
     type <- match.arg(type)
     alternative <- match.arg(alternative)
@@ -84,7 +81,9 @@ powertbf01seq <- function(n = NULL, power = NULL, k1 = 1/10, k0 = 1/k1,
         is.numeric(tail.eps),
         is.finite(tail.eps),
         tail.eps > 0,
-        tail.eps < 0.5
+        tail.eps < 0.5,
+
+        .tbf01_valid_tail_nquad(tail.nquad)
     )
     nextend <- .bfseq_normalize_nextend(nextend)
     progress <- .bfseq_validate_progress(progress)
@@ -97,8 +96,8 @@ powertbf01seq <- function(n = NULL, power = NULL, k1 = 1/10, k0 = 1/k1,
             alternative = alternative, target = target, nrange = nrange,
             looks = looks, timing = timing, minN = minN, by = by,
             ratio = ratio, strict = strict, trange = trange,
-            tail.eps = tail.eps, integer = TRUE, nextend = nextend,
-            search = search, details = TRUE,
+            tail.eps = tail.eps, tail.nquad = tail.nquad,
+            integer = TRUE, nextend = nextend, search = search, details = TRUE,
             progress = progress, ...
         )
         design <- solver$result
@@ -135,7 +134,7 @@ powertbf01seq <- function(n = NULL, power = NULL, k1 = 1/10, k0 = 1/k1,
             plocation = plocation - null, pscale = pscale, pdf = pdf,
             dpm = dpm - null, dpsd = dpsd, type = type,
             alternative = alternative, strict = strict, trange = trange,
-            tail.eps = tail.eps, ...
+            tail.eps = tail.eps, tail.nquad = tail.nquad, ...
         )
         solver <- .bfseq_fixed_solver(n = n, target = target, design = design,
                                       schedule = schedule, nextend = nextend)

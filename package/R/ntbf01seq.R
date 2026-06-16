@@ -7,16 +7,13 @@ ntbf01seq. <- function(k1, k0 = 1/k1, power, null = 0,
                        looks = 1, timing = NULL, minN = NULL, by = NULL,
                        ratio = 1, strict = TRUE, trange = "adaptive",
                        tail.eps = 1e-3,
+                       tail.nquad = 128,
                        integer = TRUE, nextend = 0,
                        search = c("adaptive", "exhaustive"),
                        details = FALSE,
                        progress = NULL, ...) {
     search <- match.arg(search)
     ## input checks
-    dotNames <- names(match.call(expand.dots = FALSE)$...)
-    if ("drange" %in% dotNames) {
-        stop("argument 'drange' was renamed to 'trange' in ntbf01seq")
-    }
     stopifnot(
         length(k1) == 1,
         is.numeric(k1),
@@ -80,6 +77,8 @@ ntbf01seq. <- function(k1, k0 = 1/k1, power, null = 0,
         tail.eps > 0,
         tail.eps < 0.5,
 
+        .tbf01_valid_tail_nquad(tail.nquad),
+
         length(integer) == 1,
         is.logical(integer),
         !is.na(integer),
@@ -104,7 +103,7 @@ ntbf01seq. <- function(k1, k0 = 1/k1, power, null = 0,
         dpsd = dpsd, type = type, alternative = alternative,
         target = target, ratio = ratio, schedule = schedule,
         strict = strict, trange = trange, tail.eps = tail.eps,
-        dots = list(...)
+        tail.nquad = tail.nquad, dots = list(...)
     )
 
     solver <- .bfseq_search(power = power, target = target, nrange = nrange,
@@ -181,15 +180,11 @@ ntbf01seq <- function(k1, k0 = 1/k1, power, null = 0,
                       looks = 1, timing = NULL, minN = NULL, by = NULL,
                       ratio = 1, strict = TRUE, trange = "adaptive",
                       tail.eps = 1e-3,
+                      tail.nquad = 128,
                       integer = TRUE, nextend = 0,
                       search = c("adaptive", "exhaustive"),
                       details = FALSE,
                       progress = NULL, ...) {
-    dotNames <- names(match.call(expand.dots = FALSE)$...)
-    if ("drange" %in% dotNames) {
-        stop("argument 'drange' was renamed to 'trange' in ntbf01seq")
-    }
-
     type <- if (missing(type)) {
         "two.sample"
     } else {
@@ -220,7 +215,7 @@ ntbf01seq <- function(k1, k0 = 1/k1, power, null = 0,
             alternative = alternative, target = target, nrange = nrange,
             looks = looks, timing = timing, minN = minN, by = by,
             ratio = ratio, strict = strict, trange = trange,
-            tail.eps = tail.eps,
+            tail.eps = tail.eps, tail.nquad = tail.nquad,
             integer = integer, nextend = nextend, search = search,
             details = TRUE, progress = progress, ...
         ))
@@ -237,7 +232,8 @@ ntbf01seq <- function(k1, k0 = 1/k1, power, null = 0,
       dpm = dpm, dpsd = dpsd, type = type, alternative = alternative,
       target = target, nrange = nrange, looks = looks, timing = timing,
       minN = minN, by = by, ratio = ratio, strict = strict,
-      trange = trange, tail.eps = tail.eps, integer = integer,
+      trange = trange, tail.eps = tail.eps, tail.nquad = tail.nquad,
+      integer = integer,
       nextend = nextend,
       search = search, details = FALSE, progress = progress, ...)
 }

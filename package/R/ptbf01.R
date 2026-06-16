@@ -3,7 +3,8 @@ ptbf01. <- function(k, n, n1 = n, n2 = n, null = 0, plocation = 0,
                     type = c("two.sample", "one.sample", "paired"),
                     alternative = c("two.sided", "less", "greater"),
                     lower.tail = TRUE, drange = "adaptive",
-                    tail.eps = 1e-3, ...) {
+                    tail.eps = 1e-3,
+                    tail.nquad = 128, ...) {
     ## input checks
     stopifnot(
         length(k) == 1,
@@ -58,6 +59,8 @@ ptbf01. <- function(k, n, n1 = n, n2 = n, null = 0, plocation = 0,
         tail.eps > 0,
         tail.eps < 0.5,
 
+        .tbf01_valid_tail_nquad(tail.nquad),
+
         (is.numeric(drange) && length(drange) == 2 && all(is.finite(drange)) &&
          drange[2] > drange[1]) || (is.character(drange) && length(drange) == 1 &&
                                     !is.na(drange) && drange == "adaptive")
@@ -92,13 +95,15 @@ ptbf01. <- function(k, n, n1 = n, n2 = n, null = 0, plocation = 0,
         ## tbf01() tests against zero, so shift the analysis prior by null.
         tbf01(t = (est - null)/se, n1 = n1, n2 = n2,
               plocation = plocation - null, pscale = pscale, pdf = pdf,
-              type = type, alternative = alternative, log = TRUE) - log(k)
+              type = type, alternative = alternative, log = TRUE,
+              tail.nquad = tail.nquad) - log(k)
     }
     rootFunSearch <- function(est) {
         do.call(tbf01, c(list(
             t = (est - null)/se, n1 = n1, n2 = n2,
             plocation = plocation - null, pscale = pscale, pdf = pdf,
-            type = type, alternative = alternative, log = TRUE
+            type = type, alternative = alternative, log = TRUE,
+            tail.nquad = tail.nquad
         ), searchDots)) - log(k)
     }
     region <- .tbf01_prior_region(plocation = plocation - null,
@@ -384,6 +389,9 @@ ptbf01. <- function(k, n, n1 = n, n2 = n, null = 0, plocation = 0,
 #'     is bounded by \code{tail.eps}. Smaller values search farther and can
 #'     recover extremely remote boundaries at additional computational cost.
 #'     Defaults to \code{1e-3}
+#' @param tail.nquad Number of Gauss-Legendre quadrature nodes used by
+#'     \code{\link{tbf01}} for stable wrong-tail one-sided calculations. Larger
+#'     values are more accurate but slower. Defaults to \code{128}.
 #' @param ... Optional numerical controls. For numeric ranges and two-sided
 #'     adaptive searches, arguments are passed to \code{stats::uniroot}. In
 #'     adaptive one-sided searches, \code{subdivisions}, \code{rel.tol},

@@ -36,6 +36,14 @@ vignettes/*.pdf
 *.utf8.md
 *.knit.md
 
+# Simulation verification local corpus/build outputs
+/simulations/corpus/
+/simulations/downloads/
+/simulations/logs/
+/simulations/figure/
+/simulations/registry/manifests/*.csv
+!/simulations/registry/manifests/package-verification-cases.csv
+
 # R Environment Variables
 .Renviron
 

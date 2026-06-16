@@ -6,6 +6,9 @@
 - add `tail.eps` control for one-sided adaptive t critical-value searches;
   the old fixed `|t| <= 256` stopping cap is replaced by a predictive-tail
   probability cutoff
+- fix extreme wrong-tail one-sided `tbf01()` underflow with fixed
+  Gauss-Legendre quadrature; expose the accuracy/speed tradeoff via
+  `tail.nquad`, defaulting to 128 nodes
 - make one-sided adaptive t searches scan only the mathematically expected
   direction and report unresolved finite searches with clearer diagnostics
 - fix two-sided `ptbf01()` power for shifted informed priors where BF01 is
@@ -16,8 +19,6 @@
 - make fixed-`n` sequential wrapper schedules round-trip searched increment
   schedules by respecting `nrange[1]` as the default first look when `minN` is
   missing
-- rename the sequential t boundary-search argument from `drange` to `trange`;
-  using `drange` now errors with a migration message
 - new contributor František Bartoš (<https://orcid.org/0000-0002-0018-5573>)
 
 # bfpwr 0.2

@@ -93,10 +93,12 @@ expect_equal(wide_tail_limit$tail_probability, 1e-3, tolerance = 1e-12,
 power_obj <- suppressWarnings(
     powertbf01(n = 5, k = 10, plocation = 0, pscale = 0.707, pdf = 1,
                type = "two.sample", alternative = "greater",
-               dpm = 0, dpsd = 0, tail.eps = 1e-2)
+               dpm = 0, dpsd = 0, tail.eps = 1e-2, tail.nquad = 64)
 )
 expect_equal(power_obj$tail.eps, 1e-2,
              info = "powertbf01 should store the fixed-design tail.eps control")
+expect_equal(power_obj$tail.nquad, 64,
+             info = "powertbf01 should store the fixed-design tail.nquad control")
 
 ## Regression cases for one-sided H0 roots that previously trusted a fast
 ## wrong-tail scout root. Reference values are certified by tbf01() below.

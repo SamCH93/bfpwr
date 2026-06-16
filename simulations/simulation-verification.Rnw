@@ -1,0 +1,1817 @@
+% \VignetteEngine{knitr::knitr}
+% \VignetteEncoding{UTF-8}
+% \VignetteIndexEntry{Simulation-based verification of bfpwr}
+% \VignetteDepends{knitr}
+\documentclass[a4paper, 11pt]{article}
+\usepackage{graphicx}
+\usepackage{helvet}
+\usepackage[onehalfspacing]{setspace}
+\usepackage[dvipsnames,table]{xcolor}
+\usepackage{booktabs}
+\usepackage{longtable}
+\usepackage{geometry}
+\geometry{
+  a4paper,
+  left=18mm,
+  right=18mm,
+  top=25mm,
+  bottom=25mm
+}
+
+\title{\textsf{\textbf{Simulation-based verification of bfpwr}}}
+\author{\textbf{Samuel Pawel} \\ \textbf{Franti\v{s}ek Barto\v{s}}}
+\date{Package version \Sexpr{if (file.exists(file.path(Sys.getenv("BFPWR_SIM_REPO", unset = "."), "package", "DESCRIPTION"))) read.dcf(file.path(Sys.getenv("BFPWR_SIM_REPO", unset = "."), "package", "DESCRIPTION"), fields = "Version")[1, 1] else as.character(utils::packageVersion("bfpwr"))} \\ \today}
+
+\usepackage{hyperref}
+\hypersetup{
+  bookmarksopen=true,
+  breaklinks=true,
+  pdftitle={Simulation-based verification of bfpwr},
+  colorlinks=true,
+  linkcolor=black,
+  anchorcolor=black,
+  citecolor=blue,
+  urlcolor=blue
+}
+
+\usepackage{fancyhdr}
+\pagestyle{fancy}
+\setlength{\headheight}{14pt}
+\chead{}
+\lhead{\textit{Simulation-based verification of \textbf{bfpwr}}}
+\rhead{}
+
+\begin{document}
+<<knitr-options, echo = FALSE>>=
+suppressWarnings(library(knitr))
+opts_knit$set(envir = globalenv())
+options(knitr.include_graphics.ext = TRUE)
+opts_chunk$set(fig.height = 6.5,
+               fig.width = 7.5,
+               fig.align = "center",
+               fig.keep = "all",
+               dev = "png",
+               dpi = 300,
+               cache = FALSE,
+               message = FALSE,
+               warning = FALSE)
+@
+
+<<fixture-setup, echo = FALSE>>=
+find_repo_root <- function() {
+    candidates <- c(
+        Sys.getenv("BFPWR_SIM_REPO", unset = ""),
+        normalizePath(file.path(getwd(), "..", ".."), winslash = "/",
+                      mustWork = FALSE),
+        normalizePath(file.path(getwd(), ".."), winslash = "/",
+                      mustWork = FALSE),
+        normalizePath(getwd(), winslash = "/", mustWork = FALSE)
+    )
+    candidates <- candidates[nzchar(candidates)]
+    for (candidate in candidates) {
+        support <- file.path(candidate, "simulations", "scripts",
+                             "simulation_support.R")
+        if (file.exists(support)) {
+            return(normalizePath(candidate, winslash = "/", mustWork = TRUE))
+        }
+    }
+    NA_character_
+}
+
+repo_root_path <- find_repo_root()
+registry_available <- is.character(repo_root_path) && !is.na(repo_root_path) &&
+    nzchar(repo_root_path)
+if (registry_available) {
+    source(file.path(repo_root_path, "simulations", "scripts",
+                     "simulation_support.R"))
+    source_package_checkout(repo_root_path)
+    source_simulation_library(repo_root_path)
+}
+
+corpus_root <- Sys.getenv("BFPWR_SIM_CORPUS", unset = "")
+if (!nzchar(corpus_root) && registry_available) {
+    candidate_corpus <- file.path(repo_root_path, "simulations", "corpus", "v1")
+    if (dir.exists(candidate_corpus)) {
+        corpus_root <- candidate_corpus
+    }
+}
+corpus_available <- nzchar(corpus_root) && dir.exists(corpus_root)
+if (corpus_available) {
+    corpus_root <- normalizePath(corpus_root, winslash = "/", mustWork = TRUE)
+}
+
+if (registry_available) {
+    designs <- bfpwr_sim_design_case_set("production")
+    bf_priors <- bfpwr_sim_bf_prior_case_set("production")
+    fixtures <- bfpwr_sim_fixture_specs()
+} else {
+    designs <- list()
+    bf_priors <- list()
+    fixtures <- list()
+}
+
+family_labels <- c(z = "\\textit{z}-Test",
+                   t = "\\textit{t}-Test",
+                   binomial = "Binomial Test")
+
+.fixture_table_counter <- 0L
+latex_table <- function(x, caption = NULL) {
+    if (is.null(x) || nrow(x) == 0) {
+        cat("\\emph{No rows available.}\n\n")
+        return(invisible(NULL))
+    }
+    .fixture_table_counter <<- .fixture_table_counter + 1L
+    label <- paste0("tab:fixture-report-", .fixture_table_counter)
+    wide_short <- ncol(x) > 5 && nrow(x) <= 16
+    cat("\\begingroup\\scriptsize\\setlength{\\tabcolsep}{4pt}\n")
+    if (wide_short) {
+        cat("\\begin{table}[!htbp]\n\\centering\n")
+        if (!is.null(caption)) {
+            cat("\\caption{", caption, "}\\label{", label, "}\n", sep = "")
+        }
+        cat("\\resizebox{\\textwidth}{!}{%\n")
+        cat(knitr::kable(x,
+                         format = "latex",
+                         booktabs = TRUE,
+                         row.names = FALSE,
+                         escape = FALSE))
+        cat("\n}\n\\end{table}\n")
+    } else {
+        cat(knitr::kable(x,
+                         format = "latex",
+                         booktabs = TRUE,
+                         longtable = TRUE,
+                         caption = caption,
+                         label = sub("^tab:", "", label),
+                         row.names = FALSE,
+                         escape = FALSE))
+    }
+    cat("\n\\endgroup\n\n")
+}
+
+fmt_number <- function(x) {
+    ifelse(is.na(x), "",
+           sub("\\.?0+$", "",
+               formatC(round(as.numeric(x), 3),
+                       format = "f", digits = 3)))
+}
+
+fmt_value <- function(x) {
+    if (is.numeric(x)) {
+        return(fmt_number(x))
+    }
+    as.character(x)
+}
+
+format_named_list <- function(x) {
+    value_strings <- vapply(x, function(value) {
+        paste(fmt_value(value), collapse = ", ")
+    }, character(1))
+    paste(names(x), value_strings,
+          sep = " = ", collapse = "; ")
+}
+
+format_integer_runs <- function(x) {
+    x <- sort(unique(as.integer(x)))
+    if (length(x) == 0) return("")
+    starts <- x[c(TRUE, diff(x) != 1L)]
+    ends <- x[c(diff(x) != 1L, TRUE)]
+    paste(mapply(function(start, end) {
+        if (identical(start, end)) {
+            as.character(start)
+        } else {
+            paste0(start, "-", end)
+        }
+    }, starts, ends), collapse = ", ")
+}
+
+format_sequence <- function(x) {
+    x <- sort(unique(as.integer(x)))
+    if (length(x) == 0) return("")
+    steps <- unique(diff(x))
+    if (length(x) == 1 || length(steps) != 1L) {
+        return(paste(x, collapse = ", "))
+    }
+    paste(min(x), "to", max(x), "by", steps[[1]])
+}
+
+drop_empty_columns <- function(x) {
+    if (ncol(x) == 0) return(x)
+    keep <- vapply(x, function(col) {
+        value <- as.character(col)
+        any(!is.na(value) & nzchar(value))
+    }, logical(1))
+    x[, keep, drop = FALSE]
+}
+
+fixture_plot_title <- function(spec, mode) {
+    compact_id <- spec$fixture_set_id
+    compact_id <- sub(paste0("^", spec$family, "-"), "", compact_id)
+    compact_id <- sub("^binom-", "", compact_id)
+    compact_id <- sub(paste0("-", mode, "-core-v1$"), "", compact_id)
+    paste(compact_id, paste0(mode, "-design checks"))
+}
+
+add_fixture_overtitle <- function(spec, mode) {
+    mtext(fixture_plot_title(spec, mode),
+          side = 3, outer = TRUE, line = 1.1, font = 2, cex = 0.95)
+}
+
+report_event_colors <- function(alpha.f = 1) {
+    base <- c(H1 = "firebrick",
+              H0 = "steelblue",
+              Inc = "grey30",
+              event = "grey30")
+    out <- grDevices::adjustcolor(base, alpha.f = alpha.f)
+    names(out) <- names(base)
+    out
+}
+
+report_threshold_colors <- function(values, alpha.f = 1) {
+    base <- c("firebrick", "steelblue", "grey30")
+    values <- as.character(values)
+    out <- grDevices::adjustcolor(rep(base, length.out = length(values)),
+                                  alpha.f = alpha.f)
+    names(out) <- values
+    out
+}
+
+report_point_cex <- function(n) {
+    if (!is.finite(n)) return(0.55)
+    if (n > 2500) return(0.38)
+    if (n > 1000) return(0.46)
+    0.58
+}
+
+report_point_alpha <- function(n) {
+    if (!is.finite(n)) return(0.50)
+    if (n > 2500) return(0.35)
+    if (n > 1000) return(0.42)
+    0.55
+}
+
+format_design_prior <- function(design) {
+    prior <- design$design_prior
+    if (design$test_family %in% c("z", "t")) {
+        if (identical(prior$family, "point")) {
+            return(paste0("Point(", fmt_number(prior$mean), ")"))
+        }
+        return(paste0("Normal(", fmt_number(prior$mean), ", ",
+                      fmt_number(prior$sd), ")"))
+    }
+    if (identical(prior$family, "point")) {
+        return(paste0("Point(", fmt_number(prior$prob), ")"))
+    }
+    beta <- paste0("Beta(", fmt_number(prior$shape1), ", ",
+                   fmt_number(prior$shape2), ")")
+    if (!is.null(prior$lower) && !is.null(prior$upper) &&
+        (!identical(prior$lower, 0) || !identical(prior$upper, 1))) {
+        beta <- paste0(beta, " on [", fmt_number(prior$lower), ", ",
+                       fmt_number(prior$upper), "]")
+    }
+    beta
+}
+
+format_sampling_type <- function(type) {
+    out <- c(two.sample = "two-sample",
+             one.sample = "one-sample",
+             paired = "paired")
+    if (type %in% names(out)) out[[type]] else as.character(type)
+}
+
+format_function_name <- function(prior_case) {
+    if (identical(prior_case$test_family, "z")) {
+        return(switch(prior_case$bf_type,
+                      normal = "bf01",
+                      moment = "nmbf01",
+                      directional = "dirbf01",
+                      prior_case$bf_type))
+    }
+    if (identical(prior_case$test_family, "t")) {
+        return("tbf01")
+    }
+    if (identical(prior_case$test_family, "binomial")) {
+        return(paste0("binbf01 (", prior_case$bf_type, ")"))
+    }
+    prior_case$bf_type
+}
+
+family_design_cases <- function(family) {
+    designs[vapply(designs, function(x) {
+        identical(x$test_family, family)
+    }, logical(1))]
+}
+
+design_short_prefix <- function(family) {
+    switch(family,
+           z = "Z",
+           t = "T",
+           binomial = "B",
+           "D")
+}
+
+design_short_id_map <- function(family) {
+    family_designs <- family_design_cases(family)
+    ids <- paste0(design_short_prefix(family), seq_along(family_designs))
+    names(ids) <- vapply(family_designs, function(x) x$design_case_id,
+                         character(1))
+    ids
+}
+
+format_design_refs <- function(design_case_ids, family) {
+    design_map <- design_short_id_map(family)
+    design_case_ids <- unique(as.character(design_case_ids))
+    positions <- match(design_case_ids, names(design_map))
+    positions <- sort(unique(positions[!is.na(positions)]))
+    if (length(positions) == 0) return("")
+    starts <- positions[c(TRUE, diff(positions) != 1L)]
+    ends <- positions[c(diff(positions) != 1L, TRUE)]
+    prefix <- design_short_prefix(family)
+    paste(mapply(function(start, end) {
+        if (identical(start, end)) {
+            paste0(prefix, start)
+        } else {
+            paste0(prefix, start, "-", prefix, end)
+        }
+    }, starts, ends), collapse = ", ")
+}
+
+format_sided_suffix <- function(alternative) {
+    switch(alternative,
+           two.sided = "",
+           less = "$_{-}$",
+           greater = "$_{+}$",
+           "")
+}
+
+format_h1_prior <- function(prior_case) {
+    prior <- prior_case$analysis_prior
+    if (identical(prior_case$test_family, "z")) {
+        suffix <- if (identical(prior_case$bf_type, "directional")) {
+            "$_{+}$"
+        } else {
+            ""
+        }
+        body <- if (identical(prior_case$bf_type, "moment")) {
+            paste0("Moment", suffix, "(", fmt_number(prior$psd), ")")
+        } else if (identical(prior$psd, 0)) {
+            paste0("Point", suffix, "(", fmt_number(prior$pm), ")")
+        } else {
+            paste0("Normal", suffix, "(", fmt_number(prior$pm), ", ",
+                   fmt_number(prior$psd), ")")
+        }
+        return(body)
+    }
+    if (identical(prior_case$test_family, "t")) {
+        suffix <- format_sided_suffix(prior$alternative)
+        body <- if (identical(prior$pdf, 1)) {
+            paste0("Cauchy", suffix, "(", fmt_number(prior$plocation), ", ",
+                   fmt_number(prior$pscale), ")")
+        } else {
+            paste0("StudentT", suffix, "(", fmt_number(prior$pdf), ", ",
+                   fmt_number(prior$plocation), ", ",
+                   fmt_number(prior$pscale), ")")
+        }
+        return(body)
+    }
+    if (identical(prior_case$test_family, "binomial")) {
+        suffix <- if (identical(prior_case$bf_type, "direction")) {
+            "$_{+}$"
+        } else {
+            ""
+        }
+        body <- paste0("Beta", suffix, "(", fmt_number(prior$a), ", ",
+                       fmt_number(prior$b), ")")
+        return(body)
+    }
+    format_named_list(prior)
+}
+
+format_h0_prior <- function(prior_case) {
+    prior <- prior_case$analysis_prior
+    if (identical(prior_case$test_family, "binomial")) {
+        return(paste0("Point(", fmt_number(prior$p0), ")"))
+    }
+    if (!is.null(prior$null)) {
+        return(paste0("Point(", fmt_number(prior$null), ")"))
+    }
+    ""
+}
+
+fixture_function_name <- function(spec) {
+    if (identical(spec$family, "z")) {
+        names <- c(normal = "bf01", moment = "nmbf01",
+                   directional = "dirbf01")
+        return(paste(unname(names[spec$bf_types]), collapse = ", "))
+    }
+    if (identical(spec$family, "t")) {
+        return("tbf01")
+    }
+    if (identical(spec$family, "binomial")) {
+        return(paste0("binbf01 (", paste(spec$bf_types, collapse = ", "),
+                      ")"))
+    }
+    paste(spec$bf_types, collapse = ", ")
+}
+
+format_schedule_families <- function(schedules) {
+    family_ids <- vapply(schedules, function(s) s$schedule_family_id,
+                         character(1))
+    families <- lapply(unique(family_ids), function(id) {
+        schedules[family_ids == id]
+    })
+    paste(vapply(families, function(group) {
+        starts <- unique(vapply(group, function(s) min(s$n), integer(1)))
+        increments <- unique(vapply(group, function(s) {
+            if (length(s$n) < 2) NA_integer_ else diff(s$n)[[1]]
+        }, integer(1)))
+        n_looks <- sort(unique(vapply(group, function(s) length(s$n),
+                                      integer(1))))
+        paste0("start ", paste(starts, collapse = "/"),
+               ", by ", paste(increments, collapse = "/"),
+               " (", format_integer_runs(n_looks), " looks)")
+    }, character(1)), collapse = "; ")
+}
+
+design_table <- function(family) {
+    family_designs <- family_design_cases(family)
+    if (length(family_designs) == 0) return(data.frame())
+    design_map <- design_short_id_map(family)
+    rows <- do.call(rbind, lapply(family_designs, function(x) {
+        generation <- x$generation
+        sampling <- if (identical(family, "t")) {
+            format_sampling_type(generation$type)
+        } else {
+            ""
+        }
+        ratio <- if (identical(family, "t") &&
+                     identical(generation$type, "two.sample")) {
+            fmt_number(generation$n2_multiplier)
+        } else {
+            ""
+        }
+        data.frame(
+            "Design" = unname(design_map[[x$design_case_id]]),
+            "Design Prior" = format_design_prior(x),
+            "Sequence" = format_sequence(x$look_grid),
+            "Repetitions" = x$nsim,
+            "USD" = if (!is.null(generation$usd)) {
+                fmt_number(generation$usd)
+            } else {
+                ""
+            },
+            "Sampling" = sampling,
+            "n2/n1" = ratio,
+            check.names = FALSE,
+            stringsAsFactors = FALSE
+        )
+    }))
+    drop_empty_columns(rows)
+}
+
+analysis_prior_table <- function(family) {
+    family_priors <- bf_priors[vapply(bf_priors, function(x) {
+        identical(x$test_family, family)
+    }, logical(1))]
+    if (length(family_priors) == 0) return(data.frame())
+    rows <- do.call(rbind, lapply(family_priors, function(x) {
+        data.frame(
+            Function = format_function_name(x),
+            "H1" = format_h1_prior(x),
+            "H0" = format_h0_prior(x),
+            design_case_id = x$design_case_id,
+            check.names = FALSE,
+            stringsAsFactors = FALSE
+        )
+    }))
+    out <- stats::aggregate(
+        design_case_id ~ Function + H1 + H0,
+        rows,
+        function(x) format_design_refs(x, family))
+    names(out)[names(out) == "design_case_id"] <- "Designs"
+    out[order(out$Function, out$H1, out$H0), ]
+}
+
+fixture_setup_table <- function(family, mode) {
+    family_fixtures <- fixtures[vapply(fixtures, function(x) {
+        identical(x$family, family) && identical(x$mode, mode)
+    }, logical(1))]
+    if (length(family_fixtures) == 0) return(data.frame())
+    out <- do.call(rbind, lapply(family_fixtures, function(spec) {
+        thresholds <- if (!is.null(spec$tail_thresholds)) {
+            paste(unique(spec$tail_thresholds$evidence_threshold),
+                  collapse = ", ")
+        } else {
+            paste(unique(spec$threshold_pairs$evidence_threshold),
+                  collapse = ", ")
+        }
+        schedule_families <- if (identical(mode, "sequential")) {
+            format_schedule_families(spec$schedules)
+        } else ""
+        selected <- bfpwr_sim_select_fixture_bf_priors(
+            spec, bf_priors, corpus_root = corpus_root,
+            available_only = FALSE)
+        data.frame(
+            "Function" = fixture_function_name(spec),
+            "Analysis priors" = length(selected),
+            "Evidence thresholds" = paste0("BF ", thresholds),
+            "Look sequence" = schedule_families,
+            check.names = FALSE,
+            stringsAsFactors = FALSE
+        )
+    }))
+    drop_empty_columns(out)
+}
+
+materialized_fixture_specs <- function(family, mode) {
+    family_fixtures <- fixtures[vapply(fixtures, function(x) {
+        identical(x$family, family) && identical(x$mode, mode)
+    }, logical(1))]
+    if (!corpus_available || length(family_fixtures) == 0) return(list())
+    family_fixtures[vapply(family_fixtures, function(x) {
+        dir.exists(bfpwr_sim_fixture_dir(corpus_root, x))
+    }, logical(1))]
+}
+
+fixture_validation_file <- function(fixture_set_id, suffix) {
+    validation_root <- file.path(corpus_root, "fixture-validation")
+    if (!dir.exists(validation_root)) return(NA_character_)
+
+    target <- paste0(fixture_set_id, suffix)
+    direct <- file.path(validation_root, target)
+    if (file.exists(direct)) return(direct)
+
+    files <- list.files(validation_root, recursive = TRUE,
+                        full.names = TRUE, no.. = TRUE)
+    matches <- sort(files[basename(files) == target])
+    if (length(matches) == 0) NA_character_ else matches[[1]]
+}
+
+fixed_reference_diagnostics <- function(spec, fixture) {
+    diagnostic_file <- fixture_validation_file(
+        spec$fixture_set_id, "-reference-diagnostic-rows.csv")
+    diagnostic_source <- "cached"
+    if (is.na(diagnostic_file) || !file.exists(diagnostic_file)) {
+        diagnostic_file <- fixture_validation_file(
+            spec$fixture_set_id, "-reference-plot-diagnostic-rows.csv")
+        diagnostic_source <- "cached_plot"
+    }
+    if (!is.na(diagnostic_file) && file.exists(diagnostic_file)) {
+        rows <- utils::read.csv(diagnostic_file, stringsAsFactors = FALSE)
+        if (!"reference_mcse" %in% names(rows) &&
+            all(c("reference_prob", "nsim") %in% names(rows))) {
+            rows$reference_mcse <- bfpwr_sim_mcse(rows$reference_prob,
+                                                  rows$nsim)
+        }
+        return(list(diagnostic_rows = rows,
+                    reference_rows = rows,
+                    source = diagnostic_source))
+    }
+    list(diagnostic_rows = data.frame(),
+         reference_rows = data.frame(),
+         source = "missing")
+}
+
+plot_event_error_summary <- function(rows, event_col = "tail") {
+    if (!event_col %in% names(rows) || nrow(rows) == 0) {
+        plot.new()
+        title("Package error density by event")
+        text(0.5, 0.5, "No event summaries")
+        return(invisible(NULL))
+    }
+    rows <- rows[is.finite(rows$abs_error), , drop = FALSE]
+    if (nrow(rows) == 0) {
+        plot.new()
+        title("Package error density by event")
+        text(0.5, 0.5, "No finite errors")
+        return(invisible(NULL))
+    }
+
+    events <- unique(as.character(rows[[event_col]]))
+    preferred <- c("H1", "H0", "Inc")
+    events <- c(intersect(preferred, events), setdiff(sort(events), preferred))
+    event_labels <- c(H1 = "H1 evidence", H0 = "H0 evidence",
+                      Inc = "Inconclusive")
+    thresholds <- if ("evidence_threshold" %in% names(rows)) {
+        sort(unique(rows$evidence_threshold))
+    } else {
+        NA_real_
+    }
+
+    value_groups <- list()
+    for (event in events) for (threshold in thresholds) {
+        keep <- as.character(rows[[event_col]]) == event
+        if (!is.na(threshold) && is.finite(threshold)) {
+            keep <- keep & rows$evidence_threshold == threshold
+        }
+        values <- rows$abs_error[keep]
+        values <- values[is.finite(values)]
+        if (length(values) > 0) {
+            value_groups[[paste(event, threshold, sep = "\r")]] <- values
+        }
+    }
+    if (length(value_groups) == 0) {
+        plot.new()
+        title("Package error density by event")
+        text(0.5, 0.5, "No event summaries")
+        return(invisible(NULL))
+    }
+    y_max <- max(unlist(value_groups, use.names = FALSE), na.rm = TRUE)
+    if (!is.finite(y_max) || y_max <= 0) {
+        y_max <- 1e-6
+    }
+    plot(NA, NA,
+         xlim = c(0.5, length(events) + 0.5),
+         ylim = c(0, 1.08 * y_max),
+         xaxt = "n",
+         xlab = "Event",
+         ylab = "|package - simulation|",
+         main = "Package error density by event")
+    labels <- ifelse(events %in% names(event_labels),
+                     event_labels[events], events)
+    axis(1, at = seq_along(events), labels = labels)
+    abline(h = 0, col = "grey85", lwd = 1)
+
+    threshold_cols <- report_threshold_colors(thresholds)
+    offsets <- if (length(thresholds) > 1L) {
+        seq(-0.22, 0.22, length.out = length(thresholds))
+    } else {
+        0
+    }
+    names(offsets) <- as.character(thresholds)
+    violin_width <- if (length(thresholds) > 1L) 0.09 else 0.22
+    for (event in events) for (threshold in thresholds) {
+        key <- paste(event, threshold, sep = "\r")
+        values <- value_groups[[key]]
+        if (is.null(values)) next
+        threshold_name <- as.character(threshold)
+        x <- match(event, events) + offsets[[threshold_name]]
+        col <- threshold_cols[[threshold_name]]
+        fill <- grDevices::adjustcolor(col, alpha.f = 0.30)
+        if (length(unique(values)) > 1L) {
+            dens <- stats::density(values, from = 0, to = y_max,
+                                   n = 256, adjust = 1)
+            width <- dens$y / max(dens$y) * violin_width
+            polygon(c(x - width, rev(x + width)),
+                    c(dens$x, rev(dens$x)),
+                    col = fill, border = col, lwd = 0.8)
+        } else {
+            segments(x - violin_width, values[[1]], x + violin_width,
+                     values[[1]], col = col, lwd = 2)
+        }
+        median_value <- stats::median(values)
+        p95_value <- as.numeric(stats::quantile(values, 0.95,
+                                                names = FALSE))
+        points(x, median_value, pch = 16, col = col, cex = 0.75)
+        segments(x - violin_width * 0.75, p95_value,
+                 x + violin_width * 0.75, p95_value,
+                 col = col, lwd = 1.6)
+    }
+    legend("topleft",
+           legend = c("median", "95th percentile"),
+           pch = c(16, NA), lty = c(NA, 1),
+           lwd = c(NA, 1.6), col = "grey30", bty = "n", cex = 0.65)
+    if (all(is.finite(thresholds))) {
+        legend("topright", legend = paste("BF", thresholds),
+               col = threshold_cols, pch = 16, bty = "n", cex = 0.65)
+    }
+    invisible(NULL)
+}
+
+plot_fixed_fixture <- function(spec) {
+    fixture <- bfpwr_sim_read_fixture_summary(
+        corpus_root = corpus_root,
+        fixture_set_id = spec$fixture_set_id,
+        family = spec$family,
+        mode = "fixed")
+    diagnostics <- fixed_reference_diagnostics(spec, fixture)
+    rows <- diagnostics$diagnostic_rows
+    rows <- rows[is.finite(rows$reference_prob), , drop = FALSE]
+    if (nrow(rows) == 0) {
+        old_par <- par(mfrow = c(2, 2), mar = c(4, 4, 3, 1),
+                       oma = c(0, 0, 3, 0))
+        on.exit(par(old_par), add = TRUE)
+        titles <- c("Simulation vs package",
+                    "Absolute package error",
+                    "Standardized package error",
+                    "Package error density by event")
+        labels <- c("No precomputed package probability checks",
+                    "No precomputed package error checks",
+                    "No precomputed standardized checks",
+                    "No precomputed event checks")
+        for (i in seq_along(titles)) {
+            plot.new()
+            title(titles[[i]])
+            text(0.5, 0.5, labels[[i]])
+        }
+        add_fixture_overtitle(spec, "fixed")
+        return(invisible(NULL))
+    }
+    rows$error <- rows$reference_prob - rows$prob
+    rows$abs_error <- abs(rows$error)
+    rows$simulation_mcse <- if ("mcse" %in% names(rows)) {
+        rows$mcse
+    } else {
+        rep(NA_real_, nrow(rows))
+    }
+    fallback_mcse <- bfpwr_sim_mcse(rows$prob, rows$nsim)
+    missing_mcse <- !is.finite(rows$simulation_mcse) |
+        rows$simulation_mcse <= 0
+    rows$simulation_mcse[missing_mcse] <- fallback_mcse[missing_mcse]
+    rows$tail_probability <- pmin(rows$prob, 1 - rows$prob)
+    scale_ok <- is.finite(rows$simulation_mcse) & rows$simulation_mcse > 0
+    rows$error_mcse <- NA_real_
+    rows$error_mcse[scale_ok] <-
+        rows$error[scale_ok] / rows$simulation_mcse[scale_ok]
+
+    old_par <- par(mfrow = c(2, 2), mar = c(4, 4, 3, 1),
+                   oma = c(0, 0, 3, 0))
+    on.exit(par(old_par), add = TRUE)
+
+    baseline_nsim <- stats::median(rows$nsim[is.finite(rows$nsim) &
+                                                 rows$nsim > 0])
+    probability_ylim <- range(rows$abs_error, finite = TRUE)
+    if (is.finite(baseline_nsim)) {
+        pgrid <- seq(0, 1, length.out = 301)
+        probability_ylim <- range(probability_ylim,
+                                  3 * bfpwr_sim_mcse(pgrid, baseline_nsim),
+                                  finite = TRUE)
+    }
+    event_values <- if ("tail" %in% names(rows)) {
+        as.character(rows$tail)
+    } else {
+        rep("event", nrow(rows))
+    }
+    point_cex <- report_point_cex(nrow(rows))
+    point_alpha <- report_point_alpha(nrow(rows))
+    event_palette <- report_event_colors(point_alpha)
+    legend_palette <- report_event_colors(0.85)
+    point_cols <- event_palette[event_values]
+    point_cols[is.na(point_cols)] <- event_palette[["event"]]
+
+    lim <- range(c(rows$prob, rows$reference_prob), finite = TRUE)
+    if (length(lim) != 2L || !all(is.finite(lim)) || diff(lim) == 0) {
+        lim <- c(0, 1)
+    } else {
+        pad <- max(0.02, diff(lim) * 0.08)
+        lim <- pmin(1, pmax(0, lim + c(-pad, pad)))
+    }
+    plot(rows$prob, rows$reference_prob,
+         pch = 16, cex = point_cex, col = point_cols,
+         xlab = "Simulated probability",
+         ylab = "Package probability",
+         main = "Simulation vs package",
+         xlim = lim, ylim = lim)
+    abline(0, 1, col = "firebrick", lwd = 2)
+    shown_events <- intersect(c("H1", "H0", "Inc"), unique(event_values))
+    if (length(shown_events) > 0) {
+        event_labels <- c(H1 = "H1 evidence", H0 = "H0 evidence",
+                          Inc = "Inconclusive")
+        legend("topleft", legend = event_labels[shown_events],
+               col = legend_palette[shown_events], pch = 16,
+               bty = "n", cex = 0.75)
+    }
+
+    plot(rows$prob, rows$abs_error,
+         pch = 16, cex = point_cex, col = point_cols,
+         xlab = "Simulated probability",
+         ylab = "|package - simulation|",
+         main = "Absolute package error",
+         ylim = c(0, probability_ylim[[2]]))
+    if (is.finite(baseline_nsim)) {
+        lines(pgrid, 2 * bfpwr_sim_mcse(pgrid, baseline_nsim),
+              col = "steelblue", lwd = 2)
+        lines(pgrid, 3 * bfpwr_sim_mcse(pgrid, baseline_nsim),
+              col = "firebrick", lwd = 2, lty = 2)
+        legend("topright", legend = c("2 sim. SE", "3 sim. SE"),
+               col = c("steelblue", "firebrick"), lty = c(1, 2),
+               lwd = 2, bty = "n", cex = 0.8)
+    }
+
+    standardized <- rows[is.finite(rows$error_mcse), , drop = FALSE]
+    if (nrow(standardized) > 0) {
+        tail_floor <- min(1 / (2 * standardized$nsim[standardized$nsim > 0]),
+                          na.rm = TRUE)
+        x <- pmax(standardized$tail_probability, tail_floor)
+        standardized_ylim <- max(abs(standardized$error_mcse), 3,
+                                 na.rm = TRUE)
+        standardized_events <- if ("tail" %in% names(standardized)) {
+            as.character(standardized$tail)
+        } else {
+            rep("event", nrow(standardized))
+        }
+        standardized_cols <- event_palette[standardized_events]
+        standardized_cols[is.na(standardized_cols)] <- event_palette[["event"]]
+        plot(x, standardized$error_mcse, log = "x",
+             pch = 16, cex = point_cex, col = standardized_cols,
+             xlab = "Smaller simulated event probability",
+             ylab = "(package - simulation) / simulation SE",
+             main = "Standardized package error",
+             ylim = c(-standardized_ylim, standardized_ylim))
+        abline(h = 0, col = "grey50", lwd = 1)
+        abline(h = c(-2, 2), col = "steelblue", lwd = 2)
+        abline(h = c(-3, 3), col = "firebrick", lty = 2, lwd = 2)
+        legend("topright", legend = c("+/- 2 sim. SE", "+/- 3 sim. SE"),
+               col = c("steelblue", "firebrick"), lty = c(1, 2),
+               lwd = 2, bty = "n", cex = 0.8)
+    } else {
+        plot.new()
+        title("Standardized package error")
+        text(0.5, 0.5, "No scaled errors")
+    }
+
+    plot_event_error_summary(rows, event_col = "tail")
+    add_fixture_overtitle(spec, "fixed")
+}
+
+sequential_fixture_schedule <- function(fixture, schedule_id) {
+    hits <- vapply(fixture$spec$schedules, function(x) {
+        identical(x$schedule_id, schedule_id)
+    }, logical(1))
+    if (sum(hits) != 1L) {
+        stop("schedule not found or not unique: ", schedule_id)
+    }
+    fixture$spec$schedules[[which(hits)]]
+}
+
+z_sequential_reference <- function(fixture, row, strict = TRUE) {
+    schedule <- sequential_fixture_schedule(fixture, row$schedule_id[[1]])
+    bf_prior <- bfpwr_sim_find_bf_prior_case(row$bf_prior_id[[1]],
+                                             bf_priors)
+    design <- bfpwr_sim_find_design_case(row$design_case_id[[1]], designs)
+    prior <- bf_prior$analysis_prior
+    dp <- bfpwr_sim_design_prior_mean_sd(design)
+    dpm <- dp$dpm - prior$null
+
+    if (identical(bf_prior$bf_type, "normal")) {
+        pm <- prior$pm - prior$null
+        psd <- prior$psd
+        type <- "normal"
+    } else if (identical(bf_prior$bf_type, "moment")) {
+        pm <- NULL
+        psd <- prior$psd
+        type <- "moment"
+    } else if (identical(bf_prior$bf_type, "directional")) {
+        pm <- prior$pm - prior$null
+        psd <- prior$psd
+        type <- "directional"
+    } else {
+        stop("unsupported z sequential BF type: ", bf_prior$bf_type)
+    }
+
+    pbf01seq(k1 = row$k1[[1]],
+             k0 = row$k0[[1]],
+             se = design$generation$usd / sqrt(schedule$n),
+             n = schedule$n,
+             pm = pm,
+             psd = psd,
+             dpm = dpm,
+             dpsd = dp$dpsd,
+             type = type,
+             strict = strict)
+}
+
+t_n2 <- function(n1, design) {
+    if (identical(design$generation$type, "two.sample")) {
+        pmax(2, round(n1 * design$generation$n2_multiplier))
+    } else {
+        n1
+    }
+}
+
+t_sequential_reference <- function(fixture, row, strict = TRUE) {
+    schedule <- sequential_fixture_schedule(fixture, row$schedule_id[[1]])
+    bf_prior <- bfpwr_sim_find_bf_prior_case(row$bf_prior_id[[1]],
+                                             bf_priors)
+    design <- bfpwr_sim_find_design_case(row$design_case_id[[1]], designs)
+    prior <- bf_prior$analysis_prior
+    dp <- bfpwr_sim_design_prior_mean_sd(design)
+    n1 <- schedule$n
+    n2 <- t_n2(n1, design)
+
+    ptbf01seq(k1 = row$k1[[1]],
+              k0 = row$k0[[1]],
+              n = n1,
+              n1 = n1,
+              n2 = n2,
+              plocation = prior$plocation - prior$null,
+              pscale = prior$pscale,
+              pdf = prior$pdf,
+              dpm = dp$dpm - prior$null,
+              dpsd = dp$dpsd,
+              type = prior$type,
+              alternative = prior$alternative,
+              strict = strict)
+}
+
+sequential_reference_diagnostics <- function(fixture) {
+    if (!fixture$spec$family %in% c("z", "t")) {
+        return(list(probability = data.frame(), en = data.frame()))
+    }
+
+    read_cached_en <- function() {
+        cached_en_file <- fixture_validation_file(
+            fixture$spec$fixture_set_id, "-reference-en-rows.csv")
+        en <- data.frame()
+        if (!is.na(cached_en_file) && file.exists(cached_en_file)) {
+            en <- utils::read.csv(cached_en_file,
+                                  stringsAsFactors = FALSE)
+            if (!"empirical_EN" %in% names(en) && "EN" %in% names(en)) {
+                en$empirical_EN <- en$EN
+            }
+            if (!"error_EN" %in% names(en) &&
+                all(c("reference_EN", "empirical_EN") %in% names(en))) {
+                en$error_EN <- en$reference_EN - en$empirical_EN
+            }
+            if (!"strict" %in% names(en)) {
+                en$strict <- TRUE
+            }
+        }
+        en
+    }
+
+    cached_probability_file <- fixture_validation_file(
+        fixture$spec$fixture_set_id, "-reference-diagnostic-rows.csv")
+    if (!is.na(cached_probability_file) &&
+        file.exists(cached_probability_file)) {
+        probability <- utils::read.csv(cached_probability_file,
+                                       stringsAsFactors = FALSE)
+        if (!"event" %in% names(probability) &&
+            "tail" %in% names(probability)) {
+            probability$event <- probability$tail
+        }
+        if (!"empirical" %in% names(probability) &&
+            "prob" %in% names(probability)) {
+            probability$empirical <- probability$prob
+        }
+        if (!"reference" %in% names(probability) &&
+            "reference_prob" %in% names(probability)) {
+            probability$reference <- probability$reference_prob
+        }
+        if (!"n_looks" %in% names(probability) &&
+            "look" %in% names(probability)) {
+            probability$n_looks <- probability$look
+        }
+        if (!"observed_mcse" %in% names(probability) &&
+            all(c("empirical", "nsim") %in% names(probability))) {
+            probability$observed_mcse <-
+                bfpwr_sim_mcse(probability$empirical, probability$nsim)
+        }
+        if (!"reference_mcse" %in% names(probability) &&
+            all(c("reference", "nsim") %in% names(probability))) {
+            probability$reference_mcse <-
+                bfpwr_sim_mcse(probability$reference, probability$nsim)
+        }
+        if (all(c("reference", "empirical") %in% names(probability))) {
+            probability$error <- probability$reference -
+                probability$empirical
+            probability$abs_error <- abs(probability$error)
+            probability$tail_probability <- pmin(probability$empirical,
+                                                 1 - probability$empirical)
+        }
+        if (!"error_mcse" %in% names(probability) &&
+            all(c("error", "observed_mcse", "empirical", "nsim") %in%
+                names(probability))) {
+            scale <- probability$observed_mcse
+            fallback_scale <- bfpwr_sim_mcse(probability$empirical,
+                                             probability$nsim)
+            missing_scale <- !is.finite(scale) | scale <= 0
+            scale[missing_scale] <- fallback_scale[missing_scale]
+            probability$error_mcse <- NA_real_
+            ok <- is.finite(scale) & scale > 0
+            probability$error_mcse[ok] <- probability$error[ok] / scale[ok]
+        }
+        if (!"strict" %in% names(probability)) {
+            probability$strict <- TRUE
+        }
+
+        en <- read_cached_en()
+        return(list(probability = probability, en = en, source = "cached"))
+    }
+
+    en <- read_cached_en()
+    list(probability = data.frame(), en = en,
+         source = if (nrow(en) > 0) "cached_en" else "missing")
+}
+
+plot_sequential_fixture <- function(spec) {
+    fixture <- bfpwr_sim_read_fixture_summary(
+        corpus_root = corpus_root,
+        fixture_set_id = spec$fixture_set_id,
+        family = spec$family,
+        mode = "sequential")
+    final <- fixture$final_summary
+
+    diagnostics <- sequential_reference_diagnostics(fixture)
+    rows <- diagnostics$probability
+    en <- diagnostics$en
+    if (nrow(rows) == 0 && nrow(en) == 0) {
+        return(invisible(NULL))
+    }
+
+    old_par <- par(mfrow = c(2, 2), mar = c(4, 4, 3, 1),
+                   oma = c(0, 0, 3, 0))
+    on.exit(par(old_par), add = TRUE)
+
+    event_cols <- report_event_colors(0.80)[c("H1", "H0", "Inc")]
+    if (nrow(rows) > 0) {
+        baseline_nsim <- stats::median(rows$nsim[rows$nsim > 0],
+                                       na.rm = TRUE)
+        probability_ylim <- range(rows$abs_error, finite = TRUE)
+        if (is.finite(baseline_nsim)) {
+            pgrid <- seq(0, 1, length.out = 301)
+            probability_ylim <- range(
+                probability_ylim,
+                3 * bfpwr_sim_mcse(pgrid, baseline_nsim),
+                finite = TRUE)
+        }
+        plot(rows$empirical, rows$abs_error,
+             pch = 16, cex = 0.72, col = event_cols[rows$event],
+             xlab = "Simulated probability",
+             ylab = "|package - simulation|",
+             main = "Final package error",
+             ylim = c(0, probability_ylim[[2]]))
+        if (is.finite(baseline_nsim)) {
+            lines(pgrid, 2 * bfpwr_sim_mcse(pgrid, baseline_nsim),
+                  col = "steelblue", lwd = 2)
+            lines(pgrid, 3 * bfpwr_sim_mcse(pgrid, baseline_nsim),
+                  col = "firebrick", lwd = 2, lty = 2)
+        }
+        legend("topright", legend = names(event_cols), col = event_cols,
+               pch = 16, bty = "n", cex = 0.75)
+
+        standardized <- rows[is.finite(rows$error_mcse), , drop = FALSE]
+        if (nrow(standardized) > 0) {
+            tail_floor <- min(
+                1 / (2 * standardized$nsim[standardized$nsim > 0]),
+                na.rm = TRUE)
+            x <- pmax(standardized$tail_probability, tail_floor)
+            ylim <- max(abs(standardized$error_mcse), 3, na.rm = TRUE)
+            plot(x, standardized$error_mcse, log = "x",
+                 pch = 16, cex = 0.72,
+                 col = event_cols[standardized$event],
+                 xlab = "Smaller simulated event probability",
+                 ylab = "(package - simulation) / simulation SE",
+                 main = "Package error by tail depth",
+                 ylim = c(-ylim, ylim))
+            abline(h = 0, col = "grey50", lwd = 1)
+            abline(h = c(-2, 2), col = "steelblue", lwd = 2)
+            abline(h = c(-3, 3), col = "firebrick", lty = 2, lwd = 2)
+        } else {
+            plot.new()
+            title("Package error by tail depth")
+            text(0.5, 0.5, "No scaled errors")
+        }
+    } else {
+        plot.new()
+        title("Final package error")
+        text(0.5, 0.5, "No probability-reference checks")
+        plot.new()
+        title("Package error by tail depth")
+        text(0.5, 0.5, "No probability-reference checks")
+    }
+
+    if (nrow(en) > 0) {
+        lim <- range(c(en$empirical_EN, en$reference_EN), finite = TRUE)
+        plot(en$empirical_EN, en$reference_EN,
+             pch = 16, cex = 0.80, col = report_event_colors(0.65)[["event"]],
+             xlab = "Simulated expected sample size",
+             ylab = "Package expected sample size",
+             main = "Expected sample size",
+             xlim = lim, ylim = lim)
+        abline(0, 1, col = "firebrick", lwd = 2)
+        text(en$empirical_EN, en$reference_EN,
+             labels = en$n_looks, pos = 3, cex = 0.55, col = "grey30")
+    } else {
+        plot.new()
+        title("Expected sample size")
+        text(0.5, 0.5, "No expected-sample-size checks")
+    }
+
+    if (nrow(rows) > 0) {
+        spaghetti <- rows[is.finite(rows$abs_error) &
+                              is.finite(rows$n_looks), , drop = FALSE]
+        threshold_levels <- sort(unique(spaghetti$evidence_threshold))
+        threshold_cols <- report_threshold_colors(threshold_levels)
+        y_max <- max(spaghetti$abs_error, na.rm = TRUE)
+        if (!is.finite(y_max) || y_max <= 0) {
+            y_max <- 1e-6
+        }
+        look_ticks <- sort(unique(spaghetti$n_looks))
+        spaghetti$look_position <- match(spaghetti$n_looks, look_ticks)
+        spaghetti$line_id <- paste(spaghetti$design_case_id,
+                                   spaghetti$bf_prior_id,
+                                   spaghetti$evidence_threshold,
+                                   spaghetti$event,
+                                   sep = "\r")
+        event_lty <- c(H1 = 1, H0 = 2, Inc = 3)
+        plot(NA, NA,
+             xaxt = "n",
+             xlab = "Number of looks",
+             ylab = "|package - simulation|",
+             main = "Package error by looks",
+             xlim = c(0.8, length(look_ticks) + 0.2),
+             ylim = c(0, 1.05 * y_max))
+        axis(1, at = seq_along(look_ticks), labels = look_ticks)
+        for (group in split(spaghetti, spaghetti$line_id)) {
+            group <- group[order(group$look_position), , drop = FALSE]
+            threshold <- as.character(group$evidence_threshold[[1]])
+            event <- as.character(group$event[[1]])
+            col <- grDevices::adjustcolor(threshold_cols[[threshold]],
+                                          alpha.f = 0.45)
+            lty <- if (event %in% names(event_lty)) event_lty[[event]] else 1
+            if (nrow(group) > 1) {
+                lines(group$look_position, group$abs_error,
+                      col = col, lwd = 0.8, lty = lty)
+            }
+            points(group$look_position, group$abs_error,
+                   col = col, pch = 16, cex = 0.55)
+        }
+        legend("topright", legend = paste("BF", names(threshold_cols)),
+               col = threshold_cols, pch = 16, lty = 1, bty = "n", cex = 0.65)
+        legend("topleft", legend = names(event_lty),
+               lty = event_lty, col = "grey30", bty = "n", cex = 0.65)
+    } else {
+        plot.new()
+        title("Package error by looks")
+        text(0.5, 0.5, "No probability-reference checks")
+    }
+    add_fixture_overtitle(spec, "sequential")
+}
+
+package_verification_file <- function(filename) {
+    if (!registry_available) return(NA_character_)
+    path <- file.path(repo_root_path, "simulations", "registry",
+                      "manifests", filename)
+    if (!file.exists(path)) return(NA_character_)
+    normalizePath(path, winslash = "/", mustWork = TRUE)
+}
+
+read_package_verification_csv <- function(filename) {
+    path <- package_verification_file(filename)
+    if (is.na(path)) return(data.frame())
+    utils::read.csv(path, stringsAsFactors = FALSE)
+}
+
+search_validation_file <- function(filename) {
+    if (!corpus_available) return(NA_character_)
+    path <- file.path(corpus_root, "search-validation", filename)
+    if (!file.exists(path)) return(NA_character_)
+    normalizePath(path, winslash = "/", mustWork = TRUE)
+}
+
+read_search_validation_csv <- function(filename) {
+    path <- search_validation_file(filename)
+    if (is.na(path)) return(data.frame())
+    utils::read.csv(path, stringsAsFactors = FALSE)
+}
+
+fmt_count <- function(x) {
+    ifelse(is.na(x), "", format(as.integer(x), big.mark = ",",
+                                scientific = FALSE))
+}
+
+fmt_seconds <- function(x) {
+    x <- suppressWarnings(as.numeric(x))
+    ifelse(is.na(x), "",
+           ifelse(x >= 60, paste0(fmt_number(x / 60), " min"),
+                  paste0(fmt_number(x), " s")))
+}
+
+fmt_flag <- function(x) {
+    ifelse(is.na(x), "", ifelse(x %in% TRUE, "yes", "no"))
+}
+
+format_search_policy <- function(x) {
+    x <- as.character(x)
+    x[x == "fixed_anchor_plus_package_verification_manifest"] <-
+        "Standard checks plus release cases"
+    x[x == "fixed_anchor_plus_sequential_manifest"] <-
+        "Standard checks plus sequential cases"
+    x[x == "package_verification_manifest"] <- "Release cases"
+    x[x == "sequential_manifest"] <- "Sequential cases"
+    x[x == "simulation_crossings_only"] <- "Simulation crossings only"
+    gsub("_", " ", x, fixed = TRUE)
+}
+
+format_manifest_role <- function(x) {
+    out <- as.character(x)
+    out[out == "required_n_search"] <- "Primary search checks"
+    out[out == "boundary_diagnostic"] <- "Exploratory search checks"
+    gsub("_", " ", out, fixed = TRUE)
+}
+
+format_validation_role <- function(x) {
+    out <- as.character(x)
+    out[out == "fixed_probability_reference"] <- "Fixed probability checks"
+    out[out == "sequential_package_reference"] <-
+        "Sequential probability and expected sample size checks"
+    out[out == "sequential_expected_sample_size_reference"] <-
+        "Sequential expected sample size checks"
+    out[out == "sequential_n_search"] <- "Sequential sample-size search"
+    out[out == "fixture_integrity_only"] <- "Simulation data checks"
+    gsub("_", " ", out, fixed = TRUE)
+}
+
+format_simulation_status <- function(x) {
+    out <- as.character(x)
+    out[out == "achieved"] <- "Reached in simulation"
+    out[out == "not_achieved_at_search_bound"] <-
+        "Not reached by simulated range"
+    out[out == "not_achieved_internal_best"] <-
+        "Not reached in simulation"
+    gsub("_", " ", out, fixed = TRUE)
+}
+
+format_severity <- function(x) {
+    out <- as.character(x)
+    out[out == "warning"] <- "Note"
+    out[out == "error"] <- "Error"
+    out[out == "ok"] <- "OK"
+    gsub("_", " ", out, fixed = TRUE)
+}
+
+format_status_rule <- function(x) {
+    out <- as.character(x)
+    out[out == "manifest:internal_best_nonachieved"] <-
+        "Exploratory rows need review"
+    out[out == "scope:profiles_without_package_rows"] <-
+        "Some simulation crossings are informational only"
+    gsub("_", " ", out, fixed = TRUE)
+}
+
+format_status_details <- function(x) {
+    out <- as.character(x)
+    out[out == paste("some non-achieved simulation diagnostics did not end at",
+                     "the search boundary and should be interpreted case by",
+                     "case")] <- paste(
+        "Some exploratory rows did not reach the requested probability within",
+        "the simulated range; they are reported for context rather than used",
+        "as package pass/fail checks.")
+    out[out == paste("search validation is a stratified smoke suite; not every",
+                     "simulation crossing has a package-search row")] <- paste(
+        "Some simulation crossings are shown for context, while package",
+        "sample-size searches are evaluated only for the committed",
+        "verification cases.")
+    gsub("_", " ", out, fixed = TRUE)
+}
+
+package_verification_coverage_table <- function() {
+    coverage <- read_package_verification_csv(
+        "package-verification-cases-coverage.csv")
+    if (nrow(coverage) == 0) {
+        manifest <- read_package_verification_csv(
+            "package-verification-cases.csv")
+        if (nrow(manifest) > 0) {
+            coverage <- bfpwr_sim_package_verification_coverage(manifest)
+        }
+    }
+    if (nrow(coverage) == 0) return(data.frame())
+    role_order <- match(coverage$validation_role,
+                        c("fixed_probability_reference",
+                          "sequential_package_reference",
+                          "sequential_expected_sample_size_reference",
+                          "sequential_n_search",
+                          "fixture_integrity_only"))
+    coverage <- coverage[order(role_order, coverage$family, coverage$mode,
+                               coverage$package_function),
+                         , drop = FALSE]
+    data.frame(
+        "Role" = format_validation_role(coverage$validation_role),
+        "Family" = coverage$family,
+        "Mode" = coverage$mode,
+        "Function" = coverage$package_function,
+        "Rows" = fmt_count(coverage$rows),
+        "Required" = fmt_count(coverage$required_rows),
+        "Simulation sets" = fmt_count(coverage$fixtures),
+        "Designs" = fmt_count(coverage$designs),
+        "Priors" = fmt_count(coverage$bf_priors),
+        "Schedules" = fmt_count(coverage$schedules),
+        "BF thresholds" = coverage$thresholds,
+        check.names = FALSE,
+        stringsAsFactors = FALSE
+    )
+}
+
+search_validation_overview_table <- function() {
+    overview <- read_search_validation_csv("search-validation-overview.csv")
+    if (nrow(overview) == 0) return(data.frame())
+    row <- overview[nrow(overview), , drop = FALSE]
+    data.frame(
+        "Generated" = row$generated_at,
+        "Policy" = format_search_policy(row$package_rows_policy),
+        "Comparison rows" = fmt_count(row$comparison_rows),
+        "Package rows" = fmt_count(row$package_rows),
+        "Comparable rows" = fmt_count(row$comparable_rows),
+        "Sequential search cases" = if ("sequential_manifest_rows" %in%
+                                         names(row)) {
+            fmt_count(row$sequential_manifest_rows)
+        } else "",
+        "Recomputed rows" = if ("package_recomputed_rows" %in%
+                                names(row)) {
+            fmt_count(row$package_recomputed_rows)
+        } else "",
+        "Recompute time" = if ("package_recompute_elapsed_seconds" %in%
+                               names(row)) {
+            fmt_seconds(row$package_recompute_elapsed_seconds)
+        } else "",
+        "Exploratory rows run" = if ("search_diagnostics_evaluated" %in%
+                                      names(row)) {
+            fmt_flag(row$search_diagnostics_evaluated)
+        } else "",
+        check.names = FALSE,
+        stringsAsFactors = FALSE
+    )
+}
+
+sequential_search_coverage_table <- function() {
+    coverage <- read_search_validation_csv(
+        "sequential-search-validation-coverage.csv")
+    if (nrow(coverage) == 0) return(data.frame())
+    role_order <- match(coverage$manifest_role,
+                        c("required_n_search", "boundary_diagnostic"))
+    coverage <- coverage[order(coverage$package_function, role_order,
+                               coverage$simulation_status),
+                         , drop = FALSE]
+    n_range <- ifelse(is.na(coverage$min_n) | is.na(coverage$max_n),
+                      "", paste0(fmt_count(coverage$min_n), "-",
+                                 fmt_count(coverage$max_n)))
+    data.frame(
+        "Function" = coverage$package_function,
+        "Role" = format_manifest_role(coverage$manifest_role),
+        "Simulation status" =
+            format_simulation_status(coverage$simulation_status),
+        "BF types" = if ("bf_types" %in% names(coverage)) {
+            coverage$bf_types
+        } else "",
+        "Evidence" = if ("evidence" %in% names(coverage)) {
+            coverage$evidence
+        } else "",
+        "BF thresholds" = if ("thresholds" %in% names(coverage)) {
+            coverage$thresholds
+        } else "",
+        "Targets" = if ("target_prob_values" %in% names(coverage)) {
+            coverage$target_prob_values
+        } else fmt_count(coverage$target_probs),
+        "Rows" = fmt_count(coverage$rows),
+        "Reached" = fmt_count(coverage$package_reached),
+        "Certified" = fmt_count(coverage$package_certified),
+        "Errors" = fmt_count(coverage$package_errors),
+        "Schedules" = fmt_count(coverage$schedules),
+        "Designs" = fmt_count(coverage$design_cases),
+        "Priors" = fmt_count(coverage$bf_priors),
+        "n range" = n_range,
+        check.names = FALSE,
+        stringsAsFactors = FALSE
+    )
+}
+
+search_validation_status_table <- function() {
+    status <- read_search_validation_csv("search-validation-status.csv")
+    if (nrow(status) == 0) return(data.frame())
+    data.frame(
+        "Severity" = format_severity(status$severity),
+        "Note" = format_status_rule(status$rule),
+        "Rows" = fmt_count(status$n_failed),
+        "Details" = format_status_details(status$details),
+        check.names = FALSE,
+        stringsAsFactors = FALSE
+    )
+}
+
+search_validation_summary_table <- function() {
+    summary <- read_search_validation_csv("search-validation-summary.csv")
+    if (nrow(summary) == 0) return(data.frame())
+    keep <- summary$target_source == "sequential_schedule_crossing" &
+        summary$package_reached > 0
+    out <- summary[keep, , drop = FALSE]
+    if (nrow(out) == 0) return(data.frame())
+    out <- out[order(out$family, out$bf_type, out$search_profile_id),
+               , drop = FALSE]
+    data.frame(
+        "Family" = out$family,
+        "BF type" = out$bf_type,
+        "Search profile" = gsub("_", " ", out$search_profile_id,
+                                fixed = TRUE),
+        "Rows" = fmt_count(out$rows),
+        "Simulation achieved" = fmt_count(out$simulation_achieved),
+        "Package reached" = fmt_count(out$package_reached),
+        "Median n ratio" = fmt_number(out$median_n_ratio),
+        "P90 fractional error" =
+            fmt_number(out$p90_abs_fractional_error),
+        "Max fractional error" =
+            fmt_number(out$max_abs_fractional_error),
+        check.names = FALSE,
+        stringsAsFactors = FALSE
+    )
+}
+
+package_timing_rows <- function() {
+    rows <- list()
+    idx <- 0L
+    if (corpus_available) {
+        validation_dir <- file.path(corpus_root, "fixture-validation")
+        if (dir.exists(validation_dir)) {
+            timing_files <- list.files(
+                validation_dir,
+                pattern = "-reference-timings\\.csv$",
+                full.names = TRUE)
+            for (path in timing_files) {
+                x <- tryCatch(utils::read.csv(path, stringsAsFactors = FALSE),
+                              error = function(e) data.frame())
+                if (nrow(x) == 0) next
+                x$timing_source <- "reference"
+                if (!"n_rows" %in% names(x)) x$n_rows <- 1L
+                idx <- idx + 1L
+                rows[[idx]] <- x
+            }
+        }
+
+        search_bundle <- file.path(corpus_root, "search-validation",
+                                   "search-validation-comparison.rds")
+        if (file.exists(search_bundle)) {
+            bundle <- tryCatch(readRDS(search_bundle),
+                               error = function(e) NULL)
+            comparison <- if (is.null(bundle)) NULL else bundle$comparison
+            if (is.data.frame(comparison) &&
+                "package_elapsed_seconds" %in% names(comparison)) {
+                keep <- is.finite(comparison$package_elapsed_seconds)
+                x <- comparison[keep, , drop = FALSE]
+                if (nrow(x) > 0) {
+                    idx <- idx + 1L
+                    rows[[idx]] <- data.frame(
+                        package_verification_case_id =
+                            if ("package_verification_case_id" %in%
+                                names(x)) x$package_verification_case_id
+                            else NA_character_,
+                        validation_role =
+                            if ("validation_role" %in% names(x)) {
+                                x$validation_role
+                            } else "sequential_n_search",
+                        fixture_set_id = x$fixture_set_id,
+                        family = x$family,
+                        mode = x$mode,
+                        bf_type = x$bf_type,
+                        package_function = x$package_function,
+                        bf_prior_id = x$bf_prior_id,
+                        design_case_id = x$design_case_id,
+                        look_grid_name = x$look_grid_name,
+                        schedule_id = x$schedule_id,
+                        evidence_threshold = x$evidence_threshold,
+                        threshold_id = NA_character_,
+                        tail = if ("evidence" %in% names(x)) x$evidence
+                               else NA_character_,
+                        n_rows = 1L,
+                        n_looks = if ("n_looks" %in% names(x)) x$n_looks
+                                  else NA_integer_,
+                        elapsed_seconds = x$package_elapsed_seconds,
+                        timing_status = ifelse(
+                            is.na(x$package_error) | !nzchar(x$package_error),
+                            "ok", "error"),
+                        timing_error = ifelse(is.na(x$package_error), "",
+                                              x$package_error),
+                        timing_source = "search",
+                        stringsAsFactors = FALSE)
+                }
+            }
+        }
+    }
+    if (length(rows) == 0) return(data.frame())
+    out <- do.call(rbind, rows)
+    out$elapsed_seconds <- suppressWarnings(as.numeric(out$elapsed_seconds))
+    out$n_rows <- suppressWarnings(as.integer(out$n_rows))
+    out[is.finite(out$elapsed_seconds), , drop = FALSE]
+}
+
+package_timing_summary_table <- function() {
+    timings <- package_timing_rows()
+    if (nrow(timings) == 0) return(data.frame())
+    timings$timing_source <- ifelse(is.na(timings$timing_source) |
+                                        !nzchar(timings$timing_source),
+                                    "unknown", timings$timing_source)
+    timings$package_function <- ifelse(is.na(timings$package_function) |
+                                           !nzchar(timings$package_function),
+                                       "(unknown)",
+                                       timings$package_function)
+    key <- interaction(timings$timing_source, timings$package_function,
+                       drop = TRUE)
+    rows <- lapply(split(timings, key), function(x) {
+        data.frame(
+            "Source" = x$timing_source[[1]],
+            "Function" = x$package_function[[1]],
+            "Calls" = fmt_count(nrow(x)),
+            "Rows covered" = fmt_count(sum(x$n_rows, na.rm = TRUE)),
+            "Median" = fmt_seconds(stats::median(x$elapsed_seconds,
+                                                  na.rm = TRUE)),
+            "P90" = fmt_seconds(as.numeric(stats::quantile(
+                x$elapsed_seconds, 0.9, na.rm = TRUE, names = FALSE))),
+            "Max" = fmt_seconds(max(x$elapsed_seconds, na.rm = TRUE)),
+            "Total" = fmt_seconds(sum(x$elapsed_seconds, na.rm = TRUE)),
+            check.names = FALSE,
+            stringsAsFactors = FALSE
+        )
+    })
+    out <- do.call(rbind, rows)
+    out <- out[order(out$Source, out$Function), , drop = FALSE]
+    rownames(out) <- NULL
+    out
+}
+
+plot_package_timing_histograms <- function() {
+    timings <- package_timing_rows()
+    timings <- timings[is.finite(timings$elapsed_seconds) &
+                           timings$elapsed_seconds >= 0,
+                       , drop = FALSE]
+    if (nrow(timings) == 0) {
+        plot.new()
+        title("Package call timings")
+        text(0.5, 0.5, "No timing rows available")
+        return(invisible(NULL))
+    }
+
+    funcs <- sort(unique(timings$package_function))
+    funcs <- funcs[nzchar(funcs) & !is.na(funcs)]
+    n_col <- min(3L, length(funcs))
+    n_row <- ceiling(length(funcs) / n_col)
+    old_par <- par(mfrow = c(n_row, n_col), mar = c(4, 4, 3, 1),
+                   oma = c(0, 0, 2, 0))
+    on.exit(par(old_par), add = TRUE)
+    axis_values <- c(0.001, 0.01, 0.1, 1, 10, 60, 300)
+    for (fn in funcs) {
+        x <- timings$elapsed_seconds[timings$package_function == fn]
+        x <- pmax(x, 1e-4)
+        lx <- log10(x)
+        breaks <- if (length(unique(lx)) < 2) {
+            seq(min(lx) - 0.5, max(lx) + 0.5, length.out = 8)
+        } else {
+            pretty(lx, n = 12)
+        }
+        h <- hist(lx, breaks = breaks, plot = FALSE)
+        y_max <- max(h$counts, 1L)
+        plot(NA, NA,
+             xlim = range(h$breaks, finite = TRUE),
+             ylim = c(0, 1.08 * y_max),
+             xaxt = "n",
+             yaxt = "n",
+             xlab = "Elapsed seconds",
+             ylab = "Calls",
+             main = fn)
+        abline(h = pretty(c(0, y_max)), col = "grey92", lwd = 0.8)
+        rect(h$breaks[-length(h$breaks)], 0,
+             h$breaks[-1], h$counts,
+             col = grDevices::adjustcolor("steelblue", alpha.f = 0.38),
+             border = grDevices::adjustcolor("steelblue", alpha.f = 0.85),
+             lwd = 0.8)
+        axis_ticks <- axis_values[
+            log10(axis_values) >= par("usr")[[1]] &
+                log10(axis_values) <= par("usr")[[2]]]
+        if (length(axis_ticks) > 0) {
+            axis(1, at = log10(axis_ticks),
+                 labels = fmt_seconds(axis_ticks))
+        }
+        axis(2)
+        box()
+        abline(v = log10(stats::median(x)), col = "firebrick", lwd = 2)
+        abline(v = log10(as.numeric(stats::quantile(x, 0.9,
+                                                     names = FALSE))),
+               col = "steelblue", lwd = 2, lty = 2)
+        legend("topright",
+               legend = c(paste("calls", nrow(timings[
+                   timings$package_function == fn, , drop = FALSE])),
+                          paste("median", fmt_seconds(stats::median(x))),
+                          paste("p90", fmt_seconds(as.numeric(
+                              stats::quantile(x, 0.9, names = FALSE))))),
+               col = c(NA, "firebrick", "steelblue"),
+               lty = c(NA, 1, 2),
+               lwd = c(NA, 2, 2),
+               bty = "n", cex = 0.72)
+    }
+    if (length(funcs) < n_row * n_col) {
+        for (i in seq_len(n_row * n_col - length(funcs))) plot.new()
+    }
+    mtext("Package Function Call Timing", outer = TRUE, font = 2, cex = 1)
+    invisible(NULL)
+}
+
+fixture_report_objects <- c(
+    "repo_root_path", "registry_available", "corpus_root", "corpus_available",
+    ".fixture_table_counter",
+    "designs", "bf_priors", "fixtures", "family_labels",
+    "latex_table", "fmt_number", "fmt_value", "format_named_list",
+    "format_integer_runs", "fixture_plot_title", "add_fixture_overtitle",
+    "report_event_colors", "report_threshold_colors", "report_point_cex",
+    "report_point_alpha",
+    "format_sequence", "drop_empty_columns", "format_design_prior",
+    "format_sampling_type", "format_function_name", "family_design_cases",
+    "design_short_prefix", "design_short_id_map", "format_design_refs",
+    "format_sided_suffix", "format_h1_prior", "format_h0_prior",
+    "fixture_function_name", "format_schedule_families", "design_table",
+    "analysis_prior_table", "fixture_setup_table",
+    "materialized_fixture_specs", "fixture_validation_file",
+    "fixed_reference_diagnostics",
+    "plot_event_error_summary", "plot_fixed_fixture",
+    "sequential_fixture_schedule", "z_sequential_reference",
+    "t_n2", "t_sequential_reference",
+    "sequential_reference_diagnostics", "plot_sequential_fixture",
+    "package_verification_file", "read_package_verification_csv",
+    "search_validation_file", "read_search_validation_csv", "fmt_count",
+    "fmt_seconds", "fmt_flag", "format_search_policy",
+    "format_manifest_role", "format_validation_role",
+    "format_simulation_status", "format_severity", "format_status_rule",
+    "format_status_details", "package_verification_coverage_table",
+    "search_validation_overview_table",
+    "sequential_search_coverage_table",
+    "search_validation_status_table", "search_validation_summary_table",
+    "package_timing_rows", "package_timing_summary_table",
+    "plot_package_timing_histograms"
+)
+for (object in fixture_report_objects) {
+    assign(object, get(object), envir = .GlobalEnv)
+}
+for (object in fixture_report_objects) {
+    if (is.function(get(object, envir = .GlobalEnv))) {
+        fn <- get(object, envir = .GlobalEnv)
+        environment(fn) <- .GlobalEnv
+        assign(object, fn, envir = .GlobalEnv)
+    }
+}
+@
+
+\maketitle
+
+\noindent This report summarizes the simulation-based verification checks for
+\textbf{bfpwr}. The report focuses on the verification settings and results:
+the simulated designs, analysis priors, evidence thresholds, sampling
+schedules, and the size of any package calculation differences relative to the
+simulation targets.
+
+<<registry-missing-note, results = 'asis', echo = FALSE>>=
+if (!registry_available) {
+    cat("\\noindent \\textbf{Note.} The verification settings were not available during this render, so the detailed settings tables are omitted.\n\n")
+}
+@
+
+<<family-sections, results = 'asis', echo = FALSE, fig.height = 6.8, fig.width = 6.8, out.width = "\\textwidth">>=
+if (registry_available) for (family in names(family_labels)) {
+    cat("\\section{", family_labels[[family]], "}\n", sep = "")
+
+    cat("\\subsection*{Simulated Design Priors}\n")
+    latex_table(design_table(family),
+                caption = paste("Simulated design priors for the",
+                                gsub("\\\\textit\\{|\\}", "", family_labels[[family]]),
+                                "verification run. The Design column gives short IDs used by the analysis-prior table."))
+
+    cat("\\subsection*{Analysis Priors}\n")
+    latex_table(analysis_prior_table(family),
+                caption = paste("Analysis priors used for the",
+                                gsub("\\\\textit\\{|\\}", "", family_labels[[family]]),
+                                "verification run. Designs lists the matching short IDs from the design-prior table."))
+
+    cat("\\subsection{Fixed-Design}\n")
+    fixed_setup <- fixture_setup_table(family, "fixed")
+    latex_table(fixed_setup,
+                caption = paste("Fixed-design verification settings for",
+                                gsub("\\\\textit\\{|\\}", "", family_labels[[family]]),
+                                "analyses."))
+    mat_fixed <- materialized_fixture_specs(family, "fixed")
+    if (!corpus_available) {
+        cat("\\noindent Simulation results unavailable; fixed-design figures are not rendered.\n\n")
+    } else if (length(mat_fixed) == 0) {
+        cat("\\noindent No fixed-design results are available for this statistical test.\n\n")
+    } else {
+        cat("\\noindent The fixed-design plots compare package probability calculations with simulated event frequencies. Some expensive checks are plotted from a precomputed subset; the settings table above describes the full verification design. The panels compare simulated and package probabilities, absolute error, standardized error, and error distributions by event.\n\n")
+        for (spec in mat_fixed) {
+            plot_fixed_fixture(spec)
+        }
+    }
+
+    cat("\\subsection{Sequential-Design}\n")
+    sequential_setup <- fixture_setup_table(family, "sequential")
+    if (nrow(sequential_setup) > 0) {
+        cat("\\noindent Sequential schedules use looks every 10 observations: one family starts at $n = 20$ and includes 2--20 looks; the stress schedules start at $n = 10$ and include 50, 100, or 200 looks. The 100- and 200-look schedules are compatible with the longer design sequence only.\n\n")
+    }
+    latex_table(sequential_setup,
+                caption = paste("Sequential-design verification settings for",
+                                gsub("\\\\textit\\{|\\}", "", family_labels[[family]]),
+                                "analyses."))
+    mat_seq <- materialized_fixture_specs(family, "sequential")
+    if (!corpus_available) {
+        cat("\\noindent Simulation results unavailable; sequential-design figures are not rendered.\n\n")
+    } else if (length(mat_seq) == 0) {
+        cat("\\noindent No sequential-design results are available for this statistical test.\n\n")
+    } else {
+        if (identical(family, "z")) {
+            cat("\\noindent Sequential-design plots compare package probability and expected-sample-size calculations with the selected \\textit{z}-test simulation settings. The panels show final package error, package error by tail depth, expected sample size agreement, and design-level package-error traces by number of looks.\n\n")
+        } else if (identical(family, "t")) {
+            cat("\\noindent Sequential-design plots compare expected-sample-size calculations with selected strict \\textit{t}-test simulation settings. Longer schedules are covered by the sample-size search checks below.\n\n")
+        } else if (identical(family, "binomial")) {
+            cat("\\noindent Sequential binomial simulation settings are retained for future package-function validation. The package does not currently expose a sequential binomial evaluation function, so no sequential binomial package-calculation figure is rendered.\n\n")
+        } else {
+            cat("\\noindent Sequential-design plots summarize the precomputed trajectory decisions directly. No package-level sequential probability calculation is currently available for this statistical test, so these figures are descriptive until one is added.\n\n")
+        }
+        for (spec in mat_seq) {
+            plot_sequential_fixture(spec)
+        }
+    }
+}
+@
+
+\section{Package Checks}
+
+\noindent Package checks are selected from the simulation corpus and recomputed
+when this report is built. The broader corpus contains the stochastic
+simulation output; the release checks define which current package calls are
+compared against that output. Fixed-design rows check probability functions.
+Sequential rows check probability, expected sample size, and selected
+sample-size search behavior.
+
+<<package-verification-section, results = 'asis', echo = FALSE>>=
+coverage <- package_verification_coverage_table()
+if (nrow(coverage) == 0) {
+    cat("\\noindent Package-check coverage is not available in this checkout.\n\n")
+} else {
+    latex_table(coverage,
+                caption = paste(
+                    "Package check coverage.",
+                    "Rows are explicit release verification cases, not",
+                    "PDF-side selections."))
+}
+@
+
+\section{Sample-Size Search Checks}
+
+\noindent These checks compare package sample-size searches with sample-size
+targets observed in the simulations. Primary rows are settings where the
+simulation clearly reached the requested probability. Exploratory rows record
+settings where the simulated range did not clearly reach the target; they are
+shown for context and are not treated as package pass/fail checks.
+
+<<search-validation-section, results = 'asis', echo = FALSE>>=
+if (!corpus_available) {
+    cat("\\noindent Sample-size search outputs are unavailable because the simulation corpus is not available.\n\n")
+} else if (is.na(search_validation_file("search-validation-overview.csv"))) {
+    cat("\\noindent Sample-size search outputs are not available in this corpus snapshot.\n\n")
+} else {
+    latex_table(search_validation_overview_table(),
+                caption = "Sample-size search overview for the rendered corpus snapshot.")
+
+    coverage <- sequential_search_coverage_table()
+    if (nrow(coverage) > 0) {
+        latex_table(coverage,
+                    caption = paste(
+                        "Sequential sample-size search coverage.",
+                        "Primary rows are evaluated by the package;",
+                        "exploratory rows document simulation cases that did",
+                        "not clearly reach the target."))
+    }
+
+    compact_summary <- search_validation_summary_table()
+    if (nrow(compact_summary) > 0) {
+        latex_table(compact_summary,
+                    caption = paste(
+                        "Sequential sample-size search rows evaluated by",
+                        "the package.",
+                        "The n ratio compares package and simulation first",
+                        "crossing sample sizes."))
+    }
+
+    status <- search_validation_status_table()
+    if (nrow(status) > 0) {
+        latex_table(status,
+                    caption = "Sample-size search notes.")
+    } else {
+        cat("\\noindent Sample-size search checks reported no warnings or errors.\n\n")
+    }
+}
+@
+
+\section{Run Time Diagnostics}
+
+\noindent The build records elapsed time for package calls made while
+recomputing the checks. Fixed-design probability calls can cover several rows
+at once because those functions are vectorized; most sequential and sample-size
+search calls are one setting at a time.
+
+<<package-call-timing-section, results = 'asis', echo = FALSE, fig.height = 8.5, fig.width = 7.5>>=
+timing_summary <- package_timing_summary_table()
+if (nrow(timing_summary) == 0) {
+    cat("\\noindent Run time rows are not available in this corpus snapshot.\n\n")
+} else {
+    latex_table(timing_summary,
+                caption = paste(
+                    "Package call run time summary.",
+                    "Fixed probability rows can be vectorized, so calls and",
+                    "rows covered need not match."))
+    plot_package_timing_histograms()
+}
+@
+
+\section{Summary}
+
+\noindent The tables and plots in this report are a compact summary of the
+simulation verification suite. The broad Monte Carlo corpus defines the
+available simulation evidence, while the release checks define the package
+function calls recomputed for this report. The automated package checks remain
+the authoritative pass/fail record for development.
+
+\end{document}
