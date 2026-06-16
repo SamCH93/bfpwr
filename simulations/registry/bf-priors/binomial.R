@@ -20,7 +20,7 @@ bfpwr_sim_bf_prior_cases_binomial <- function(designs) {
             rationale = "default point-null beta(1,1) alternative"))
         add(bfpwr_sim_bf_prior_binomial(
             design, bf_type = "direction", p0 = 0.5, a = 1, b = 1,
-            rationale = "default directional beta(1,1) alternative"))
+            rationale = "default directional lower-vs-upper beta(1,1) split prior"))
         add(bfpwr_sim_bf_prior_binomial(
             design, bf_type = "point", p0 = 0.5, a = 60, b = 40,
             rationale = "concentrated beta alternative around p=0.6"))

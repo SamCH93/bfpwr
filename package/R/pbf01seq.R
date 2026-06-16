@@ -27,7 +27,8 @@
 #' \item \code{"normal"}
 #'     (default): point null vs. normal alternative (set \code{psd = 0} to
 #'     obtain a point alternative) \item \code{"directional"}: directional null
-#'     vs. directional alternative with a marginal normal prior \item
+#'     \eqn{\theta \leq 0}{theta <= 0} vs. directional alternative
+#'     \eqn{\theta > 0}{theta > 0} with a marginal normal prior \item
 #'     \code{"moment"}: point null vs. normal moment alternative which is
 #'     centered around 0
 #' }
@@ -272,7 +273,7 @@ print.bfseqdesign <- function(x, digits = max(3L, getOption("digits") - 3L), ...
             alt <- "!="
         }
         if (x$type == "directional") {
-            null <- " <"
+            null <- " <="
             alt <- " >"
         }
     }

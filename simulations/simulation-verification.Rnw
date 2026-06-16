@@ -344,20 +344,24 @@ format_sided_suffix <- function(alternative) {
            "")
 }
 
+format_directional_bound <- function(symbol, value) {
+    paste0("; ", symbol, " ", fmt_number(value))
+}
+
 format_h1_prior <- function(prior_case) {
     prior <- prior_case$analysis_prior
     if (identical(prior_case$test_family, "z")) {
-        suffix <- if (identical(prior_case$bf_type, "directional")) {
-            "$_{+}$"
-        } else {
-            ""
+        if (identical(prior_case$bf_type, "directional")) {
+            return(paste0("Normal$_{+}$(", fmt_number(prior$pm), ", ",
+                          fmt_number(prior$psd),
+                          format_directional_bound("$>$", prior$null), ")"))
         }
         body <- if (identical(prior_case$bf_type, "moment")) {
-            paste0("Moment", suffix, "(", fmt_number(prior$psd), ")")
+            paste0("Moment(", fmt_number(prior$psd), ")")
         } else if (identical(prior$psd, 0)) {
-            paste0("Point", suffix, "(", fmt_number(prior$pm), ")")
+            paste0("Point(", fmt_number(prior$pm), ")")
         } else {
-            paste0("Normal", suffix, "(", fmt_number(prior$pm), ", ",
+            paste0("Normal(", fmt_number(prior$pm), ", ",
                    fmt_number(prior$psd), ")")
         }
         return(body)
@@ -375,12 +379,12 @@ format_h1_prior <- function(prior_case) {
         return(body)
     }
     if (identical(prior_case$test_family, "binomial")) {
-        suffix <- if (identical(prior_case$bf_type, "direction")) {
-            "$_{+}$"
-        } else {
-            ""
+        if (identical(prior_case$bf_type, "direction")) {
+            return(paste0("Beta$_{+}$(", fmt_number(prior$a), ", ",
+                          fmt_number(prior$b),
+                          format_directional_bound("$>$", prior$p0), ")"))
         }
-        body <- paste0("Beta", suffix, "(", fmt_number(prior$a), ", ",
+        body <- paste0("Beta(", fmt_number(prior$a), ", ",
                        fmt_number(prior$b), ")")
         return(body)
     }
@@ -390,7 +394,18 @@ format_h1_prior <- function(prior_case) {
 format_h0_prior <- function(prior_case) {
     prior <- prior_case$analysis_prior
     if (identical(prior_case$test_family, "binomial")) {
+        if (identical(prior_case$bf_type, "direction")) {
+            return(paste0("Beta$_{-}$(", fmt_number(prior$a), ", ",
+                          fmt_number(prior$b),
+                          format_directional_bound("$\\leq$", prior$p0), ")"))
+        }
         return(paste0("Point(", fmt_number(prior$p0), ")"))
+    }
+    if (identical(prior_case$test_family, "z") &&
+        identical(prior_case$bf_type, "directional")) {
+        return(paste0("Normal$_{-}$(", fmt_number(prior$pm), ", ",
+                      fmt_number(prior$psd),
+                      format_directional_bound("$\\leq$", prior$null), ")"))
     }
     if (!is.null(prior$null)) {
         return(paste0("Point(", fmt_number(prior$null), ")"))
@@ -1617,7 +1632,8 @@ fixture_report_objects <- c(
     "format_sequence", "drop_empty_columns", "format_design_prior",
     "format_sampling_type", "format_function_name", "family_design_cases",
     "design_short_prefix", "design_short_id_map", "format_design_refs",
-    "format_sided_suffix", "format_h1_prior", "format_h0_prior",
+    "format_sided_suffix", "format_directional_bound",
+    "format_h1_prior", "format_h0_prior",
     "fixture_function_name", "format_schedule_families", "design_table",
     "analysis_prior_table", "fixture_setup_table",
     "materialized_fixture_specs", "fixture_validation_file",

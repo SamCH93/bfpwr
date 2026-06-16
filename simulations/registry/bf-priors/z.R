@@ -31,7 +31,7 @@ bfpwr_sim_bf_prior_cases_z <- function(designs) {
             rationale = "uncertain local normal alternative"))
         add(bfpwr_sim_bf_prior_z_directional(
             design, null = 0, pm = 0, psd = 1 / sqrt(2),
-            rationale = "directional normal alternative"))
+            rationale = "directional lower-vs-upper normal split prior"))
         add(bfpwr_sim_bf_prior_z_moment(
             design, null = 0, psd = 0.5 / sqrt(2),
             rationale = "narrower moment alternative"))
@@ -55,7 +55,7 @@ bfpwr_sim_bf_prior_cases_z <- function(designs) {
             rationale = "diffuse extreme-scale normal alternative"))
         add(bfpwr_sim_bf_prior_z_directional(
             design, null = 0, pm = 0, psd = 20,
-            rationale = "extreme-scale directional normal alternative"))
+            rationale = "extreme-scale directional lower-vs-upper normal split prior"))
         add(bfpwr_sim_bf_prior_z_moment(
             design, null = 0, psd = 10 / sqrt(2),
             rationale = "extreme-scale moment alternative"))
@@ -81,7 +81,7 @@ bfpwr_sim_bf_prior_cases_z <- function(designs) {
             rationale = "shifted-null centered normal alternative"))
         add(bfpwr_sim_bf_prior_z_directional(
             design, null = 0.2, pm = 0.2, psd = 1 / sqrt(2),
-            rationale = "shifted-null directional normal alternative"))
+            rationale = "shifted-null directional lower-vs-upper normal split prior"))
         add(bfpwr_sim_bf_prior_z_moment(
             design, null = 0.2, psd = 0.5 / sqrt(2),
             rationale = "shifted-null moment alternative"))

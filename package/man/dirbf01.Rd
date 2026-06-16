@@ -31,10 +31,12 @@ Bayes factor in favor of the null hypothesis over the alternative
 This function computes the Bayes factor that quantifies the
     evidence that the data (in the form of an asymptotically normally
     distributed parameter estimate with standard error) provide for a
-    directional null hypothesis that the the parameter value is less than the
-    null value against the alternative that it is greater than the null
-    value. A marginal normal prior is assigned to the parameter. The standard
-    error is assumed to be known.
+    directional null hypothesis that the parameter value is less than or
+    equal to the null value against the alternative that it is greater than
+    the null value. A marginal normal prior is assigned to the parameter and
+    split at the null value into the corresponding lower-side null and
+    upper-side alternative distributions. The standard error is assumed to be
+    known.
 }
 \examples{
 dirbf01(estimate = 0.2, se = 0.2, null = 0, pm = 0, psd = 2)

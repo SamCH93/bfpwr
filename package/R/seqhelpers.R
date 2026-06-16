@@ -510,8 +510,9 @@ genregions2 <- function(zcrit0, zcrit1, strict = FALSE) {
 #'     "moment"}
 #' @param tau Non-negative numeric. Prior scale
 #' @param type Character. One of "normal" (point null vs. normal alternative),
-#'     "directional" (directional null vs. directional alternative with marginal
-#'     normal prior), or "moment" (point null vs. normal moment alternative)
+#'     "directional" (directional null \eqn{\theta \leq 0}{theta <= 0} vs.
+#'     directional alternative \eqn{\theta > 0}{theta > 0} with marginal normal
+#'     prior), or "moment" (point null vs. normal moment alternative)
 #'
 #' @return Numeric vector of critical z-value(s)
 #'
