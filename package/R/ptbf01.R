@@ -61,9 +61,7 @@ ptbf01. <- function(k, n, n1 = n, n2 = n, null = 0, plocation = 0,
 
         .tbf01_valid_tail_nquad(tail.nquad),
 
-        (is.numeric(drange) && length(drange) == 2 && all(is.finite(drange)) &&
-         drange[2] > drange[1]) || (is.character(drange) && length(drange) == 1 &&
-                                    !is.na(drange) && drange == "adaptive")
+        .tbf01_valid_drange(drange)
     )
     type <- match.arg(type)
     alternative <- match.arg(alternative)

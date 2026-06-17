@@ -8,6 +8,13 @@
         tail.nquad == floor(tail.nquad)
 }
 
+.tbf01_valid_drange <- function(drange) {
+    (is.numeric(drange) && length(drange) == 2 && all(is.finite(drange)) &&
+     drange[2] > drange[1]) || (is.character(drange) &&
+                                length(drange) == 1 && !is.na(drange) &&
+                                drange == "adaptive")
+}
+
 .tbf01_pars <- function(n1, n2, type) {
     ## Effective sample size for the noncentrality parameter sqrt(neff)*d.
     if (type == "two.sample") {

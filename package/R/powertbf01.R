@@ -12,11 +12,18 @@
 #'
 #' @inheritParams ptbf01
 #' @inheritParams powerbf01
+#' @param n Sample size. For two-sample designs with unequal allocation,
+#'     \code{n} is the group-1 sample size and group 2 is evaluated as
+#'     \code{ceiling(n * ratio)}. Has to be \code{NULL} if \code{power} is
+#'     specified. Defaults to \code{NULL}
 #' @param k Bayes factor threshold. Defaults to \code{1/10}, Jeffreys' threshold
 #'     for 'strong evidence' against the null hypothesis
 #' @param nrange Sample size search range over which numerical search is
 #'     performed (only taken into account when \code{n} is \code{NULL}).
 #'     Defaults to \code{c(2, 10^4)}
+#' @param ratio Allocation ratio \code{n2 / n1} for two-sample designs.
+#'     Candidate group-2 sample sizes are \code{ceiling(n1 * ratio)}. Ignored
+#'     for one-sample and paired designs.
 #'
 #' @inherit powerbf01 return
 #'
@@ -37,6 +44,7 @@ powertbf01 <- function(n = NULL, power = NULL, k = 1/10, null = 0,
                        type = c("two.sample", "one.sample", "paired"),
                        alternative = c("two.sided", "less", "greater"),
                        dpm = plocation, dpsd = pscale, nrange = c(2, 10^4),
+                       ratio = 1, drange = "adaptive",
                        tail.eps = 1e-3,
                        tail.nquad = 128) {
     ## input checks
@@ -91,6 +99,13 @@ powertbf01 <- function(n = NULL, power = NULL, k = 1/10, null = 0,
         is.finite(dpsd),
         0 <= dpsd,
 
+        length(ratio) == 1,
+        is.numeric(ratio),
+        is.finite(ratio),
+        ratio > 0,
+
+        .tbf01_valid_drange(drange),
+
         length(tail.eps) == 1,
         is.numeric(tail.eps),
         is.finite(tail.eps),
@@ -107,21 +122,28 @@ powertbf01 <- function(n = NULL, power = NULL, k = 1/10, null = 0,
         n <- ntbf01(k = k, power = power, null = null, plocation = plocation,
                     pscale = pscale, pdf = pdf, type = type,
                     alternative = alternative, dpm = dpm, dpsd = dpsd,
-                    integer = FALSE, nrange = nrange, tail.eps = tail.eps,
+                    integer = FALSE, nrange = nrange, ratio = ratio,
+                    drange = drange, tail.eps = tail.eps,
                     tail.nquad = tail.nquad)
     } else {
         ## determine power
-        power <- ptbf01(k = k, n = n, null = null, plocation = plocation,
-                        pscale = pscale, pdf = pdf, type = type,
-                        alternative = alternative, dpm = dpm, dpsd = dpsd,
-                        tail.eps = tail.eps, tail.nquad = tail.nquad)
+        n2 <- if (type == "two.sample") ceiling(n*ratio) else n
+        if (type == "two.sample" && n2 <= 1) {
+            stop("'n' and 'ratio' imply group-2 sample size <= 1")
+        }
+        power <- ptbf01(k = k, n = n, n1 = n, n2 = n2, null = null,
+                        plocation = plocation, pscale = pscale, pdf = pdf,
+                        type = type, alternative = alternative, dpm = dpm,
+                        dpsd = dpsd, drange = drange, tail.eps = tail.eps,
+                        tail.nquad = tail.nquad)
     }
 
     ## return object
     structure(list(n = n, power = power, sd = 1, null = null,
                    alternative = alternative, plocation = plocation,
                    pscale = pscale, pdf = pdf, dpm = dpm, dpsd = dpsd, k = k,
-                   nrange = nrange, tail.eps = tail.eps,
+                   nrange = nrange, ratio = ratio, drange = drange,
+                   tail.eps = tail.eps,
                    tail.nquad = tail.nquad, type = type, test = "t"),
               class = "power.bftest")
 
