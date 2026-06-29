@@ -126,25 +126,30 @@
     }
 }
 
-.bfpwr_gauss_legendre_cache <- new.env(parent = emptyenv())
+.bfpwr_gauss_legendre <- local({
+    ## Cache nodes by order because t critical-value searches repeatedly reuse
+    ## the same quadrature rule. Keeping the cache in this closure avoids a
+    ## separate package-level mutable object.
+    cache <- new.env(parent = emptyenv())
 
-.bfpwr_gauss_legendre <- function(n) {
-    key <- as.character(n)
-    if (exists(key, envir = .bfpwr_gauss_legendre_cache, inherits = FALSE)) {
-        return(get(key, envir = .bfpwr_gauss_legendre_cache, inherits = FALSE))
+    function(n) {
+        key <- as.character(n)
+        if (exists(key, envir = cache, inherits = FALSE)) {
+            return(get(key, envir = cache, inherits = FALSE))
+        }
+
+        i <- seq_len(n - 1)
+        beta <- i/sqrt(4*i^2 - 1)
+        J <- matrix(0, nrow = n, ncol = n)
+        J[cbind(i, i + 1)] <- beta
+        J[cbind(i + 1, i)] <- beta
+        eig <- eigen(J, symmetric = TRUE)
+        o <- order(eig$values)
+        ans <- list(
+            x = (eig$values[o] + 1)/2,
+            w = eig$vectors[1, o]^2
+        )
+        assign(key, ans, envir = cache)
+        ans
     }
-
-    i <- seq_len(n - 1)
-    beta <- i/sqrt(4*i^2 - 1)
-    J <- matrix(0, nrow = n, ncol = n)
-    J[cbind(i, i + 1)] <- beta
-    J[cbind(i + 1, i)] <- beta
-    eig <- eigen(J, symmetric = TRUE)
-    o <- order(eig$values)
-    ans <- list(
-        x = (eig$values[o] + 1)/2,
-        w = eig$vectors[1, o]^2
-    )
-    assign(key, ans, envir = .bfpwr_gauss_legendre_cache)
-    ans
-}
+})

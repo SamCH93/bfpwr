@@ -88,6 +88,10 @@
 
 .tbf01_log_tail_quadrature <- function(t, df, neff, plocation, pscale, pdf,
                                        region, tail.nquad) {
+    ## Wrong-tail one-sided calls can underflow in the noncentral-t density used
+    ## by the direct integral. This path rewrites the t statistic and
+    ## location-scale t prior as normal/gamma mixtures and integrates over the
+    ## two gamma mixing distributions on probability scale.
     if (!is.finite(region$log_norm_const)) {
         return(NaN)
     }
