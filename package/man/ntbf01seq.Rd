@@ -28,7 +28,6 @@ ntbf01seq(
   tail.eps = 0.001,
   tail.nquad = 128,
   integer = TRUE,
-  nextend = 0,
   search = c("adaptive", "exhaustive"),
   details = FALSE,
   progress = NULL,
@@ -127,15 +126,6 @@ values are more accurate but slower. Defaults to \code{128}.}
 should be returned. If \code{TRUE} the required sample size is rounded to
 the next larger integer. Defaults to \code{TRUE}}
 
-\item{nextend}{Number of sample sizes beyond the solution used to check that
-the target probability does not drop below \code{power}. Non-integer
-values are rounded up. Defaults to \code{0}.}
-
-\item{details}{Logical indicating whether the full search result should be
-returned instead of only the maximum sample size. The detailed result is
-scalar; vectorized inputs require \code{details = FALSE}. Defaults to
-\code{FALSE}.}
-
 \item{search}{Sample-size search rule for schedules generated from
 \code{looks}/\code{timing}. \code{"adaptive"} uses bracketing and binary
 search with local checks, and stops with a diagnostic if a transient
@@ -146,6 +136,11 @@ candidates and stopping at terminal invalid candidates. Ignored when
 \code{by} is supplied, where scheduled maximum sample sizes
 \code{minN + j * by} are scanned in increasing order. Defaults to
 \code{"adaptive"}.}
+
+\item{details}{Logical indicating whether the full search result should be
+returned instead of only the maximum sample size. The detailed result is
+scalar; vectorized inputs require \code{details = FALSE}. Defaults to
+\code{FALSE}.}
 
 \item{progress}{Optional function called after each newly evaluated
 candidate maximum sample size. A callback with arguments receives a list

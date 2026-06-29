@@ -18,6 +18,8 @@ ntbf01(
   lower.tail = TRUE,
   integer = TRUE,
   nrange = c(2, 10^4),
+  ratio = 1,
+  drange = "adaptive",
   tail.eps = 0.001,
   tail.nquad = 128,
   ...
@@ -66,6 +68,15 @@ the next larger integer. Defaults to \code{TRUE}}
 \item{nrange}{Sample size search range over which numerical search is
 performed. Defaults to \code{c(2, 10^4)}}
 
+\item{ratio}{Allocation ratio \code{n2 / n1} for two-sample designs.
+Candidate group-2 sample sizes are \code{ceiling(n1 * ratio)}. Ignored
+for one-sample and paired designs.}
+
+\item{drange}{Standardized mean difference search range over which the
+critical values are searched for. Can be either set to a numerical range
+or to \code{"adaptive"} (default) which determines the range in an
+adaptive way from the other input parameters}
+
 \item{tail.eps}{One-sided adaptive power-boundary searches stop once the
 remaining predictive probability in the searched tail is at most this
 value. If a fixed-\code{n} power evaluation reaches that cutoff before
@@ -77,7 +88,10 @@ bounded by \code{tail.eps}. Smaller values search farther. Defaults to
 \code{\link{tbf01}} for stable wrong-tail one-sided calculations. Larger
 values are more accurate but slower. Defaults to \code{128}.}
 
-\item{...}{Other arguments passed to \code{stats::uniroot}}
+\item{...}{Optional numerical controls passed to \code{\link{ptbf01}} and
+to the \code{stats::uniroot} sample-size search. The fixed-design
+critical-value range \code{drange} is handled explicitly and is not
+passed to the sample-size search.}
 }
 \value{
 The required sample size to achieve the specified power

@@ -24,7 +24,6 @@ powerbf01seq(
   minN = NULL,
   by = NULL,
   strict = TRUE,
-  nextend = 0,
   search = c("adaptive", "exhaustive"),
   progress = NULL,
   ...
@@ -98,10 +97,6 @@ the sign of the z-statistics does not change across stages (faster,
 recommended when many interim analyses, e.g., more than 10, are
 performed). Defaults to \code{TRUE}}
 
-\item{nextend}{Number of sample sizes beyond the solution used to check that
-the target probability does not drop below \code{power}. Non-integer
-values are rounded up. Defaults to \code{0}.}
-
 \item{search}{Sample-size search rule for schedules generated from
 \code{looks}/\code{timing}. \code{"adaptive"} uses bracketing and binary
 search with local checks, and stops with a diagnostic if a transient
@@ -137,11 +132,11 @@ This function provides a higher-level interface to
     calling \code{\link{pbf01seq}}. If \code{power} is supplied, the
     returned design is evaluated at the searched maximum sample size, and
     \code{solver$reached} records whether the target was achieved within
-\code{nrange}. If \code{n} is supplied, no search is performed and the
-\code{solver} element records the achieved stopping probability for the
-fixed schedule. For fixed-\code{n} increment schedules with missing
-\code{minN}, \code{nrange[1]} is used as the default first look, clamped
-to \code{n} when necessary.
+    \code{nrange}. If \code{n} is supplied, no search is performed and the
+    \code{solver} element records the achieved stopping probability for the
+    fixed schedule. For fixed-\code{n} increment schedules with missing
+    \code{minN}, \code{nrange[1]} is used as the default first look, clamped
+    to \code{n} when necessary.
 }
 \examples{
 powerbf01seq(n = 60, k1 = 1/5, k0 = 5, pm = 0, psd = 1,

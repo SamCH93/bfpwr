@@ -50,7 +50,6 @@ powertbf01seq <- function(n = NULL, power = NULL, k1 = 1/10, k0 = 1/k1,
                           ratio = 1, strict = TRUE, trange = "adaptive",
                           tail.eps = 1e-3,
                           tail.nquad = 128,
-                          nextend = 0,
                           search = c("adaptive", "exhaustive"),
                           progress = NULL, ...) {
     if (is.null(n) == is.null(power)) {
@@ -85,7 +84,6 @@ powertbf01seq <- function(n = NULL, power = NULL, k1 = 1/10, k0 = 1/k1,
 
         .tbf01_valid_tail_nquad(tail.nquad)
     )
-    nextend <- .bfseq_normalize_nextend(nextend)
     progress <- .bfseq_validate_progress(progress)
 
     if (is.null(n)) {
@@ -97,7 +95,7 @@ powertbf01seq <- function(n = NULL, power = NULL, k1 = 1/10, k0 = 1/k1,
             looks = looks, timing = timing, minN = minN, by = by,
             ratio = ratio, strict = strict, trange = trange,
             tail.eps = tail.eps, tail.nquad = tail.nquad,
-            integer = TRUE, nextend = nextend, search = search, details = TRUE,
+            integer = TRUE, search = search, details = TRUE,
             progress = progress, ...
         )
         design <- solver$result
@@ -137,7 +135,7 @@ powertbf01seq <- function(n = NULL, power = NULL, k1 = 1/10, k0 = 1/k1,
             tail.eps = tail.eps, tail.nquad = tail.nquad, ...
         )
         solver <- .bfseq_fixed_solver(n = n, target = target, design = design,
-                                      schedule = schedule, nextend = nextend)
+                                      schedule = schedule)
         design$solver <- solver
     }
 

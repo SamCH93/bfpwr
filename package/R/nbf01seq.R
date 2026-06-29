@@ -3,7 +3,7 @@ nbf01seq. <- function(k1, k0 = 1/k1, power, usd = sqrt(2), null = 0,
                       type = c("normal", "directional", "moment"),
                       target = c("h1", "h0"), nrange = c(2, 10^5),
                       looks = 1, timing = NULL, minN = NULL, by = NULL,
-                      strict = TRUE, integer = TRUE, nextend = 0,
+                      strict = TRUE, integer = TRUE,
                       search = c("adaptive", "exhaustive"),
                       details = FALSE, progress = NULL, ...) {
     type <- match.arg(type)
@@ -76,7 +76,6 @@ nbf01seq. <- function(k1, k0 = 1/k1, power, usd = sqrt(2), null = 0,
     if (type != "normal") {
         stopifnot(psd > 0)
     }
-    nextend <- .bfseq_normalize_nextend(nextend)
     progress <- .bfseq_validate_progress(progress)
 
     schedule <- .bfseq_schedule_spec(looks = looks, timing = timing,
@@ -90,8 +89,7 @@ nbf01seq. <- function(k1, k0 = 1/k1, power, usd = sqrt(2), null = 0,
 
     solver <- .bfseq_search(power = power, target = target, nrange = nrange,
                             schedule = schedule, evaluate = evalDesign,
-                            nextend = nextend, progress = progress,
-                            search = search)
+                            progress = progress, search = search)
 
     if (details) {
         return(solver)
@@ -148,9 +146,6 @@ nbf01seq. <- function(k1, k0 = 1/k1, power, usd = sqrt(2), null = 0,
 #' @param by Optional sample-size increase between looks. If supplied, schedules
 #'     are generated as \code{seq(minN, maximumN, by = by)} with
 #'     \code{maximumN} appended as the final look.
-#' @param nextend Number of sample sizes beyond the solution used to check that
-#'     the target probability does not drop below \code{power}. Non-integer
-#'     values are rounded up. Defaults to \code{0}.
 #' @param search Sample-size search rule for schedules generated from
 #'     \code{looks}/\code{timing}. \code{"adaptive"} uses bracketing and binary
 #'     search with local checks, and stops with a diagnostic if a transient
@@ -190,7 +185,7 @@ nbf01seq <- function(k1, k0 = 1/k1, power, usd = sqrt(2), null = 0,
                      type = c("normal", "directional", "moment"),
                      target = c("h1", "h0"), nrange = c(2, 10^5),
                      looks = 1, timing = NULL, minN = NULL, by = NULL,
-                     strict = TRUE, integer = TRUE, nextend = 0,
+                     strict = TRUE, integer = TRUE,
                      search = c("adaptive", "exhaustive"),
                      details = FALSE, progress = NULL, ...) {
     type <- if (missing(type)) {
@@ -214,8 +209,7 @@ nbf01seq <- function(k1, k0 = 1/k1, power, usd = sqrt(2), null = 0,
             pm = pm, psd = psd, dpm = dpm, dpsd = dpsd, type = type,
             target = target, nrange = nrange, looks = looks, timing = timing,
             minN = minN, by = by, strict = strict, integer = integer,
-            nextend = nextend, search = search, details = TRUE,
-            progress = progress, ...
+            search = search, details = TRUE, progress = progress, ...
         ))
     }
 
@@ -229,6 +223,5 @@ nbf01seq <- function(k1, k0 = 1/k1, power, usd = sqrt(2), null = 0,
       pm = pm, psd = psd, dpm = dpm, dpsd = dpsd, type = type,
       target = target, nrange = nrange, looks = looks, timing = timing,
       minN = minN, by = by, strict = strict, integer = integer,
-      nextend = nextend, search = search, details = FALSE,
-      progress = progress, ...)
+      search = search, details = FALSE, progress = progress, ...)
 }

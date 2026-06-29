@@ -17,12 +17,17 @@ powertbf01(
   dpm = plocation,
   dpsd = pscale,
   nrange = c(2, 10^4),
+  ratio = 1,
+  drange = "adaptive",
   tail.eps = 0.001,
   tail.nquad = 128
 )
 }
 \arguments{
-\item{n}{Sample size (per group)}
+\item{n}{Sample size. For two-sample designs with unequal allocation,
+\code{n} is the group-1 sample size and group 2 is evaluated as
+\code{ceiling(n * ratio)}. Has to be \code{NULL} if \code{power} is
+specified. Defaults to \code{NULL}}
 
 \item{power}{Target power. Has to be \code{NULL} if \code{n} is specified.
 Defaults to \code{NULL}}
@@ -59,6 +64,15 @@ the design prior mean. Defaults to the analysis prior scale}
 \item{nrange}{Sample size search range over which numerical search is
 performed (only taken into account when \code{n} is \code{NULL}).
 Defaults to \code{c(2, 10^4)}}
+
+\item{ratio}{Allocation ratio \code{n2 / n1} for two-sample designs.
+Candidate group-2 sample sizes are \code{ceiling(n1 * ratio)}. Ignored
+for one-sample and paired designs.}
+
+\item{drange}{Standardized mean difference search range over which the
+critical values are searched for. Can be either set to a numerical range
+or to \code{"adaptive"} (default) which determines the range in an
+adaptive way from the other input parameters}
 
 \item{tail.eps}{One-sided adaptive searches stop once the remaining
 predictive probability in the searched tail is at most this value. If no

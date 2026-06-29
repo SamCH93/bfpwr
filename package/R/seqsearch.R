@@ -293,22 +293,10 @@
     )
 }
 
-.bfseq_certification_invalid_candidate <- function(candidate) {
-    if (.bfseq_candidate_is_invalid(candidate) && !isTRUE(candidate$terminal)) {
-        candidate$error <- paste0(
-            candidate$error,
-            "; sample-size stability certification encountered a transient ",
-            "invalid candidate and cannot certify the returned sample size."
-        )
-    }
-    candidate
-}
-
 .bfseq_search <- function(power, target, nrange, schedule, evaluate,
-                          nextend = 0, progress = NULL,
+                          progress = NULL,
                           search = c("adaptive", "exhaustive")) {
     search <- match.arg(search)
-    nextend <- .bfseq_normalize_nextend(nextend)
     progress <- .bfseq_validate_progress(progress)
     bounds <- .bfseq_search_bounds(nrange = nrange, schedule = schedule)
     lowerN <- bounds[1]
@@ -406,17 +394,17 @@
         return(.bfseq_search_full_range(
             power = power, target = target, nrange = bounds,
             schedule = schedule, evalN = evalN, candidates = candidates,
-            nextend = nextend, search = search,
-            getEvaluations = function() evaluations, setPhase = setPhase
+            search = search, getEvaluations = function() evaluations,
+            setPhase = setPhase
         ))
     }
 
     if (!is.null(increaseCandidates)) {
-        return(.bfseq_search_increase(
+        return(.bfseq_search_full_range(
             power = power, target = target, nrange = bounds,
             schedule = schedule, evalN = evalN,
-            candidates = increaseCandidates, nextend = nextend,
-            search = search, getEvaluations = function() evaluations,
+            candidates = increaseCandidates, search = search,
+            getEvaluations = function() evaluations,
             setPhase = setPhase
         ))
     }
@@ -424,16 +412,11 @@
     phase <- "lower"
     lower <- evalN(lowerN)
     if (.bfseq_candidate_reached(lower)) {
-        phase <- "certify"
-        certified <- .bfseq_certify_nextend(evalN = evalN, foundN = lower$n,
-                                            upperLimit = upperLimit,
-                                            nextend = nextend)
-        return(.bfseq_solver_result(candidate = certified$candidate,
+        return(.bfseq_solver_result(candidate = lower,
                                     target = target, targetPower = power,
                                     nrange = bounds, schedule = schedule,
                                     evaluations = evaluations,
-                                    reached = certified$reached,
-                                    nextend = nextend, search = search,
+                                    reached = TRUE, search = search,
                                     firstCrossingCertified = TRUE))
     }
     if (.bfseq_candidate_is_invalid(lower)) {
@@ -441,8 +424,7 @@
         return(.bfseq_solver_result(candidate = limit,
                                     target = target, targetPower = power,
                                     nrange = bounds, schedule = schedule,
-                                    evaluations = evaluations,
-                                    reached = FALSE, nextend = 0,
+                                    evaluations = evaluations, reached = FALSE,
                                     search = search,
                                     firstCrossingCertified = FALSE))
     }
@@ -461,8 +443,7 @@
         return(.bfseq_solver_result(candidate = limit,
                                     target = target, targetPower = power,
                                     nrange = bounds, schedule = schedule,
-                                    evaluations = evaluations,
-                                    reached = FALSE, nextend = 0,
+                                    evaluations = evaluations, reached = FALSE,
                                     search = search,
                                     firstCrossingCertified = FALSE))
     }
@@ -472,16 +453,14 @@
     found <- .bfseq_binary_search(evalN = evalN, lowerN = bracket$lowerN,
                                   upperN = bracket$upper$n,
                                   minimumN = lowerN,
-                                  upperLimit = upperLimit,
-                                  firstScan = firstScan,
-                                  nextend = nextend, setPhase = setPhase)
+                                  firstScan = firstScan, setPhase = setPhase)
 
     .bfseq_solver_result(candidate = found$candidate,
                          target = target, targetPower = power,
                          nrange = bounds, schedule = schedule,
                          evaluations = evaluations, reached = found$reached,
-                         nextend = nextend, search = search,
-                         firstCrossingCertified = found$firstCrossingCertified)
+                         search = search, firstCrossingCertified =
+                             found$firstCrossingCertified)
 }
 
 .bfseq_find_bracket <- function(evalN, lower, lowerN, upperLimit) {
@@ -573,20 +552,9 @@
     sort(unique(as.integer(c(lowerN, grid, upperN))))
 }
 
-.bfseq_search_increase <- function(power, target, nrange, schedule, evalN,
-                                   candidates, nextend, search,
-                                   getEvaluations, setPhase) {
-    .bfseq_search_full_range(
-        power = power, target = target, nrange = nrange, schedule = schedule,
-        evalN = evalN, candidates = candidates, nextend = nextend,
-        search = search, getEvaluations = getEvaluations,
-        setPhase = setPhase
-    )
-}
-
 .bfseq_search_full_range <- function(power, target, nrange, schedule, evalN,
-                                     candidates, nextend, search,
-                                     getEvaluations, setPhase) {
+                                     candidates, search, getEvaluations,
+                                     setPhase) {
     setPhase("scan")
     found <- NULL
     limit <- NULL
@@ -619,22 +587,15 @@
                                     target = target, targetPower = power,
                                     nrange = nrange, schedule = schedule,
                                     evaluations = getEvaluations(),
-                                    reached = FALSE, nextend = 0,
-                                    search = search,
+                                    reached = FALSE, search = search,
                                     firstCrossingCertified = FALSE))
     }
 
-    setPhase("certify")
-    certified <- .bfseq_certify_increase_candidates(
-        evalN = evalN, candidates = candidates, foundN = found$n,
-        nextend = nextend
-    )
-    .bfseq_solver_result(candidate = certified$candidate,
+    .bfseq_solver_result(candidate = found,
                          target = target, targetPower = power,
                          nrange = nrange, schedule = schedule,
                          evaluations = getEvaluations(),
-                         reached = certified$reached, nextend = nextend,
-                         search = search,
+                         reached = TRUE, search = search,
                          firstCrossingCertified = !skippedBeforeFound)
 }
 
@@ -650,54 +611,8 @@
     invisible(NULL)
 }
 
-.bfseq_certify_increase_candidates <- function(evalN, candidates, foundN,
-                                               nextend) {
-    reached <- TRUE
-    index <- match(foundN, candidates)
-    if (is.na(index)) {
-        stop("internal error: increase-search solution is not a candidate")
-    }
-
-    if (nextend > 0) {
-        repeat {
-            end <- index + nextend
-            if (end > length(candidates)) {
-                warning("Power function may still fall below target power, extend sample size search range")
-                reached <- FALSE
-                break
-            }
-            checkIndex <- index:end
-            checked <- lapply(candidates[checkIndex], evalN)
-            invalid <- vapply(checked, .bfseq_candidate_is_invalid, logical(1))
-            if (any(invalid)) {
-                return(list(
-                    candidate = .bfseq_certification_invalid_candidate(
-                        checked[[which(invalid)[1]]]
-                    ),
-                    reached = FALSE
-                ))
-            }
-            criteria <- vapply(checked, `[[`, numeric(1), "criterion")
-            if (all(is.finite(criteria) & criteria >= 0)) {
-                break
-            }
-            below <- checkIndex[!is.finite(criteria) | criteria < 0]
-            index <- max(below) + 1L
-            if (index > length(candidates)) {
-                warning("Power function may still fall below target power, extend sample size search range")
-                index <- length(candidates)
-                reached <- FALSE
-                break
-            }
-        }
-    }
-
-    list(candidate = evalN(candidates[index]), reached = reached)
-}
-
-.bfseq_binary_search <- function(evalN, lowerN, upperN, minimumN, upperLimit,
+.bfseq_binary_search <- function(evalN, lowerN, upperN, minimumN,
                                  firstScan = c("none", "adaptive", "exhaustive"),
-                                 nextend = 0,
                                  setPhase = NULL) {
     firstScan <- match.arg(firstScan)
     if (!is.null(setPhase)) {
@@ -746,14 +661,8 @@
         }
     }
 
-    if (!is.null(setPhase)) {
-        setPhase("certify")
-    }
-    certified <- .bfseq_certify_nextend(evalN = evalN, foundN = foundN,
-                                        upperLimit = upperLimit,
-                                        nextend = nextend)
-    certified$firstCrossingCertified <- firstScan != "adaptive"
-    certified
+    list(candidate = evalN(foundN), reached = TRUE,
+         firstCrossingCertified = firstScan != "adaptive")
 }
 
 .bfseq_local_first_success <- function(evalN, foundN, minimumN) {
@@ -800,47 +709,9 @@
     }
 }
 
-.bfseq_certify_nextend <- function(evalN, foundN, upperLimit, nextend) {
-    reached <- TRUE
-    if (nextend > 0) {
-        repeat {
-            if (foundN + nextend > upperLimit) {
-                warning("Power function may still fall below target power, extend sample size search range")
-                reached <- FALSE
-                break
-            }
-            checkN <- foundN:(foundN + nextend)
-            checked <- lapply(checkN, evalN)
-            invalid <- vapply(checked, .bfseq_candidate_is_invalid, logical(1))
-            if (any(invalid)) {
-                return(list(
-                    candidate = .bfseq_certification_invalid_candidate(
-                        checked[[which(invalid)[1]]]
-                    ),
-                    reached = FALSE
-                ))
-            }
-            criteria <- vapply(checked, `[[`, numeric(1), "criterion")
-            if (all(is.finite(criteria) & criteria >= 0)) {
-                break
-            }
-            below <- checkN[!is.finite(criteria) | criteria < 0]
-            foundN <- max(below) + 1L
-            if (foundN > upperLimit) {
-                warning("Power function may still fall below target power, extend sample size search range")
-                foundN <- upperLimit
-                reached <- FALSE
-                break
-            }
-        }
-    }
-
-    list(candidate = evalN(foundN), reached = reached)
-}
-
 .bfseq_solver_result <- function(candidate, target, targetPower, nrange,
-                                 schedule, evaluations, reached, nextend,
-                                 search, firstCrossingCertified) {
+                                 schedule, evaluations, reached, search,
+                                 firstCrossingCertified) {
     n <- if (isTRUE(reached)) candidate$n else NaN
     status <- if (is.null(candidate$status)) {
         if (.bfseq_candidate_is_invalid(candidate)) "invalid" else "ok"
@@ -861,7 +732,6 @@
             nrange = nrange,
             schedule = .bfseq_schedule_summary(schedule),
             evaluations = evaluations,
-            nextend = nextend,
             search = search,
             firstCrossingCertified = isTRUE(reached) && isTRUE(firstCrossingCertified),
             status = status,
@@ -881,7 +751,6 @@
         nrange = nrange,
         schedule = .bfseq_schedule_summary(schedule),
         evaluations = evaluations,
-        nextend = nextend,
         search = search,
         firstCrossingCertified = isTRUE(reached) && isTRUE(firstCrossingCertified),
         status = status,
@@ -892,7 +761,7 @@
     )
 }
 
-.bfseq_fixed_solver <- function(n, target, design, schedule, nextend = 0) {
+.bfseq_fixed_solver <- function(n, target, design, schedule) {
     n <- ceiling(n)
     list(
         n = n,
@@ -904,7 +773,6 @@
         nrange = c(n, n),
         schedule = .bfseq_schedule_summary(schedule),
         evaluations = 1L,
-        nextend = .bfseq_normalize_nextend(nextend),
         search = NA_character_,
         firstCrossingCertified = NA,
         status = "ok",
@@ -1156,16 +1024,6 @@
         ratio > 0
     )
     max(2L, as.integer(floor(1/ratio) + 1L))
-}
-
-.bfseq_normalize_nextend <- function(nextend) {
-    stopifnot(
-        length(nextend) == 1,
-        is.numeric(nextend),
-        is.finite(nextend),
-        nextend >= 0
-    )
-    as.integer(ceiling(nextend))
 }
 
 .bfseq_validate_progress <- function(progress) {

@@ -8,7 +8,7 @@ ntbf01seq. <- function(k1, k0 = 1/k1, power, null = 0,
                        ratio = 1, strict = TRUE, trange = "adaptive",
                        tail.eps = 1e-3,
                        tail.nquad = 128,
-                       integer = TRUE, nextend = 0,
+                       integer = TRUE,
                        search = c("adaptive", "exhaustive"),
                        details = FALSE,
                        progress = NULL, ...) {
@@ -90,7 +90,6 @@ ntbf01seq. <- function(k1, k0 = 1/k1, power, null = 0,
     type <- match.arg(type)
     alternative <- match.arg(alternative)
     target <- match.arg(target)
-    nextend <- .bfseq_normalize_nextend(nextend)
     progress <- .bfseq_validate_progress(progress)
 
     lookMinN <- if (type == "two.sample") .bfseq_ratio_look_min_n(ratio) else 2
@@ -108,8 +107,7 @@ ntbf01seq. <- function(k1, k0 = 1/k1, power, null = 0,
 
     solver <- .bfseq_search(power = power, target = target, nrange = nrange,
                             schedule = schedule, evaluate = evalDesign,
-                            nextend = nextend, progress = progress,
-                            search = search)
+                            progress = progress, search = search)
 
     if (details) {
         return(solver)
@@ -181,7 +179,7 @@ ntbf01seq <- function(k1, k0 = 1/k1, power, null = 0,
                       ratio = 1, strict = TRUE, trange = "adaptive",
                       tail.eps = 1e-3,
                       tail.nquad = 128,
-                      integer = TRUE, nextend = 0,
+                      integer = TRUE,
                       search = c("adaptive", "exhaustive"),
                       details = FALSE,
                       progress = NULL, ...) {
@@ -216,8 +214,8 @@ ntbf01seq <- function(k1, k0 = 1/k1, power, null = 0,
             looks = looks, timing = timing, minN = minN, by = by,
             ratio = ratio, strict = strict, trange = trange,
             tail.eps = tail.eps, tail.nquad = tail.nquad,
-            integer = integer, nextend = nextend, search = search,
-            details = TRUE, progress = progress, ...
+            integer = integer, search = search, details = TRUE,
+            progress = progress, ...
         ))
     }
 
@@ -233,7 +231,6 @@ ntbf01seq <- function(k1, k0 = 1/k1, power, null = 0,
       target = target, nrange = nrange, looks = looks, timing = timing,
       minN = minN, by = by, ratio = ratio, strict = strict,
       trange = trange, tail.eps = tail.eps, tail.nquad = tail.nquad,
-      integer = integer,
-      nextend = nextend,
-      search = search, details = FALSE, progress = progress, ...)
+      integer = integer, search = search, details = FALSE,
+      progress = progress, ...)
 }

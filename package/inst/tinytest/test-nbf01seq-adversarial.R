@@ -175,15 +175,8 @@ badK1 <- try(
              psd = 1, dpm = 0.5, dpsd = 0),
     silent = TRUE
 )
-badFixedNextend <- try(
-    powerbf01seq(n = 20, k1 = 1/2, k0 = 2, pm = 0, psd = 1,
-                 dpm = 0.5, dpsd = 0, nextend = NA_real_),
-    silent = TRUE
-)
 expect_true(inherits(badK1, "try-error"),
             info = "z search should reject non-positive H1 BF thresholds")
-expect_true(inherits(badFixedNextend, "try-error"),
-            info = "z fixed-n wrapper should validate nextend")
 
 lowerSchedule <- bfpwr:::.bfseq_schedule_spec(looks = 1,
                                               nrange = c(2, 5))
@@ -193,7 +186,6 @@ lowerDip <- suppressWarnings(
         target = "h1",
         nrange = c(2, 5),
         schedule = lowerSchedule,
-        nextend = 1,
         evaluate = function(maxN) {
             power <- if (maxN == 3) 0.5 else 0.9
             list(result = list(cumpH1 = power, cumpH0 = 0, n = maxN),
@@ -201,10 +193,10 @@ lowerDip <- suppressWarnings(
         }
     )
 )
-expect_equal(lowerDip$n, 4,
-             info = "nextend should be checked when lower bound already reaches")
+expect_equal(lowerDip$n, 2,
+             info = "search should return the lower bound when it already reaches")
 expect_true(lowerDip$reached,
-            info = "lower-bound nextend certification should advance to stable n")
+            info = "lower-bound first crossing should be considered reached")
 
 syntheticSchedule <- bfpwr:::.bfseq_schedule_spec(looks = 1,
                                                   nrange = c(2, 10))
@@ -214,7 +206,6 @@ synthetic <- suppressWarnings(
         target = "h1",
         nrange = c(2, 10),
         schedule = syntheticSchedule,
-        nextend = 3,
         evaluate = function(maxN) {
             list(result = list(cumpH1 = if (maxN >= 9) 0.9 else 0.5,
                                cumpH0 = 0, n = maxN),
@@ -223,10 +214,10 @@ synthetic <- suppressWarnings(
         }
     )
 )
-expect_false(synthetic$reached,
-             info = "nextend should fail closed when stability cannot be certified")
-expect_true(is.nan(synthetic$n),
-            info = "uncertified nextend search should return NaN sample size")
+expect_equal(synthetic$n, 9,
+             info = "search should return the first candidate that reaches")
+expect_true(synthetic$reached,
+            info = "first-crossing search should not require post-crossing stability")
 
 searchPolicySchedule <- bfpwr:::.bfseq_schedule_spec(looks = 1,
                                                      nrange = c(2, 20))

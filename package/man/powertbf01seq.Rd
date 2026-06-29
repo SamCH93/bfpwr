@@ -28,7 +28,6 @@ powertbf01seq(
   trange = "adaptive",
   tail.eps = 0.001,
   tail.nquad = 128,
-  nextend = 0,
   search = c("adaptive", "exhaustive"),
   progress = NULL,
   ...
@@ -126,10 +125,6 @@ to \code{1e-3}.}
 \code{\link{tbf01}} for stable wrong-tail one-sided calculations. Larger
 values are more accurate but slower. Defaults to \code{128}.}
 
-\item{nextend}{Number of sample sizes beyond the solution used to check that
-the target probability does not drop below \code{power}. Non-integer
-values are rounded up. Defaults to \code{0}.}
-
 \item{search}{Sample-size search rule for schedules generated from
 \code{looks}/\code{timing}. \code{"adaptive"} uses bracketing and binary
 search with local checks, and stops with a diagnostic if a transient
@@ -165,11 +160,11 @@ This function provides a higher-level interface to
     \code{\link{ptbf01seq}}. If \code{power} is supplied, the returned
     design is evaluated at the searched maximum sample size, and
     \code{solver$reached} records whether the target was achieved within
-\code{nrange}. If \code{n} is supplied, no search is performed and the
-\code{solver} element records the achieved stopping probability for the
-fixed schedule. For fixed-\code{n} increment schedules with missing
-\code{minN}, \code{nrange[1]} is used as the default first look, clamped
-to \code{n} when necessary.
+    \code{nrange}. If \code{n} is supplied, no search is performed and the
+    \code{solver} element records the achieved stopping probability for the
+    fixed schedule. For fixed-\code{n} increment schedules with missing
+    \code{minN}, \code{nrange[1]} is used as the default first look, clamped
+    to \code{n} when necessary.
 }
 \examples{
 powertbf01seq(n = 20, k1 = 1/2, k0 = 2, dpm = 0.5, dpsd = 0,

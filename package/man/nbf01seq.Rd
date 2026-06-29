@@ -23,7 +23,6 @@ nbf01seq(
   by = NULL,
   strict = TRUE,
   integer = TRUE,
-  nextend = 0,
   search = c("adaptive", "exhaustive"),
   details = FALSE,
   progress = NULL,
@@ -99,10 +98,6 @@ performed). Defaults to \code{TRUE}}
 \item{integer}{Logical indicating whether only integer valued sample sizes
 should be returned. If \code{TRUE} the required sample size is rounded to
 the next larger integer. Defaults to \code{TRUE}}
-
-\item{nextend}{Number of sample sizes beyond the solution used to check that
-the target probability does not drop below \code{power}. Non-integer
-values are rounded up. Defaults to \code{0}.}
 
 \item{search}{Sample-size search rule for schedules generated from
 \code{looks}/\code{timing}. \code{"adaptive"} uses bracketing and binary
