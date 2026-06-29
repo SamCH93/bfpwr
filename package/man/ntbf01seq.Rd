@@ -8,7 +8,6 @@ ntbf01seq(
   k1,
   k0 = 1/k1,
   power,
-  null = 0,
   plocation = 0,
   pscale = 1/sqrt(2),
   pdf = 1,
@@ -41,10 +40,7 @@ ntbf01seq(
 \item{k0}{Bayes factor threshold in favor of \eqn{H_0}{H0}. Evidence for
 \eqn{H_0}{H0} is obtained when \eqn{\mathrm{BF}_{01} \geq k0}.}
 
-\item{power}{Target power}
-
-\item{null}{Standardized mean difference under the point null hypothesis.
-Defaults to \code{0}}
+\item{power}{Target stopping probability.}
 
 \item{plocation}{\eqn{t} prior location. Defaults to \code{0}}
 

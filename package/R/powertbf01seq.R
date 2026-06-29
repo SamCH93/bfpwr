@@ -5,19 +5,16 @@
 #'     to obtain a target stopping probability.
 #'
 #' @details This function provides a higher-level interface to
-#'     \code{\link{ptbf01seq}} and \code{\link{ntbf01seq}}. The analysis and
-#'     design prior locations are centered at \code{null} before calling
-#'     \code{\link{ptbf01seq}}. If \code{power} is supplied, the returned
-#'     design is evaluated at the searched maximum sample size, and
-#'     \code{solver$reached} records whether the target was achieved within
-#'     \code{nrange}. If \code{n} is supplied, no search is performed and the
-#'     \code{solver} element records the achieved stopping probability for the
-#'     fixed schedule. For fixed-\code{n} increment schedules with missing
-#'     \code{minN}, \code{nrange[1]} is used as the default first look, clamped
-#'     to \code{n} when necessary.
+#'     \code{\link{ptbf01seq}} and \code{\link{ntbf01seq}}. If \code{power} is
+#'     supplied, the returned design is evaluated at the searched maximum
+#'     sample size, and \code{solver$reached} records whether the target was
+#'     achieved within \code{nrange}. If \code{n} is supplied, no search is
+#'     performed and the \code{solver} element records the achieved stopping
+#'     probability for the fixed schedule. For fixed-\code{n} increment
+#'     schedules with missing \code{minN}, \code{nrange[1]} is used as the
+#'     default first look, clamped to \code{n} when necessary.
 #'
 #' @inheritParams ntbf01seq
-#' @inheritParams powertbf01
 #' @param n Maximum sample size in group 1 for two-sample tests, or maximum
 #'     sample size for one-sample and paired tests. Has to be \code{NULL} if
 #'     \code{power} is specified. Defaults to \code{NULL}.
@@ -40,8 +37,7 @@
 #'
 #' @export
 powertbf01seq <- function(n = NULL, power = NULL, k1 = 1/10, k0 = 1/k1,
-                          null = 0, plocation = 0, pscale = 1/sqrt(2),
-                          pdf = 1,
+                          plocation = 0, pscale = 1/sqrt(2), pdf = 1,
                           type = c("two.sample", "one.sample", "paired"),
                           alternative = c("two.sided", "less", "greater"),
                           dpm = plocation, dpsd = pscale,
@@ -88,15 +84,13 @@ powertbf01seq <- function(n = NULL, power = NULL, k1 = 1/10, k0 = 1/k1,
 
     if (is.null(n)) {
         solver <- ntbf01seq.(
-            k1 = k1, k0 = k0, power = power, null = null,
-            plocation = plocation, pscale = pscale, pdf = pdf,
-            dpm = dpm, dpsd = dpsd, type = type,
-            alternative = alternative, target = target, nrange = nrange,
-            looks = looks, timing = timing, minN = minN, by = by,
-            ratio = ratio, strict = strict, trange = trange,
-            tail.eps = tail.eps, tail.nquad = tail.nquad,
-            integer = TRUE, search = search, details = TRUE,
-            progress = progress, ...
+            k1 = k1, k0 = k0, power = power, plocation = plocation,
+            pscale = pscale, pdf = pdf, dpm = dpm, dpsd = dpsd,
+            type = type, alternative = alternative, target = target,
+            nrange = nrange, looks = looks, timing = timing, minN = minN,
+            by = by, ratio = ratio, strict = strict, trange = trange,
+            tail.eps = tail.eps, tail.nquad = tail.nquad, integer = TRUE,
+            search = search, details = TRUE, progress = progress, ...
         )
         design <- solver$result
         if (is.null(design)) {
@@ -129,8 +123,8 @@ powertbf01seq <- function(n = NULL, power = NULL, k1 = 1/10, k0 = 1/k1,
         }
         design <- ptbf01seq(
             k1 = k1, k0 = k0, n1 = n1, n2 = n2,
-            plocation = plocation - null, pscale = pscale, pdf = pdf,
-            dpm = dpm - null, dpsd = dpsd, type = type,
+            plocation = plocation, pscale = pscale, pdf = pdf,
+            dpm = dpm, dpsd = dpsd, type = type,
             alternative = alternative, strict = strict, trange = trange,
             tail.eps = tail.eps, tail.nquad = tail.nquad, ...
         )
@@ -139,7 +133,6 @@ powertbf01seq <- function(n = NULL, power = NULL, k1 = 1/10, k0 = 1/k1,
         design$solver <- solver
     }
 
-    design$null <- null
     design$ratio <- ratio
     design
 }

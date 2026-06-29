@@ -1,4 +1,4 @@
-nbf01seq. <- function(k1, k0 = 1/k1, power, usd = sqrt(2), null = 0,
+nbf01seq. <- function(k1, k0 = 1/k1, power, usd = sqrt(2),
                       pm = NULL, psd, dpm = pm, dpsd = psd,
                       type = c("normal", "directional", "moment"),
                       target = c("h1", "h0"), nrange = c(2, 10^5),
@@ -35,10 +35,6 @@ nbf01seq. <- function(k1, k0 = 1/k1, power, usd = sqrt(2), null = 0,
         is.numeric(usd),
         is.finite(usd),
         0 < usd,
-
-        length(null) == 1,
-        is.numeric(null),
-        is.finite(null),
 
         length(psd) == 1,
         is.numeric(psd),
@@ -81,10 +77,9 @@ nbf01seq. <- function(k1, k0 = 1/k1, power, usd = sqrt(2), null = 0,
     schedule <- .bfseq_schedule_spec(looks = looks, timing = timing,
                                      minN = minN, by = by, nrange = nrange)
     evalDesign <- .bfseq_z_schedule_evaluator(
-        k1 = k1, k0 = k0, usd = usd, null = null, pm = pm,
-        psd = psd, dpm = dpm, dpsd = dpsd, type = type,
-        target = target, schedule = schedule, strict = strict,
-        dots = list(...)
+        k1 = k1, k0 = k0, usd = usd, pm = pm, psd = psd,
+        dpm = dpm, dpsd = dpsd, type = type, target = target,
+        schedule = schedule, strict = strict, dots = list(...)
     )
 
     solver <- .bfseq_search(power = power, target = target, nrange = nrange,
@@ -122,13 +117,13 @@ nbf01seq. <- function(k1, k0 = 1/k1, power, usd = sqrt(2), null = 0,
 #'     a warning.
 #'
 #' @inheritParams pbf01seq
-#' @inheritParams nbf01
 #' @param k1 Bayes factor threshold in favor of \eqn{H_1}{H1}. Evidence for
 #'     \eqn{H_1}{H1} is obtained when \eqn{\mathrm{BF}_{01} \leq k1}.
 #' @param k0 Bayes factor threshold in favor of \eqn{H_0}{H0}. Evidence for
 #'     \eqn{H_0}{H0} is obtained when \eqn{\mathrm{BF}_{01} \geq k0}.
-#' @param null Point null value. The sequential z-test calculation is performed
-#'     after centering the analysis and design prior means at \code{null}.
+#' @param power Target stopping probability.
+#' @param usd Unit standard deviation, the standard error of the parameter
+#'     estimate at \eqn{n = 1}{n = 1}.
 #' @param target Character string. Either \code{"h1"} for the final cumulative
 #'     probability of stopping for \eqn{H_1}{H1}, or \code{"h0"} for the final
 #'     cumulative probability of stopping for \eqn{H_0}{H0}.
@@ -164,6 +159,9 @@ nbf01seq. <- function(k1, k0 = 1/k1, power, usd = sqrt(2), null = 0,
 #'     candidate maximum sample size. A callback with arguments receives a list
 #'     of search diagnostics; a zero-argument callback is called without
 #'     arguments.
+#' @param integer Logical indicating whether only integer-valued maximum sample
+#'     sizes should be returned. If \code{TRUE}, the required maximum sample
+#'     size is rounded to the next larger integer. Defaults to \code{TRUE}.
 #' @param ... Additional arguments passed to \code{\link{pbf01seq}}.
 #'
 #' @return The maximum sample size found to achieve the specified power. If
@@ -180,7 +178,7 @@ nbf01seq. <- function(k1, k0 = 1/k1, power, usd = sqrt(2), null = 0,
 #'          looks = 3, nrange = c(2, 200))
 #'
 #' @export
-nbf01seq <- function(k1, k0 = 1/k1, power, usd = sqrt(2), null = 0,
+nbf01seq <- function(k1, k0 = 1/k1, power, usd = sqrt(2),
                      pm = NULL, psd, dpm = pm, dpsd = psd,
                      type = c("normal", "directional", "moment"),
                      target = c("h1", "h0"), nrange = c(2, 10^5),
@@ -205,23 +203,24 @@ nbf01seq <- function(k1, k0 = 1/k1, power, usd = sqrt(2), null = 0,
             stop("'details = TRUE' requires scalar 'type' and 'target'")
         }
         return(nbf01seq.(
-            k1 = k1, k0 = k0, power = power, usd = usd, null = null,
-            pm = pm, psd = psd, dpm = dpm, dpsd = dpsd, type = type,
-            target = target, nrange = nrange, looks = looks, timing = timing,
-            minN = minN, by = by, strict = strict, integer = integer,
-            search = search, details = TRUE, progress = progress, ...
+            k1 = k1, k0 = k0, power = power, usd = usd, pm = pm,
+            psd = psd, dpm = dpm, dpsd = dpsd, type = type,
+            target = target, nrange = nrange, looks = looks,
+            timing = timing, minN = minN, by = by, strict = strict,
+            integer = integer, search = search, details = TRUE,
+            progress = progress, ...
         ))
     }
 
-    vectorizeArgs <- c("k1", "k0", "power", "usd", "null", "psd", "dpm",
-                       "dpsd", "type", "target", "integer")
+    vectorizeArgs <- c("k1", "k0", "power", "usd", "psd", "dpm", "dpsd",
+                       "type", "target", "integer")
     if (!is.null(pm)) {
         vectorizeArgs <- c(vectorizeArgs, "pm")
     }
     f <- Vectorize(FUN = nbf01seq., vectorize.args = vectorizeArgs)
-    f(k1 = k1, k0 = k0, power = power, usd = usd, null = null,
-      pm = pm, psd = psd, dpm = dpm, dpsd = dpsd, type = type,
-      target = target, nrange = nrange, looks = looks, timing = timing,
-      minN = minN, by = by, strict = strict, integer = integer,
-      search = search, details = FALSE, progress = progress, ...)
+    f(k1 = k1, k0 = k0, power = power, usd = usd, pm = pm, psd = psd,
+      dpm = dpm, dpsd = dpsd, type = type, target = target,
+      nrange = nrange, looks = looks, timing = timing, minN = minN,
+      by = by, strict = strict, integer = integer, search = search,
+      details = FALSE, progress = progress, ...)
 }

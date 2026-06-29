@@ -6,20 +6,21 @@
 #'
 #' @details This function provides a higher-level interface to
 #'     \code{\link{pbf01seq}} and \code{\link{nbf01seq}} for continuous data.
-#'     The analysis and design prior means are centered at \code{null} before
-#'     calling \code{\link{pbf01seq}}. If \code{power} is supplied, the
-#'     returned design is evaluated at the searched maximum sample size, and
-#'     \code{solver$reached} records whether the target was achieved within
-#'     \code{nrange}. If \code{n} is supplied, no search is performed and the
-#'     \code{solver} element records the achieved stopping probability for the
-#'     fixed schedule. For fixed-\code{n} increment schedules with missing
-#'     \code{minN}, \code{nrange[1]} is used as the default first look, clamped
-#'     to \code{n} when necessary.
+#'     If \code{power} is supplied, the returned design is evaluated at the
+#'     searched maximum sample size, and \code{solver$reached} records whether
+#'     the target was achieved within \code{nrange}. If \code{n} is supplied,
+#'     no search is performed and the \code{solver} element records the
+#'     achieved stopping probability for the fixed schedule. For fixed-\code{n}
+#'     increment schedules with missing \code{minN}, \code{nrange[1]} is used
+#'     as the default first look, clamped to \code{n} when necessary.
 #'
 #' @inheritParams nbf01seq
-#' @inheritParams powerbf01
 #' @param n Maximum sample size (per group for two-sample tests). Has to be
 #'     \code{NULL} if \code{power} is specified. Defaults to \code{NULL}.
+#' @param sd Standard deviation of one observation (for \code{type =
+#'     "two.sample"} or \code{type = "one.sample"}) or of one difference within
+#'     a pair of observations (\code{type = "paired"}). Is assumed to be known.
+#'     Defaults to \code{1}.
 #' @param type Type of sampling design. One of \code{"two.sample"},
 #'     \code{"one.sample"}, or \code{"paired"}. Defaults to
 #'     \code{"two.sample"}.
@@ -49,7 +50,7 @@
 #'
 #' @export
 powerbf01seq <- function(n = NULL, power = NULL, k1 = 1/10, k0 = 1/k1,
-                         sd = 1, null = 0, pm, psd,
+                         sd = 1, pm, psd,
                          type = c("two.sample", "one.sample", "paired"),
                          bftype = c("normal", "directional", "moment"),
                          dpm = pm, dpsd = psd, target = c("h1", "h0"),
@@ -67,11 +68,7 @@ powerbf01seq <- function(n = NULL, power = NULL, k1 = 1/10, k0 = 1/k1,
         length(sd) == 1,
         is.numeric(sd),
         is.finite(sd),
-        0 < sd,
-
-        length(null) == 1,
-        is.numeric(null),
-        is.finite(null)
+        0 < sd
     )
     type <- match.arg(type)
     bftype <- match.arg(bftype)
@@ -105,11 +102,12 @@ powerbf01seq <- function(n = NULL, power = NULL, k1 = 1/10, k0 = 1/k1,
 
     if (is.null(n)) {
         solver <- nbf01seq.(
-            k1 = k1, k0 = k0, power = power, usd = usd, null = null,
-            pm = pm, psd = psd, dpm = dpm, dpsd = dpsd, type = bftype,
-            target = target, nrange = nrange, looks = looks, timing = timing,
-            minN = minN, by = by, strict = strict, integer = TRUE,
-            search = search, details = TRUE, progress = progress, ...
+            k1 = k1, k0 = k0, power = power, usd = usd, pm = pm,
+            psd = psd, dpm = dpm, dpsd = dpsd, type = bftype,
+            target = target, nrange = nrange, looks = looks,
+            timing = timing, minN = minN, by = by, strict = strict,
+            integer = TRUE, search = search, details = TRUE,
+            progress = progress, ...
         )
         design <- solver$result
         if (is.null(design)) {
@@ -131,10 +129,9 @@ powerbf01seq <- function(n = NULL, power = NULL, k1 = 1/10, k0 = 1/k1,
                                          minN = minN, by = by,
                                          nrange = fixedNrange)
         nseq <- .bfseq_schedule_n(maxN = n, schedule = schedule)
-        relpm <- if (bftype == "moment") NULL else pm - null
         design <- pbf01seq(
             k1 = k1, k0 = k0, se = usd/sqrt(nseq), n = nseq,
-            pm = relpm, psd = psd, dpm = dpm - null, dpsd = dpsd,
+            pm = pm, psd = psd, dpm = dpm, dpsd = dpsd,
             type = bftype, strict = strict, ...
         )
         solver <- .bfseq_fixed_solver(n = n, target = target, design = design,
@@ -142,7 +139,6 @@ powerbf01seq <- function(n = NULL, power = NULL, k1 = 1/10, k0 = 1/k1,
         design$solver <- solver
     }
 
-    design$null <- null
     design$sd <- sd
     design$sample.type <- type
     design

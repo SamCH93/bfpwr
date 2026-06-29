@@ -9,7 +9,6 @@ powertbf01seq(
   power = NULL,
   k1 = 1/10,
   k0 = 1/k1,
-  null = 0,
   plocation = 0,
   pscale = 1/sqrt(2),
   pdf = 1,
@@ -38,16 +37,13 @@ powertbf01seq(
 sample size for one-sample and paired tests. Has to be \code{NULL} if
 \code{power} is specified. Defaults to \code{NULL}.}
 
-\item{power}{Target power}
+\item{power}{Target stopping probability.}
 
 \item{k1}{Bayes factor threshold in favor of \eqn{H_1}{H1}. Evidence for
 \eqn{H_1}{H1} is obtained when \eqn{\mathrm{BF}_{01} \leq k1}.}
 
 \item{k0}{Bayes factor threshold in favor of \eqn{H_0}{H0}. Evidence for
 \eqn{H_0}{H0} is obtained when \eqn{\mathrm{BF}_{01} \geq k0}.}
-
-\item{null}{Standardized mean difference under the point null hypothesis.
-Defaults to \code{0}}
 
 \item{plocation}{\eqn{t} prior location. Defaults to \code{0}}
 
@@ -155,16 +151,14 @@ Computes cumulative stopping probabilities for a sequential
 }
 \details{
 This function provides a higher-level interface to
-    \code{\link{ptbf01seq}} and \code{\link{ntbf01seq}}. The analysis and
-    design prior locations are centered at \code{null} before calling
-    \code{\link{ptbf01seq}}. If \code{power} is supplied, the returned
-    design is evaluated at the searched maximum sample size, and
-    \code{solver$reached} records whether the target was achieved within
-    \code{nrange}. If \code{n} is supplied, no search is performed and the
-    \code{solver} element records the achieved stopping probability for the
-    fixed schedule. For fixed-\code{n} increment schedules with missing
-    \code{minN}, \code{nrange[1]} is used as the default first look, clamped
-    to \code{n} when necessary.
+    \code{\link{ptbf01seq}} and \code{\link{ntbf01seq}}. If \code{power} is
+    supplied, the returned design is evaluated at the searched maximum
+    sample size, and \code{solver$reached} records whether the target was
+    achieved within \code{nrange}. If \code{n} is supplied, no search is
+    performed and the \code{solver} element records the achieved stopping
+    probability for the fixed schedule. For fixed-\code{n} increment
+    schedules with missing \code{minN}, \code{nrange[1]} is used as the
+    default first look, clamped to \code{n} when necessary.
 }
 \examples{
 powertbf01seq(n = 20, k1 = 1/2, k0 = 2, dpm = 0.5, dpsd = 0,

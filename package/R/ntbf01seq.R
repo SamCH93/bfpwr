@@ -1,5 +1,5 @@
-ntbf01seq. <- function(k1, k0 = 1/k1, power, null = 0,
-                       plocation = 0, pscale = 1/sqrt(2), pdf = 1,
+ntbf01seq. <- function(k1, k0 = 1/k1, power, plocation = 0,
+                       pscale = 1/sqrt(2), pdf = 1,
                        dpm = plocation, dpsd = pscale,
                        type = c("two.sample", "one.sample", "paired"),
                        alternative = c("two.sided", "less", "greater"),
@@ -30,10 +30,6 @@ ntbf01seq. <- function(k1, k0 = 1/k1, power, null = 0,
         is.numeric(power),
         is.finite(power),
         0 < power, power < 1,
-
-        length(null) == 1,
-        is.numeric(null),
-        is.finite(null),
 
         length(plocation) == 1,
         is.numeric(plocation),
@@ -97,12 +93,11 @@ ntbf01seq. <- function(k1, k0 = 1/k1, power, null = 0,
                                      minN = minN, by = by, nrange = nrange,
                                      lookMinN = lookMinN)
     evalDesign <- .bfseq_t_schedule_evaluator(
-        k1 = k1, k0 = k0, plocation = plocation - null,
-        pscale = pscale, pdf = pdf, dpm = dpm - null,
-        dpsd = dpsd, type = type, alternative = alternative,
-        target = target, ratio = ratio, schedule = schedule,
-        strict = strict, trange = trange, tail.eps = tail.eps,
-        tail.nquad = tail.nquad, dots = list(...)
+        k1 = k1, k0 = k0, plocation = plocation, pscale = pscale,
+        pdf = pdf, dpm = dpm, dpsd = dpsd, type = type,
+        alternative = alternative, target = target, ratio = ratio,
+        schedule = schedule, strict = strict, trange = trange,
+        tail.eps = tail.eps, tail.nquad = tail.nquad, dots = list(...)
     )
 
     solver <- .bfseq_search(power = power, target = target, nrange = nrange,
@@ -140,7 +135,6 @@ ntbf01seq. <- function(k1, k0 = 1/k1, power, null = 0,
 #'     \code{nrange}, the function returns \code{NaN} and issues a warning.
 #'
 #' @inheritParams ptbf01seq
-#' @inheritParams ntbf01
 #' @inheritParams nbf01seq
 #' @param k1 Bayes factor threshold in favor of \eqn{H_1}{H1}. Evidence for
 #'     \eqn{H_1}{H1} is obtained when \eqn{\mathrm{BF}_{01} \leq k1}.
@@ -169,8 +163,8 @@ ntbf01seq. <- function(k1, k0 = 1/k1, power, null = 0,
 #'           strict = FALSE)
 #'
 #' @export
-ntbf01seq <- function(k1, k0 = 1/k1, power, null = 0,
-                      plocation = 0, pscale = 1/sqrt(2), pdf = 1,
+ntbf01seq <- function(k1, k0 = 1/k1, power, plocation = 0,
+                      pscale = 1/sqrt(2), pdf = 1,
                       dpm = plocation, dpsd = pscale,
                       type = c("two.sample", "one.sample", "paired"),
                       alternative = c("two.sided", "less", "greater"),
@@ -207,12 +201,11 @@ ntbf01seq <- function(k1, k0 = 1/k1, power, null = 0,
             stop("'details = TRUE' requires scalar 'type', 'alternative', and 'target'")
         }
         return(ntbf01seq.(
-            k1 = k1, k0 = k0, power = power, null = null,
-            plocation = plocation, pscale = pscale, pdf = pdf,
-            dpm = dpm, dpsd = dpsd, type = type,
-            alternative = alternative, target = target, nrange = nrange,
-            looks = looks, timing = timing, minN = minN, by = by,
-            ratio = ratio, strict = strict, trange = trange,
+            k1 = k1, k0 = k0, power = power, plocation = plocation,
+            pscale = pscale, pdf = pdf, dpm = dpm, dpsd = dpsd,
+            type = type, alternative = alternative, target = target,
+            nrange = nrange, looks = looks, timing = timing, minN = minN,
+            by = by, ratio = ratio, strict = strict, trange = trange,
             tail.eps = tail.eps, tail.nquad = tail.nquad,
             integer = integer, search = search, details = TRUE,
             progress = progress, ...
@@ -220,17 +213,17 @@ ntbf01seq <- function(k1, k0 = 1/k1, power, null = 0,
     }
 
     f <- Vectorize(FUN = ntbf01seq.,
-                   vectorize.args = c("k1", "k0", "power", "null",
+                   vectorize.args = c("k1", "k0", "power",
                                       "plocation", "pscale", "pdf",
                                       "dpm", "dpsd", "type",
                                       "alternative", "target", "ratio",
                                       "tail.eps", "integer"))
-    f(k1 = k1, k0 = k0, power = power, null = null,
-      plocation = plocation, pscale = pscale, pdf = pdf,
-      dpm = dpm, dpsd = dpsd, type = type, alternative = alternative,
-      target = target, nrange = nrange, looks = looks, timing = timing,
-      minN = minN, by = by, ratio = ratio, strict = strict,
-      trange = trange, tail.eps = tail.eps, tail.nquad = tail.nquad,
+    f(k1 = k1, k0 = k0, power = power, plocation = plocation,
+      pscale = pscale, pdf = pdf, dpm = dpm, dpsd = dpsd, type = type,
+      alternative = alternative, target = target, nrange = nrange,
+      looks = looks, timing = timing, minN = minN, by = by,
+      ratio = ratio, strict = strict, trange = trange,
+      tail.eps = tail.eps, tail.nquad = tail.nquad,
       integer = integer, search = search, details = FALSE,
       progress = progress, ...)
 }

@@ -9,7 +9,6 @@ nbf01seq(
   k0 = 1/k1,
   power,
   usd = sqrt(2),
-  null = 0,
   pm = NULL,
   psd,
   dpm = pm,
@@ -36,13 +35,10 @@ nbf01seq(
 \item{k0}{Bayes factor threshold in favor of \eqn{H_0}{H0}. Evidence for
 \eqn{H_0}{H0} is obtained when \eqn{\mathrm{BF}_{01} \geq k0}.}
 
-\item{power}{Target power}
+\item{power}{Target stopping probability.}
 
-\item{usd}{Unit standard deviation, the (approximate) standard error of the
-parameter estimate based on \eqn{\code{n}=1}{n=1}, see details}
-
-\item{null}{Point null value. The sequential z-test calculation is performed
-after centering the analysis and design prior means at \code{null}.}
+\item{usd}{Unit standard deviation, the standard error of the parameter
+estimate at \eqn{n = 1}{n = 1}.}
 
 \item{pm}{Analysis prior mean. Not taken into account for \code{type =
 "moment"}}
@@ -95,9 +91,9 @@ the sign of the z-statistics does not change across stages (faster,
 recommended when many interim analyses, e.g., more than 10, are
 performed). Defaults to \code{TRUE}}
 
-\item{integer}{Logical indicating whether only integer valued sample sizes
-should be returned. If \code{TRUE} the required sample size is rounded to
-the next larger integer. Defaults to \code{TRUE}}
+\item{integer}{Logical indicating whether only integer-valued maximum sample
+sizes should be returned. If \code{TRUE}, the required maximum sample
+size is rounded to the next larger integer. Defaults to \code{TRUE}.}
 
 \item{search}{Sample-size search rule for schedules generated from
 \code{looks}/\code{timing}. \code{"adaptive"} uses bracketing and binary

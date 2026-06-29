@@ -10,7 +10,6 @@ powerbf01seq(
   k1 = 1/10,
   k0 = 1/k1,
   sd = 1,
-  null = 0,
   pm,
   psd,
   type = c("two.sample", "one.sample", "paired"),
@@ -33,7 +32,7 @@ powerbf01seq(
 \item{n}{Maximum sample size (per group for two-sample tests). Has to be
 \code{NULL} if \code{power} is specified. Defaults to \code{NULL}.}
 
-\item{power}{Target power}
+\item{power}{Target stopping probability.}
 
 \item{k1}{Bayes factor threshold in favor of \eqn{H_1}{H1}. Evidence for
 \eqn{H_1}{H1} is obtained when \eqn{\mathrm{BF}_{01} \leq k1}.}
@@ -44,10 +43,7 @@ powerbf01seq(
 \item{sd}{Standard deviation of one observation (for \code{type =
 "two.sample"} or \code{type = "one.sample"}) or of one difference within
 a pair of observations (\code{type = "paired"}). Is assumed to be known.
-Defaults to \code{1}}
-
-\item{null}{Point null value. The sequential z-test calculation is performed
-after centering the analysis and design prior means at \code{null}.}
+Defaults to \code{1}.}
 
 \item{pm}{Analysis prior mean. Not taken into account for \code{bftype =
 "moment"}.}
@@ -128,15 +124,13 @@ Computes cumulative stopping probabilities for a sequential
 \details{
 This function provides a higher-level interface to
     \code{\link{pbf01seq}} and \code{\link{nbf01seq}} for continuous data.
-    The analysis and design prior means are centered at \code{null} before
-    calling \code{\link{pbf01seq}}. If \code{power} is supplied, the
-    returned design is evaluated at the searched maximum sample size, and
-    \code{solver$reached} records whether the target was achieved within
-    \code{nrange}. If \code{n} is supplied, no search is performed and the
-    \code{solver} element records the achieved stopping probability for the
-    fixed schedule. For fixed-\code{n} increment schedules with missing
-    \code{minN}, \code{nrange[1]} is used as the default first look, clamped
-    to \code{n} when necessary.
+    If \code{power} is supplied, the returned design is evaluated at the
+    searched maximum sample size, and \code{solver$reached} records whether
+    the target was achieved within \code{nrange}. If \code{n} is supplied,
+    no search is performed and the \code{solver} element records the
+    achieved stopping probability for the fixed schedule. For fixed-\code{n}
+    increment schedules with missing \code{minN}, \code{nrange[1]} is used
+    as the default first look, clamped to \code{n} when necessary.
 }
 \examples{
 powerbf01seq(n = 60, k1 = 1/5, k0 = 5, pm = 0, psd = 1,

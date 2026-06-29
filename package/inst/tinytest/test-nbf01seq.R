@@ -114,10 +114,9 @@ timingSchedule <- bfpwr:::.bfseq_schedule_spec(
     looks = 3, timing = c(0.25, 0.55, 1), nrange = c(2, 200)
 )
 timingEval <- bfpwr:::.bfseq_z_schedule_evaluator(
-    k1 = k1, k0 = k0, usd = usd, null = 0, pm = pm,
-    psd = psd, dpm = dpm, dpsd = dpsd, type = "normal",
-    target = "h1", schedule = timingSchedule, strict = TRUE,
-    dots = list()
+    k1 = k1, k0 = k0, usd = usd, pm = pm, psd = psd, dpm = dpm,
+    dpsd = dpsd, type = "normal", target = "h1",
+    schedule = timingSchedule, strict = TRUE, dots = list()
 )
 for (maxN in c(80, 123)) {
     timingN <- bfpwr:::.bfseq_schedule_n(maxN = maxN,

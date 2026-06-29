@@ -782,11 +782,10 @@
     )
 }
 
-.bfseq_z_schedule_evaluator <- function(k1, k0, usd, null, pm, psd, dpm,
-                                         dpsd, type, target, schedule,
-                                         strict, dots) {
-    relpm <- if (type == "moment") NULL else pm - null
-    reldpm <- dpm - null
+.bfseq_z_schedule_evaluator <- function(k1, k0, usd, pm, psd, dpm, dpsd,
+                                         type, target, schedule, strict,
+                                         dots) {
+    relpm <- if (type == "moment") NULL else pm
     oneCritical <- (type == "normal" && psd == 0) || type == "directional"
     boundaryCache <- new.env(parent = emptyenv())
     stageCache <- new.env(parent = emptyenv())
@@ -822,7 +821,7 @@
         }
         out <- .bfseq_stage_probabilities_from_bounds(
             bounds = bounds, oneCritical = oneCritical, strict = strict,
-            direction = NULL, dpm = reldpm, dpsd = dpsd, dots = dots
+            direction = NULL, dpm = dpm, dpsd = dpsd, dots = dots
         )
         assign(key, out, envir = stageCache)
         out
@@ -832,7 +831,7 @@
         n <- .bfseq_schedule_n(maxN = maxN, schedule = schedule)
         design <- .bfseq_build_z_design(
             k1 = k1, k0 = k0, se = usd/sqrt(n), n = n, pm = relpm,
-            psd = psd, dpm = reldpm, dpsd = dpsd, type = type,
+            psd = psd, dpm = dpm, dpsd = dpsd, type = type,
             strict = strict, dots = dots,
             getBoundary = function(i) getBoundary(n[[i]]),
             evalStage = function(i, bounds) evalStage(n[seq_len(i)], bounds)
