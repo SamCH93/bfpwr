@@ -15,7 +15,7 @@ ntbf01seq(
   dpsd = pscale,
   type = c("two.sample", "one.sample", "paired"),
   alternative = c("two.sided", "less", "greater"),
-  target = c("h1", "h0"),
+  target = c("H1", "H0"),
   nrange = c(2, 10^4),
   looks = 1,
   timing = NULL,
@@ -65,8 +65,8 @@ the analysis prior to negative and positive effects, respectively. If set
 to \code{"less"} or \code{"greater"}, the power is only computed based on
 data with effect estimates in the direction of the alternative}
 
-\item{target}{Character string. Either \code{"h1"} for the final cumulative
-probability of stopping for \eqn{H_1}{H1}, or \code{"h0"} for the final
+\item{target}{Character string. Either \code{"H1"} for the final cumulative
+probability of stopping for \eqn{H_1}{H1}, or \code{"H0"} for the final
 cumulative probability of stopping for \eqn{H_0}{H0}.}
 
 \item{nrange}{Sample size search range over which numerical search is

@@ -3,7 +3,7 @@ ntbf01seq. <- function(k1, k0 = 1/k1, power, plocation = 0,
                        dpm = plocation, dpsd = pscale,
                        type = c("two.sample", "one.sample", "paired"),
                        alternative = c("two.sided", "less", "greater"),
-                       target = c("h1", "h0"), nrange = c(2, 10^4),
+                       target = c("H1", "H0"), nrange = c(2, 10^4),
                        looks = 1, timing = NULL, minN = NULL, by = NULL,
                        ratio = 1, strict = TRUE, trange = "adaptive",
                        tail.eps = 1e-3,
@@ -168,7 +168,7 @@ ntbf01seq <- function(k1, k0 = 1/k1, power, plocation = 0,
                       dpm = plocation, dpsd = pscale,
                       type = c("two.sample", "one.sample", "paired"),
                       alternative = c("two.sided", "less", "greater"),
-                      target = c("h1", "h0"), nrange = c(2, 10^4),
+                      target = c("H1", "H0"), nrange = c(2, 10^4),
                       looks = 1, timing = NULL, minN = NULL, by = NULL,
                       ratio = 1, strict = TRUE, trange = "adaptive",
                       tail.eps = 1e-3,
@@ -190,9 +190,9 @@ ntbf01seq <- function(k1, k0 = 1/k1, power, plocation = 0,
                                                "greater"), "alternative")
     }
     target <- if (missing(target)) {
-        "h1"
+        "H1"
     } else {
-        .bfseq_match_vector_arg(target, c("h1", "h0"), "target")
+        .bfseq_match_vector_arg(target, c("H1", "H0"), "target")
     }
 
     if (isTRUE(details)) {

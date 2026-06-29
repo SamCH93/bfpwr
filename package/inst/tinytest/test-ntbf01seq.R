@@ -37,7 +37,7 @@ expect_equal(tailSearch$result$tail.nquad, 64,
 
 narrowRangeSearch <- suppressWarnings(
     ntbf01seq(k1 = 1/10, k0 = 10, power = 0.8, dpm = 0.5, dpsd = 0.1,
-              type = "two.sample", alternative = "greater", target = "h1",
+              type = "two.sample", alternative = "greater", target = "H1",
               nrange = c(20, 40), strict = FALSE, trange = c(-1, 1),
               details = TRUE)
 )
@@ -60,7 +60,7 @@ expect_true(
 narrowRangeWarning <- character()
 narrowRangeN <- withCallingHandlers(
     ntbf01seq(k1 = 1/10, k0 = 10, power = 0.8, dpm = 0.5, dpsd = 0.1,
-              type = "two.sample", alternative = "greater", target = "h1",
+              type = "two.sample", alternative = "greater", target = "H1",
               nrange = c(20, 40), strict = FALSE, trange = c(-1, 1)),
     warning = function(w) {
         narrowRangeWarning <<- c(narrowRangeWarning, conditionMessage(w))
@@ -77,7 +77,7 @@ powerBoundaryFailure <- suppressWarnings(
     try(
         powertbf01seq(k1 = 1/10, k0 = 10, power = 0.8,
                       dpm = 0.5, dpsd = 0.1, type = "two.sample",
-                      alternative = "greater", target = "h1",
+                      alternative = "greater", target = "H1",
                       nrange = c(20, 40), strict = FALSE,
                       trange = c(-1, 1)),
         silent = TRUE
@@ -142,7 +142,7 @@ expect_equal(progressEvents[[length(progressEvents)]]$evaluations,
              info = "sequential t progress callback should report evaluation count")
 expect_equal(progressEvents[[1]]$event, "evaluate",
              info = "sequential t progress callback should report evaluate events")
-expect_true(all(vapply(progressEvents, function(x) x$target == "h1", logical(1))),
+expect_true(all(vapply(progressEvents, function(x) x$target == "H1", logical(1))),
             info = "sequential t progress callback should retain target label")
 
 ticks <- 0L
@@ -159,12 +159,12 @@ expect_equal(ticks, tickSearch$evaluations,
 
 h0search <- suppressWarnings(
     ntbf01seq(k1 = k1, k0 = k0, power = pow, dpm = 0, dpsd = 0,
-              alternative = "greater", target = "h0", looks = 1,
+              alternative = "greater", target = "H0", looks = 1,
               nrange = c(2, 80), strict = FALSE, details = TRUE)
 )
 expect_true(h0search$reached,
             info = "sequential t search should reach H0 target")
-expect_equal(h0search$target, "h0",
+expect_equal(h0search$target, "H0",
              info = "sequential t H0 search should retain target label")
 
 powres <- suppressWarnings(
@@ -220,7 +220,7 @@ increaseProgressEvents <- list()
 increaseSearch <- suppressWarnings(
     ntbf01seq(k1 = 1/10, k0 = 10, power = 0.8, dpm = 0, dpsd = 0,
               type = "two.sample", alternative = "two.sided",
-              target = "h0", minN = 20, by = 20,
+              target = "H0", minN = 20, by = 20,
               nrange = c(20, 800), strict = FALSE, details = TRUE,
               progress = function(info) {
                   increaseProgressEvents[[length(increaseProgressEvents) + 1L]] <<- info
@@ -256,7 +256,7 @@ if (increaseSearch$n > 20) {
 fixedIncrease <- suppressWarnings(
     powertbf01seq(n = increaseSearch$n, k1 = 1/10, k0 = 10,
                   dpm = 0, dpsd = 0, type = "two.sample",
-                  alternative = "two.sided", target = "h0",
+                  alternative = "two.sided", target = "H0",
                   minN = 20, by = 20, nrange = c(20, 800),
                   strict = FALSE)
 )
@@ -274,7 +274,7 @@ tTimingSchedule <- bfpwr:::.bfseq_schedule_spec(
 tTimingEval <- bfpwr:::.bfseq_t_schedule_evaluator(
     k1 = k1, k0 = k0, plocation = 0, pscale = 1/sqrt(2), pdf = 1,
     dpm = 0.5, dpsd = 0, type = "two.sample",
-    alternative = "two.sided", target = "h1", ratio = 1,
+    alternative = "two.sided", target = "H1", ratio = 1,
     schedule = tTimingSchedule, strict = FALSE, trange = "adaptive",
     tail.eps = 1e-2, tail.nquad = 64, dots = list()
 )

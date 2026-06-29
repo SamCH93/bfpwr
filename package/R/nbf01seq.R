@@ -1,7 +1,7 @@
 nbf01seq. <- function(k1, k0 = 1/k1, power, usd = sqrt(2),
                       pm = NULL, psd, dpm = pm, dpsd = psd,
                       type = c("normal", "directional", "moment"),
-                      target = c("h1", "h0"), nrange = c(2, 10^5),
+                      target = c("H1", "H0"), nrange = c(2, 10^5),
                       looks = 1, timing = NULL, minN = NULL, by = NULL,
                       strict = TRUE, integer = TRUE,
                       search = c("adaptive", "exhaustive"),
@@ -124,8 +124,8 @@ nbf01seq. <- function(k1, k0 = 1/k1, power, usd = sqrt(2),
 #' @param power Target stopping probability.
 #' @param usd Unit standard deviation, the standard error of the parameter
 #'     estimate at \eqn{n = 1}{n = 1}.
-#' @param target Character string. Either \code{"h1"} for the final cumulative
-#'     probability of stopping for \eqn{H_1}{H1}, or \code{"h0"} for the final
+#' @param target Character string. Either \code{"H1"} for the final cumulative
+#'     probability of stopping for \eqn{H_1}{H1}, or \code{"H0"} for the final
 #'     cumulative probability of stopping for \eqn{H_0}{H0}.
 #' @param nrange Maximum sample size search range over which numerical search
 #'     is performed. Defaults to \code{c(2, 10^5)}.
@@ -181,7 +181,7 @@ nbf01seq. <- function(k1, k0 = 1/k1, power, usd = sqrt(2),
 nbf01seq <- function(k1, k0 = 1/k1, power, usd = sqrt(2),
                      pm = NULL, psd, dpm = pm, dpsd = psd,
                      type = c("normal", "directional", "moment"),
-                     target = c("h1", "h0"), nrange = c(2, 10^5),
+                     target = c("H1", "H0"), nrange = c(2, 10^5),
                      looks = 1, timing = NULL, minN = NULL, by = NULL,
                      strict = TRUE, integer = TRUE,
                      search = c("adaptive", "exhaustive"),
@@ -193,9 +193,9 @@ nbf01seq <- function(k1, k0 = 1/k1, power, usd = sqrt(2),
                                 "type")
     }
     target <- if (missing(target)) {
-        "h1"
+        "H1"
     } else {
-        .bfseq_match_vector_arg(target, c("h1", "h0"), "target")
+        .bfseq_match_vector_arg(target, c("H1", "H0"), "target")
     }
 
     if (isTRUE(details)) {

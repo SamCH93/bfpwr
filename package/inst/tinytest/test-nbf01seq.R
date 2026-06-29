@@ -37,7 +37,7 @@ expect_equal(progressEvents[[length(progressEvents)]]$evaluations,
              info = "sequential z progress callback should report evaluation count")
 expect_equal(progressEvents[[1]]$event, "evaluate",
              info = "sequential z progress callback should report evaluate events")
-expect_true(all(vapply(progressEvents, function(x) x$target == "h1", logical(1))),
+expect_true(all(vapply(progressEvents, function(x) x$target == "H1", logical(1))),
             info = "sequential z progress callback should retain target label")
 
 ticks <- 0L
@@ -79,7 +79,7 @@ expect_true(exhaustivePower$solver$firstCrossingCertified,
 increaseProgressEvents <- list()
 increaseSearch <- nbf01seq(k1 = 1/10, k0 = 10, power = 0.8, usd = usd,
                            pm = 0, psd = 1/sqrt(2), dpm = 0, dpsd = 0,
-                           type = "normal", target = "h0",
+                           type = "normal", target = "H0",
                            minN = 20, by = 20, nrange = c(20, 1200),
                            strict = FALSE, details = TRUE,
                            progress = function(info) {
@@ -115,7 +115,7 @@ timingSchedule <- bfpwr:::.bfseq_schedule_spec(
 )
 timingEval <- bfpwr:::.bfseq_z_schedule_evaluator(
     k1 = k1, k0 = k0, usd = usd, pm = pm, psd = psd, dpm = dpm,
-    dpsd = dpsd, type = "normal", target = "h1",
+    dpsd = dpsd, type = "normal", target = "H1",
     schedule = timingSchedule, strict = TRUE, dots = list()
 )
 for (maxN in c(80, 123)) {
@@ -155,13 +155,13 @@ if (search$n > search$nrange[1]) {
 }
 
 h0search <- nbf01seq(k1 = k1, k0 = k0, power = 0.7, usd = usd, pm = pm,
-                     psd = psd, dpm = 0, dpsd = 0, target = "h0",
+                     psd = psd, dpm = 0, dpsd = 0, target = "H0",
                      looks = 2, nrange = c(2, 500), details = TRUE)
 expect_true(h0search$reached,
             info = "sequential z search should reach H0 target")
 expect_true(h0search$actualPower >= 0.7,
             info = "sequential z H0 search achieved power should exceed target")
-expect_equal(h0search$target, "h0",
+expect_equal(h0search$target, "H0",
              info = "sequential z H0 search should retain target label")
 
 powres <- powerbf01seq(power = pow, k1 = k1, k0 = k0, pm = pm, psd = psd,
@@ -184,7 +184,7 @@ expect_equal(max(fixed$n), 60,
 fixedIncrease <- powerbf01seq(n = increaseSearch$n, k1 = 1/10, k0 = 10,
                               pm = 0, psd = 1/sqrt(2), dpm = 0, dpsd = 0,
                               type = "two.sample", bftype = "normal",
-                              target = "h0", minN = 20, by = 20,
+                              target = "H0", minN = 20, by = 20,
                               nrange = c(20, 1200), strict = FALSE)
 expect_equal(fixedIncrease$n, increaseSearch$result$n,
              info = "powerbf01seq fixed-n mode should preserve searched increment schedule")

@@ -96,7 +96,7 @@ fixedH1 <- suppressWarnings(
 )
 oneLookH0 <- suppressWarnings(
     ntbf01seq(k1 = k1, k0 = k0, power = 0.4, dpm = 0, dpsd = 0,
-              alternative = "greater", target = "h0", looks = 1,
+              alternative = "greater", target = "H0", looks = 1,
               nrange = c(2, 80), strict = FALSE)
 )
 fixedH0 <- suppressWarnings(
@@ -119,7 +119,7 @@ expect_true(inherits(detailsVector, "try-error"),
 
 detailsTargetVector <- try(
     ntbf01seq(k1 = k1, k0 = k0, power = 0.4, dpm = 0.5, dpsd = 0,
-              alternative = "greater", target = c("h1", "h0"),
+              alternative = "greater", target = c("H1", "H0"),
               strict = FALSE, details = TRUE),
     silent = TRUE
 )

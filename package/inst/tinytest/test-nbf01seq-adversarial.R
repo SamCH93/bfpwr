@@ -58,7 +58,7 @@ fixedH1 <- nbf01(k = 1/2, power = 0.4, usd = sqrt(2), pm = 0,
                  psd = 1, dpm = 0.5, dpsd = 0, nrange = c(2, 100),
                  analytical = FALSE)
 oneLookH0 <- nbf01seq(k1 = 1/2, k0 = 2, power = 0.4, usd = sqrt(2),
-                      pm = 0, psd = 1, dpm = 0, dpsd = 0, target = "h0",
+                      pm = 0, psd = 1, dpm = 0, dpsd = 0, target = "H0",
                       looks = 1, nrange = c(2, 100))
 fixedH0 <- nbf01(k = 2, power = 0.4, usd = sqrt(2), pm = 0, psd = 1,
                  dpm = 0, dpsd = 0, lower.tail = FALSE,
@@ -88,7 +88,7 @@ stepEvaluator <- function(maxN) {
 }
 adaptiveStep <- bfpwr:::.bfseq_search(
     power = 0.8,
-    target = "h1",
+    target = "H1",
     nrange = c(2, 1000),
     schedule = timingSchedule,
     evaluate = stepEvaluator,
@@ -96,7 +96,7 @@ adaptiveStep <- bfpwr:::.bfseq_search(
 )
 exhaustiveStep <- bfpwr:::.bfseq_search(
     power = 0.8,
-    target = "h1",
+    target = "H1",
     nrange = c(2, 1000),
     schedule = timingSchedule,
     evaluate = stepEvaluator,
@@ -122,7 +122,7 @@ expect_true(inherits(detailsVector, "try-error"),
 detailsTargetVector <- try(
     nbf01seq(k1 = 1/2, k0 = 2, power = 0.4, usd = sqrt(2),
              pm = 0, psd = 1, dpm = 0.5, dpsd = 0,
-             target = c("h1", "h0"), details = TRUE),
+             target = c("H1", "H0"), details = TRUE),
     silent = TRUE
 )
 expect_true(inherits(detailsTargetVector, "try-error"),
@@ -183,7 +183,7 @@ lowerSchedule <- bfpwr:::.bfseq_schedule_spec(looks = 1,
 lowerDip <- suppressWarnings(
     bfpwr:::.bfseq_search(
         power = 0.8,
-        target = "h1",
+        target = "H1",
         nrange = c(2, 5),
         schedule = lowerSchedule,
         evaluate = function(maxN) {
@@ -203,7 +203,7 @@ syntheticSchedule <- bfpwr:::.bfseq_schedule_spec(looks = 1,
 synthetic <- suppressWarnings(
     bfpwr:::.bfseq_search(
         power = 0.8,
-        target = "h1",
+        target = "H1",
         nrange = c(2, 10),
         schedule = syntheticSchedule,
         evaluate = function(maxN) {
@@ -229,7 +229,7 @@ searchPolicyResult <- function(maxN, power) {
 ordinarySearchError <- try(
     bfpwr:::.bfseq_search(
         power = 0.8,
-        target = "h1",
+        target = "H1",
         nrange = c(2, 20),
         schedule = searchPolicySchedule,
         evaluate = function(maxN) stop("ordinary evaluator bug")
@@ -247,7 +247,7 @@ expect_true(
 malformedSearchResult <- try(
     bfpwr:::.bfseq_search(
         power = 0.8,
-        target = "h1",
+        target = "H1",
         nrange = c(2, 20),
         schedule = searchPolicySchedule,
         evaluate = function(maxN) list(power = 0.1)
@@ -264,7 +264,7 @@ expect_true(
 
 terminalInvalidSearch <- bfpwr:::.bfseq_search(
     power = 0.8,
-    target = "h1",
+    target = "H1",
     nrange = c(2, 20),
     schedule = searchPolicySchedule,
     evaluate = function(maxN) {
@@ -289,7 +289,7 @@ expect_true(terminalInvalidSearch$terminal,
 
 transientAdaptiveSearch <- bfpwr:::.bfseq_search(
     power = 0.8,
-    target = "h1",
+    target = "H1",
     nrange = c(2, 20),
     schedule = searchPolicySchedule,
     evaluate = function(maxN) {
@@ -315,7 +315,7 @@ expect_false(transientAdaptiveSearch$terminal,
 
 transientExhaustiveSearch <- bfpwr:::.bfseq_search(
     power = 0.8,
-    target = "h1",
+    target = "H1",
     nrange = c(2, 20),
     schedule = searchPolicySchedule,
     search = "exhaustive",
@@ -341,7 +341,7 @@ expect_false(
 
 terminalExhaustiveSearch <- bfpwr:::.bfseq_search(
     power = 0.8,
-    target = "h1",
+    target = "H1",
     nrange = c(2, 20),
     schedule = searchPolicySchedule,
     search = "exhaustive",
@@ -368,7 +368,7 @@ expect_true(
 
 nonfinitePowerSearch <- bfpwr:::.bfseq_search(
     power = 0.8,
-    target = "h1",
+    target = "H1",
     nrange = c(2, 20),
     schedule = searchPolicySchedule,
     evaluate = function(maxN) {
@@ -385,7 +385,7 @@ expect_true(nonfinitePowerSearch$terminal,
 islandAdaptiveSearch <- suppressWarnings(
     bfpwr:::.bfseq_search(
         power = 0.8,
-        target = "h1",
+        target = "H1",
         nrange = c(2, 20),
         schedule = searchPolicySchedule,
         evaluate = function(maxN) {
@@ -395,7 +395,7 @@ islandAdaptiveSearch <- suppressWarnings(
 )
 islandExhaustiveSearch <- bfpwr:::.bfseq_search(
     power = 0.8,
-    target = "h1",
+    target = "H1",
     nrange = c(2, 20),
     schedule = searchPolicySchedule,
     search = "exhaustive",

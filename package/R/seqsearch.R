@@ -161,7 +161,7 @@
 }
 
 .bfseq_target_probability <- function(design, target) {
-    if (target == "h1") {
+    if (target == "H1") {
         return(utils::tail(design$cumpH1, 1))
     }
     utils::tail(design$cumpH0, 1)

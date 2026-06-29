@@ -14,7 +14,7 @@ nbf01seq(
   dpm = pm,
   dpsd = psd,
   type = c("normal", "directional", "moment"),
-  target = c("h1", "h0"),
+  target = c("H1", "H0"),
   nrange = c(2, 10^5),
   looks = 1,
   timing = NULL,
@@ -61,8 +61,8 @@ estimate at \eqn{n = 1}{n = 1}.}
     centered around 0
 }}
 
-\item{target}{Character string. Either \code{"h1"} for the final cumulative
-probability of stopping for \eqn{H_1}{H1}, or \code{"h0"} for the final
+\item{target}{Character string. Either \code{"H1"} for the final cumulative
+probability of stopping for \eqn{H_1}{H1}, or \code{"H0"} for the final
 cumulative probability of stopping for \eqn{H_0}{H0}.}
 
 \item{nrange}{Maximum sample size search range over which numerical search
