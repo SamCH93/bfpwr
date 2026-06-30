@@ -1,3 +1,5 @@
+## Evaluate a root function defensively. Failed, non-scalar, or non-finite
+## evaluations are treated as NaN so search code can keep classifying failures.
 .bfpwr_root_value <- function(f, x) {
     ans <- try(suppressWarnings(f(x)), silent = TRUE)
     if (inherits(ans, "try-error") || length(ans) != 1 ||
@@ -7,6 +9,8 @@
     ans
 }
 
+## Find a bracketed root and, when a faster scout function was used, certify
+## the result against the final function before accepting it.
 .bfpwr_certified_root <- function(f, x0, x1, f0 = NaN, f1 = NaN,
                                   final_fun = f, tolerance = 1e-5, ...) {
     if (x0 == x1) {
@@ -71,6 +75,8 @@
         silent = TRUE)
 }
 
+## Keep only integrate() controls from dots so root-search controls are not
+## accidentally forwarded to numerical integration.
 .bfpwr_integrate_dots <- function(dots, rel.tol.default = NULL) {
     if (length(dots) == 0) {
         out <- list()
@@ -91,6 +97,7 @@
     out
 }
 
+## Keep only uniroot() controls from dots for critical-value root searches.
 .bfpwr_uniroot_dots <- function(dots) {
     if (length(dots) == 0) {
         return(list())
@@ -104,6 +111,8 @@
     dots[keep]
 }
 
+## Structured tcrit issues preserve whether a warning is handled internally or
+## should be surfaced to callers.
 .bfpwr_tcrit_issue <- function(code, status, message, handled = TRUE) {
     list(
         code = code,
@@ -113,6 +122,8 @@
     )
 }
 
+## Use a custom warning class so tcrit_result() can capture numerical status
+## without parsing warning text.
 .bfpwr_tcrit_condition <- function(message, code, status,
                                    handled = TRUE) {
     structure(
@@ -127,12 +138,14 @@
     )
 }
 
+## Emit a structured tcrit warning.
 .bfpwr_tcrit_warning <- function(message, code, status,
                                  handled = TRUE) {
     warning(.bfpwr_tcrit_condition(message = message, code = code,
                                    status = status, handled = handled))
 }
 
+## Convert any warning from tcrit() into a normalized issue record.
 .bfpwr_tcrit_condition_issue <- function(warning) {
     if (inherits(warning, "bfpwr_tcrit_warning")) {
         return(.bfpwr_tcrit_issue(
@@ -151,6 +164,8 @@
     )
 }
 
+## Collapse possibly multiple issues into one boundary-search status, ordered by
+## severity.
 .bfpwr_tcrit_status_from_result <- function(value, issues) {
     if (length(issues) > 0) {
         statuses <- vapply(issues, `[[`, character(1), "status")
@@ -167,6 +182,7 @@
     "search_failed"
 }
 
+## Pick the issue code that best explains the final status.
 .bfpwr_tcrit_reason <- function(status, issues) {
     if (length(issues) > 0) {
         statuses <- vapply(issues, `[[`, character(1), "status")
@@ -182,6 +198,8 @@
     "nonfinite_value"
 }
 
+## Evaluate tcrit() while collecting structured warnings instead of emitting
+## them immediately.
 .bfpwr_tcrit_eval <- function(args) {
     tcritIssues <- list()
     value <- withCallingHandlers(
@@ -204,11 +222,13 @@
     )
 }
 
+## Inspect and update collected tcrit issues.
 .bfpwr_tcrit_has_issue <- function(result, code) {
     any(vapply(result$issues, function(issue) identical(issue$code, code),
                logical(1)))
 }
 
+## Recompute derived status fields after appending an issue.
 .bfpwr_tcrit_append_issue <- function(result, issue) {
     result$issues[[length(result$issues) + 1L]] <- issue
     result$warnings <- vapply(result$issues, `[[`, character(1), "message")
@@ -221,6 +241,8 @@
     result
 }
 
+## Run tcrit() and add an extra diagnostic when a numeric two-sided trange
+## misses a boundary that the adaptive range can still find.
 .bfpwr_tcrit_result <- function(...) {
     args <- list(...)
     trange <- args$trange
@@ -257,6 +279,8 @@
     result
 }
 
+## Return only unhandled tcrit warnings so sequential callers do not repeat
+## warnings they already translated into boundary statuses.
 .bfpwr_tcrit_unhandled_warnings <- function(results) {
     issues <- unlist(
         lapply(results, function(result) {
@@ -273,10 +297,14 @@
     unique(vapply(issues[unhandled], `[[`, character(1), "message"))
 }
 
+## Extract statuses from a list of t boundary searches.
 .bfseq_t_boundary_statuses <- function(results) {
     vapply(results, `[[`, character(1), "status")
 }
 
+## Convert t-boundary statuses into a sequential-search error message. Missing
+## H0 boundaries can be valid empty stopping regions; missing H1 boundaries are
+## terminal failures.
 .bfseq_t_boundary_status_message <- function(results, boundary,
                                              looks = seq_along(results)) {
     stopifnot(boundary %in% c("H0", "H1"))
@@ -312,6 +340,7 @@
     )
 }
 
+## Public-facing fixed-design sequential calls validate t boundaries eagerly.
 .bfseq_validate_t_boundary_statuses <- function(results, boundary,
                                                looks = seq_along(results)) {
     msg <- .bfseq_t_boundary_status_message(results = results,
@@ -323,6 +352,8 @@
     invisible(.bfseq_t_boundary_statuses(results))
 }
 
+## Search-mode sequential calls warn for tolerated H0 empty regions and tail
+## cutoffs, but still propagate unhandled numerical warnings.
 .bfseq_warn_t_boundary_statuses <- function(results0, results1, tail.eps) {
     statuses0 <- .bfseq_t_boundary_statuses(results0)
     statuses1 <- .bfseq_t_boundary_statuses(results1)
@@ -355,6 +386,8 @@
     }
 }
 
+## Determine the expected one-sided search direction from the BF value at the
+## origin and the requested alternative.
 .bfpwr_one_sided_direction <- function(alternative, f_origin) {
     stopifnot(
         alternative %in% c("greater", "less"),
@@ -371,6 +404,7 @@
     }
 }
 
+## Convert a predictive tail-mass cutoff into a finite one-sided t search limit.
 .bfpwr_one_sided_tail_limit <- function(direction, origin, step_scale, mean,
                                         sd, tail.eps) {
     stopifnot(
@@ -424,6 +458,8 @@
     )
 }
 
+## Precompute both directional tail limits; the root direction is selected after
+## the BF value at the origin is known.
 .bfpwr_one_sided_tail_limits <- function(origin, step_scale, mean, sd,
                                          tail.eps) {
     list(
@@ -439,6 +475,8 @@
     )
 }
 
+## Accept either a scalar search distance or the directional object produced by
+## .bfpwr_one_sided_tail_limits().
 .bfpwr_select_one_sided_search_limit <- function(search_limit, direction,
                                                  origin, step_scale) {
     stopifnot(
@@ -480,6 +518,7 @@
     selected
 }
 
+## Standard return object for one-sided adaptive searches.
 .bfpwr_one_sided_adaptive_result <- function(root, search_limit_reached,
                                              selected_limit = NULL,
                                              status = NULL) {
@@ -513,6 +552,7 @@
     )
 }
 
+## Classify the finite tail cutoff when no sign change was found before it.
 .bfpwr_one_sided_limit_status <- function(f_origin, f_limit, certify_fun,
                                           direction, origin, step_scale,
                                           search_limit,
@@ -555,6 +595,8 @@
     status
 }
 
+## Use a fast scout root only if its residual is certified by the stable BF
+## evaluation.
 .bfpwr_residual_certified_root <- function(scout_fun, certify_fun, x0, x1,
                                            final_fun = certify_fun,
                                            tolerance = 1e-5, ...) {
@@ -989,11 +1031,13 @@ tcrit <- function(k, n1, n2, plocation, pscale, pdf, type, alternative,
     searchDots <- .bfpwr_integrate_dots(dots = dots,
                                         rel.tol.default = 1e-2)
     rootDots <- .bfpwr_uniroot_dots(dots = dots)
+    ## Final BF evaluation used to accept returned roots.
     rootFun <- function(t) {
         tbf01(t = t, n1 = n1, n2 = n2, plocation = plocation, pscale = pscale,
               pdf = pdf, type = type, alternative = alternative,
               log = TRUE, tail.nquad = tail.nquad) - log(k)
     }
+    ## Search evaluation with integration controls from dots.
     rootFunSearch <- function(t) {
         do.call(tbf01, c(list(
             t = t, n1 = n1, n2 = n2, plocation = plocation, pscale = pscale,
@@ -1008,6 +1052,7 @@ tcrit <- function(k, n1, n2, plocation, pscale, pdf, type, alternative,
     }
     region <- .tbf01_prior_region(plocation = plocation, pscale = pscale,
                                   pdf = pdf, alternative = alternative)
+    ## Fast direct-integral scout used only to locate candidate brackets.
     rootFunFast <- function(t) {
         do.call(.tbf01_log_fast, c(list(
             t = t, df = pars$df, neff = pars$neff,

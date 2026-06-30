@@ -1,6 +1,8 @@
 ## Helper functions for sequential BF sample-size searches
 ## -----------------------------------------------------------------------------
 
+## Default lower bound for non-increment searches. Increment schedules keep the
+## user's minN/lower-bound convention instead.
 .bfseq_default_search_lower <- function(nrange, default = 10) {
     lower <- as.integer(ceiling(nrange[1]))
     upper <- as.integer(ceiling(nrange[2]))
@@ -8,6 +10,8 @@
     if (lower <= default && default <= upper) default else lower
 }
 
+## Normalize the look-schedule inputs into one internal representation used by
+## both fixed-n evaluation and sample-size search.
 .bfseq_schedule_spec <- function(looks = 1, timing = NULL, minN = NULL,
                                  by = NULL, nrange, lookMinN = 2) {
     stopifnot(
@@ -76,6 +80,8 @@
          lookMinN = lookMinN)
 }
 
+## Fixed-n calculations still need the lower bound because omitted minN is
+## defined relative to nrange for increment schedules.
 .bfseq_fixed_schedule_range <- function(n, nrange, lookMinN = 2) {
     stopifnot(
         length(n) == 1,
@@ -97,6 +103,7 @@
     c(min(lower, n), n)
 }
 
+## Generate the actual look sizes for a candidate maximum sample size.
 .bfseq_schedule_n <- function(maxN, schedule) {
     maxN <- as.integer(ceiling(maxN))
 
@@ -115,6 +122,7 @@
     n
 }
 
+## Guard against duplicated or infeasible looks created by rounding.
 .bfseq_validate_schedule <- function(n, minN = 2) {
     if (any(n < minN)) {
         stop("the generated sample-size schedule contains sample sizes smaller than the minimum required look size")
@@ -125,6 +133,7 @@
     invisible(TRUE)
 }
 
+## Smallest candidate maximum N that can produce a valid rounded look schedule.
 .bfseq_minimum_max_n <- function(schedule) {
     if (schedule$type == "increase") {
         return(schedule$minN)
@@ -149,6 +158,8 @@
     }
 }
 
+## Apply user bounds, schedule feasibility, and the internal default search
+## start to get the candidate range searched by the solver.
 .bfseq_search_bounds <- function(nrange, schedule) {
     stopifnot(
         length(nrange) == 2,
@@ -170,6 +181,7 @@
     c(lower, upper)
 }
 
+## Extract the stopping probability corresponding to the requested target.
 .bfseq_target_probability <- function(design, target) {
     if (target == "H1") {
         return(utils::tail(design$cumpH1, 1))
@@ -177,10 +189,13 @@
     utils::tail(design$cumpH0, 1)
 }
 
+## Geometric stepping quickly finds a bracket before binary refinement.
 .bfseq_next_search_candidate <- function(currentN, maximumN) {
     min(maximumN, max(currentN + 1L, as.integer(ceiling(2*currentN))))
 }
 
+## Structured condition used by evaluators for candidate-specific failures that
+## the search can classify, unlike ordinary programming errors.
 .bfseq_candidate_invalid <- function(message, reason = "invalid",
                                      terminal = TRUE, power = NA_real_,
                                      result = NULL) {
@@ -203,6 +218,7 @@
     stop(condition)
 }
 
+## Common record for every evaluated candidate, including invalid candidates.
 .bfseq_make_candidate <- function(n, criterion, power, error = NULL,
                                   result = NULL, status = "ok",
                                   reason = NULL, terminal = FALSE) {
@@ -211,6 +227,8 @@
          terminal = terminal)
 }
 
+## Evaluators must return a design object and the scalar probability used by
+## the search criterion.
 .bfseq_validate_evaluation <- function(value) {
     if (!is.list(value)) {
         stop("sequential search evaluator must return a list", call. = FALSE)
@@ -230,22 +248,28 @@
     invisible(TRUE)
 }
 
+## Candidate predicates keep the search-state logic readable.
 .bfseq_candidate_is_finite <- function(candidate) {
     is.finite(candidate$criterion)
 }
 
+## A candidate reaches the target when achieved power is at least requested.
 .bfseq_candidate_reached <- function(candidate) {
     .bfseq_candidate_is_finite(candidate) && candidate$criterion >= 0
 }
 
+## Invalid candidates use a non-finite criterion and carry diagnostics.
 .bfseq_candidate_is_invalid <- function(candidate) {
     !.bfseq_candidate_is_finite(candidate)
 }
 
+## Terminal invalid candidates cannot be scanned past safely.
 .bfseq_candidate_is_terminal <- function(candidate) {
     .bfseq_candidate_is_invalid(candidate) && isTRUE(candidate$terminal)
 }
 
+## Adaptive search cannot certify what happens beyond a transient invalid
+## candidate, so attach a diagnostic that points to exhaustive search.
 .bfseq_adaptive_invalid_candidate <- function(candidate) {
     if (.bfseq_candidate_is_invalid(candidate) && !isTRUE(candidate$terminal)) {
         candidate$error <- paste0(
@@ -259,6 +283,7 @@
     candidate
 }
 
+## Summarize invalid candidates found during an exhaustive scan.
 .bfseq_invalid_scan_error <- function(invalids) {
     terminal <- vapply(invalids, function(x) isTRUE(x$terminal), logical(1))
     transientCount <- sum(!terminal)
@@ -286,6 +311,8 @@
     )
 }
 
+## Convert an invalid scan into the same candidate structure used by the solver
+## result path.
 .bfseq_invalid_scan_candidate <- function(limit, invalids) {
     if (is.null(limit) || .bfseq_candidate_is_invalid(limit)) {
         limit <- invalids[[length(invalids)]]
@@ -303,6 +330,8 @@
     )
 }
 
+## Generic sample-size solver. Evaluators provide design-specific power values;
+## this function handles caching, progress callbacks, and search strategy.
 .bfseq_search <- function(power, target, nrange, schedule, evaluate,
                           progress = NULL,
                           search = c("adaptive", "exhaustive")) {
@@ -395,6 +424,8 @@
         out
     }
 
+    ## Full-range scans are used for explicit exhaustive requests and, below,
+    ## for increment schedules with a fixed candidate grid.
     if (identical(search, "exhaustive")) {
         candidates <- if (is.null(increaseCandidates)) {
             lowerN:upperLimit
@@ -419,6 +450,8 @@
         ))
     }
 
+    ## Adaptive timing search first checks the lower bound, then brackets a
+    ## crossing with geometric steps before binary refinement.
     phase <- "lower"
     lower <- evalN(lowerN)
     if (.bfseq_candidate_reached(lower)) {
@@ -473,6 +506,8 @@
                              found$firstCrossingCertified)
 }
 
+## Find a finite candidate that reaches the target, while preserving the last
+## informative failure or upper-bound candidate for diagnostics.
 .bfseq_find_bracket <- function(evalN, lower, lowerN, upperLimit) {
     currentN <- lowerN
     lastFinite <- if (.bfseq_candidate_is_finite(lower)) lower else NULL
@@ -520,6 +555,8 @@
          limit = if (!is.null(lastFinite)) lastFinite else lower)
 }
 
+## When a terminal invalid candidate is hit, search between the last valid and
+## first invalid point for an earlier crossing.
 .bfseq_search_before_invalid <- function(evalN, validN, invalidN) {
     lastFinite <- evalN(validN)
     lastInvalid <- evalN(invalidN)
@@ -553,6 +590,8 @@
     list(upper = NULL, limit = NULL)
 }
 
+## Candidate grid for by/minN schedules; include both effective search bounds
+## even when they are not exact grid points.
 .bfseq_increase_candidates <- function(bounds, schedule) {
     stopifnot(identical(schedule$type, "increase"))
     lowerN <- as.integer(bounds[1])
@@ -562,6 +601,8 @@
     sort(unique(as.integer(c(lowerN, grid, upperN))))
 }
 
+## Scan an explicit candidate set. This is the only strategy that can certify
+## crossings after skipped transient-invalid candidates.
 .bfseq_search_full_range <- function(power, target, nrange, schedule, evalN,
                                      candidates, search, getEvaluations,
                                      setPhase) {
@@ -609,6 +650,8 @@
                          firstCrossingCertified = !skippedBeforeFound)
 }
 
+## Warn only for ordinary unreached upper bounds; invalid candidates already
+## carry their own diagnostic message.
 .bfseq_warn_search_limit <- function(limit) {
     if (is.null(limit)) {
         return(invisible(NULL))
@@ -621,6 +664,8 @@
     invisible(NULL)
 }
 
+## Refine a valid lower/reaching upper bracket, then optionally scan backward to
+## certify the first crossing for non-monotone timing schedules.
 .bfseq_binary_search <- function(evalN, lowerN, upperN, minimumN,
                                  firstScan = c("none", "adaptive", "exhaustive"),
                                  setPhase = NULL) {
@@ -675,6 +720,8 @@
          firstCrossingCertified = firstScan != "adaptive")
 }
 
+## Walk backward through adjacent successes after binary search lands inside a
+## short plateau.
 .bfseq_local_first_success <- function(evalN, foundN, minimumN) {
     while (foundN > minimumN) {
         previous <- evalN(foundN - 1L)
@@ -686,6 +733,8 @@
     foundN
 }
 
+## Probe backward with expanding steps to look for earlier successes without
+## paying for a full exhaustive scan.
 .bfseq_adaptive_first_success <- function(evalN, foundN, minimumN) {
     repeat {
         earlierN <- .bfseq_probe_earlier_success(evalN = evalN,
@@ -704,6 +753,7 @@
     foundN
 }
 
+## Single expanding-step probe used by the adaptive backward scan.
 .bfseq_probe_earlier_success <- function(evalN, foundN, minimumN) {
     step <- 1L
     repeat {
@@ -719,6 +769,8 @@
     }
 }
 
+## Standardize search output and attach the same solver metadata to detailed
+## design objects.
 .bfseq_solver_result <- function(candidate, target, targetPower, nrange,
                                  schedule, evaluations, reached, search,
                                  firstCrossingCertified) {
@@ -771,6 +823,7 @@
     )
 }
 
+## Metadata object for fixed-n designs, matching the search solver structure.
 .bfseq_fixed_solver <- function(n, target, design, schedule) {
     n <- ceiling(n)
     list(
@@ -792,6 +845,8 @@
     )
 }
 
+## Build the closure that evaluates a z-test schedule for one candidate maximum
+## N. Boundary and stage caches are shared across candidate evaluations.
 .bfseq_z_schedule_evaluator <- function(k1, k0, usd, pm, psd, dpm, dpsd,
                                          type, target, schedule, strict,
                                          dots) {
@@ -853,6 +908,8 @@
     }
 }
 
+## Build the closure that evaluates a t-test schedule for one candidate maximum
+## n1. Caches avoid repeating expensive t-boundary and integration work.
 .bfseq_t_schedule_evaluator <- function(k1, k0, plocation, pscale, pdf,
                                          dpm, dpsd, type, alternative, target,
                                          ratio, schedule, strict, trange,
@@ -1009,6 +1066,7 @@
     }
 }
 
+## Compact schedule metadata stored in solver outputs and progress callbacks.
 .bfseq_schedule_summary <- function(schedule) {
     if (schedule$type == "increase") {
         return(list(type = schedule$type, minN = schedule$minN,
@@ -1018,6 +1076,8 @@
          lookMinN = schedule$lookMinN)
 }
 
+## Single-look searches are monotone enough for binary search; multi-look timing
+## schedules may need backward scanning to certify the first crossing.
 .bfseq_first_scan <- function(search, schedule) {
     if (identical(schedule$type, "timing") && length(schedule$timing) > 1) {
         return(search)
@@ -1025,6 +1085,7 @@
     "none"
 }
 
+## Minimum first-look n1 that keeps n2 = ceiling(n1 * ratio) at least two.
 .bfseq_ratio_look_min_n <- function(ratio) {
     stopifnot(
         length(ratio) == 1,
@@ -1035,6 +1096,7 @@
     max(2L, as.integer(floor(1/ratio) + 1L))
 }
 
+## Validate the hidden progress callback used by JASP.
 .bfseq_validate_progress <- function(progress) {
     if (is.null(progress)) {
         return(NULL)
@@ -1045,6 +1107,8 @@
     progress
 }
 
+## Keep progress hidden from the public signature while removing it from dots
+## before numerical integration/root-finding helpers receive them.
 .bfseq_extract_progress <- function(dots) {
     dotNames <- names(dots)
     hasProgress <- rep(FALSE, length(dots))
@@ -1065,6 +1129,8 @@
     )
 }
 
+## Support both zero-argument tick callbacks and callbacks that inspect search
+## diagnostics.
 .bfseq_call_progress <- function(progress, info) {
     if (is.null(progress)) {
         return(invisible(NULL))
@@ -1079,6 +1145,7 @@
     invisible(NULL)
 }
 
+## Vectorized wrappers need match.arg-like validation without forcing length one.
 .bfseq_match_vector_arg <- function(arg, choices, name) {
     arg <- as.character(arg)
     if (length(arg) < 1) {

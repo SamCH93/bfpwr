@@ -1,6 +1,8 @@
 ## Shared builders for sequential BF design objects
 ## -----------------------------------------------------------------------------
 
+## Collect per-look standard errors and BF critical values in the shape needed
+## by the region generators.
 .bfseq_boundary_data <- function(bounds, oneCritical) {
     se <- vapply(bounds, `[[`, numeric(1), "se")
     if (oneCritical) {
@@ -13,6 +15,8 @@
     list(se = se, zk0 = zk0, zk1 = zk1)
 }
 
+## Translate BF stopping boundaries into H1/H0 integration regions for one
+## stage, dispatching to the one- or two-critical-value region geometry.
 .bfseq_stage_regions <- function(boundaries, oneCritical, strict,
                                  direction = NULL) {
     if (oneCritical) {
@@ -25,6 +29,8 @@
                              strict = strict)
 }
 
+## Integrate the predictive distribution over the H1 and H0 stopping regions
+## for a single stage.
 .bfseq_stage_stop_probabilities <- function(regions, se, dpm, dpsd, dots) {
     pars <- predpars(se = se, dpm = dpm, dpsd = dpsd)
     pH1 <- do.call(.bfseq_intstage,
@@ -48,6 +54,8 @@
     list(pH1 = pH1, pH0 = pH0)
 }
 
+## Full stage calculation from raw boundary objects: reshape boundaries,
+## construct stopping regions, then integrate them.
 .bfseq_stage_probabilities_from_bounds <- function(bounds, oneCritical, strict,
                                                    direction, dpm, dpsd,
                                                    dots) {
@@ -61,6 +69,8 @@
                                     dpm = dpm, dpsd = dpsd, dots = dots)
 }
 
+## First two moments of the stopping sample size under the stage-wise stopping
+## probabilities, with non-stoppers assigned the maximum planned sample size.
 .bfseq_sample_size_moments <- function(pH1, pH0, n) {
     stopProb <- pH1 + pH0
     EN <- sum(stopProb*n) + (1 - sum(stopProb))*max(n)
@@ -68,6 +78,8 @@
     list(EN = EN, VarN = EN2 - EN^2)
 }
 
+## Build a sequential z-test design object from a look schedule. Optional
+## boundary and stage callbacks let sample-size searches reuse cached work.
 .bfseq_build_z_design <- function(k1, k0, se, n = NULL, pm, psd, dpm, dpsd,
                                   type, strict, dots, getBoundary = NULL,
                                   evalStage = NULL) {
@@ -124,6 +136,8 @@
     ), class = "bfseqdesign")
 }
 
+## Build a sequential t-test design object from precomputed t boundaries and
+## derive cumulative stopping probabilities and expected sample sizes.
 .bfseq_build_t_design <- function(k1, k0, bounds, dpm, dpsd, plocation,
                                   pscale, pdf, alternative, type, trange,
                                   strict, tail.eps, tail.nquad, dots,

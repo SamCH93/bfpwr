@@ -120,6 +120,8 @@ intstages <- function(intregions, mean, sigma, method = "lpmvnorm", ...) {
     return(probs)
 }
 
+## Integrate the stopping regions for one terminal stage, preparing the
+## quasi-Monte Carlo grid when lpmvnorm is used.
 .bfseq_intstage <- function(stageregions, mean, sigma, method = "lpmvnorm",
                             ...) {
     stopifnot(
@@ -148,6 +150,7 @@ intstages <- function(intregions, mean, sigma, method = "lpmvnorm", ...) {
                         sigma = sigma, method = method, ...)
 }
 
+## Sum the probability mass over all disjoint stopping regions for one stage.
 .bfseq_intstage_sum <- function(stageregions, mean, sigma,
                                 method = "lpmvnorm", cholFactor = NULL,
                                 w = NULL, ngrid = 1000, ...) {
@@ -229,6 +232,7 @@ intstages <- function(intregions, mean, sigma, method = "lpmvnorm", ...) {
 #' genregions1(zcrit0, zcrit1)
 #'
 
+## NaN marks an empty boundary; plain NA means an invalid critical value.
 .bfseq_has_plain_na <- function(x) {
     any(is.na(x) & !is.nan(x))
 }
@@ -259,6 +263,8 @@ genregions1 <- function(zcrit0, zcrit1, direction = NULL) {
                 H0 = lapply(stages, `[[`, "H0")))
 }
 
+## Infer whether a one-critical-value design stops in the positive or negative
+## direction from the finite H0/H1 boundaries.
 .bfseq_one_critical_direction <- function(zcrit0, zcrit1) {
     H0nan <- is.nan(zcrit0)
     finiteH0 <- !H0nan
@@ -287,6 +293,8 @@ genregions1 <- function(zcrit0, zcrit1, direction = NULL) {
     stop("Inconsistent critical values: direction cannot be inferred.")
 }
 
+## Build the H1/H0 integration regions for the final stage of a one-sided or
+## one-critical-value schedule.
 .bfseq_genregions1_stage <- function(zcrit0, zcrit1, direction = NULL) {
     stopifnot(all(is.numeric(zcrit0)),
               all(is.numeric(zcrit1)),
@@ -410,6 +418,8 @@ genregions2 <- function(zcrit0, zcrit1, strict = FALSE) {
          H0 = lapply(stages, `[[`, "H0"))
 }
 
+## Build the final-stage integration regions when both tails can stop for H1.
+## strict = TRUE keeps all continuation paths; FALSE keeps the dominant paths.
 .bfseq_genregions2_stage <- function(zcrit0, zcrit1, strict = FALSE) {
     stopifnot(
         is.matrix(zcrit0),
@@ -467,6 +477,7 @@ genregions2 <- function(zcrit0, zcrit1, strict = FALSE) {
          H0 = makeregions(combosH0i, H0i))
 }
 
+## Count the integration regions induced by strict two-sided continuation paths.
 .count_strict_two_sided_regions <- function(zcrit0) {
     stopifnot(
         is.matrix(zcrit0),
