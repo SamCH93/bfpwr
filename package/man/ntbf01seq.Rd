@@ -68,8 +68,8 @@ data with effect estimates in the direction of the alternative}
 probability of stopping for \eqn{H_1}{H1}, or \code{"H0"} for the final
 cumulative probability of stopping for \eqn{H_0}{H0}.}
 
-\item{nrange}{Sample size search range over which numerical search is
-performed. Defaults to \code{c(2, 10^4)}}
+\item{nrange}{Maximum sample size search range over which numerical search
+is performed. Defaults to \code{c(2, 10^4)}.}
 
 \item{looks}{Number of sequential looks when \code{timing} is not supplied.
 The default \code{looks = 1} gives a fixed design.}
@@ -117,9 +117,9 @@ to \code{1e-3}.}
 \code{\link{tbf01}} for stable wrong-tail one-sided calculations. Larger
 values are more accurate but slower. Defaults to \code{128}.}
 
-\item{integer}{Logical indicating whether only integer valued sample sizes
-should be returned. If \code{TRUE} the required sample size is rounded to
-the next larger integer. Defaults to \code{TRUE}}
+\item{integer}{Logical indicating whether only integer-valued maximum sample
+sizes should be returned. If \code{TRUE}, the required maximum sample
+size is rounded to the next larger integer. Defaults to \code{TRUE}.}
 
 \item{search}{Sample-size search rule for schedules generated from
 \code{looks}/\code{timing}. \code{"adaptive"} uses bracketing and binary

@@ -71,8 +71,8 @@ the design prior mean. Defaults to the analysis prior scale}
 probability of stopping for \eqn{H_1}{H1}, or \code{"H0"} for the final
 cumulative probability of stopping for \eqn{H_0}{H0}.}
 
-\item{nrange}{Sample size search range over which numerical search is
-performed. Defaults to \code{c(2, 10^4)}}
+\item{nrange}{Maximum sample size search range over which numerical search
+is performed. Defaults to \code{c(2, 10^4)}.}
 
 \item{looks}{Number of sequential looks when \code{timing} is not supplied.
 The default \code{looks = 1} gives a fixed design.}

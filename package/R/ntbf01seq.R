@@ -140,6 +140,8 @@ ntbf01seq. <- function(k1, k0 = 1/k1, power, plocation = 0,
 #'     \eqn{H_1}{H1} is obtained when \eqn{\mathrm{BF}_{01} \leq k1}.
 #' @param k0 Bayes factor threshold in favor of \eqn{H_0}{H0}. Evidence for
 #'     \eqn{H_0}{H0} is obtained when \eqn{\mathrm{BF}_{01} \geq k0}.
+#' @param nrange Maximum sample size search range over which numerical search
+#'     is performed. Defaults to \code{c(2, 10^4)}.
 #' @param ratio Allocation ratio \code{n2 / n1} for two-sample designs.
 #'     Candidate group-2 sample sizes are \code{ceiling(n1 * ratio)}. Ignored
 #'     for one-sample and paired designs.
