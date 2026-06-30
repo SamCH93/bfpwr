@@ -51,7 +51,7 @@
 #' plot(res) # show stopping probabilities
 #' plot(res, zplot = TRUE) # show critical z-values
 #'
-#' @author Samuel Pawel
+#' @author Samuel Pawel, František Bartoš
 #'
 #' @export
 ptbf01seq <- function(k1, k0 = 1/k1, n, n1 = n, n2 = n, plocation = 0,

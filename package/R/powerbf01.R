@@ -159,7 +159,7 @@ powerbf01 <- function(n = NULL, power = NULL, k = 1/10, sd = 1, null = 0, pm,
 #' @note Function adapted from \code{stats:::print.power.htest} written by Peter
 #'     Dalgaard
 #'
-#' @author Samuel Pawel
+#' @author Samuel Pawel, František Bartoš
 #'
 #' @seealso \link{powerbf01}
 #'
@@ -289,7 +289,7 @@ print.power.bftest <- function(x, digits = getOption("digits"), ...) {
 #' @return Plots power curves (if specified) and invisibly returns a list of
 #'     data frames containing the data underlying the power curves
 #'
-#' @author Samuel Pawel
+#' @author Samuel Pawel, František Bartoš
 #'
 #' @seealso \link{powerbf01}, \link{powertbf01}, \link{powernmbf01}
 #'

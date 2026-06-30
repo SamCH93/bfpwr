@@ -135,5 +135,5 @@ plot(res, zplot = TRUE) # show critical z-values
 
 }
 \author{
-Samuel Pawel
+Samuel Pawel, František Bartoš
 }

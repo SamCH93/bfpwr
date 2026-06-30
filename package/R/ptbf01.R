@@ -399,7 +399,7 @@ ptbf01. <- function(k, n, n1 = n, n2 = n, null = 0, plocation = 0,
 #'
 #' @inherit pbf01 return
 #'
-#' @author Samuel Pawel
+#' @author Samuel Pawel, František Bartoš
 #'
 #' @seealso \link{tbf01}, \link{ntbf01}, \link{powertbf01}
 #'

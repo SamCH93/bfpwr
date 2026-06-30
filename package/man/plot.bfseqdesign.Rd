@@ -62,5 +62,5 @@ pbf01seq(k1 = 1/10, k0 = 3, se = seseq, n = nseq, pm = pm, psd = psd,
 \link{pbf01seq}
 }
 \author{
-Samuel Pawel
+Samuel Pawel, František Bartoš
 }

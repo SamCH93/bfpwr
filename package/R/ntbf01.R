@@ -161,7 +161,7 @@ ntbf01. <- function(k, power, null = 0, plocation = 0, pscale = 1/sqrt(2),
 #'
 #' @inherit nbf01 return
 #'
-#' @author Samuel Pawel
+#' @author Samuel Pawel, František Bartoš
 #'
 #' @seealso \link{ptbf01}, \link{powertbf01}, \link{tbf01}
 #'

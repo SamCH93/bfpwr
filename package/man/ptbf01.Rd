@@ -118,5 +118,5 @@ ptbf01(k = 1/6, n = 146, dpm = 0.5, dpsd = 0, alternative = "greater",
 \link{tbf01}, \link{ntbf01}, \link{powertbf01}
 }
 \author{
-Samuel Pawel
+Samuel Pawel, František Bartoš
 }

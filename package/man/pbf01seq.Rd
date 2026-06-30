@@ -97,5 +97,5 @@ res$EN # expected sample size
 
 }
 \author{
-Samuel Pawel
+Samuel Pawel, František Bartoš
 }

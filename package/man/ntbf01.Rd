@@ -113,5 +113,5 @@ This function computes the required sample size to obtain a
 \link{ptbf01}, \link{powertbf01}, \link{tbf01}
 }
 \author{
-Samuel Pawel
+Samuel Pawel, František Bartoš
 }

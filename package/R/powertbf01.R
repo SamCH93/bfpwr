@@ -27,7 +27,7 @@
 #'
 #' @inherit powerbf01 return
 #'
-#' @author Samuel Pawel
+#' @author Samuel Pawel, František Bartoš
 #'
 #' @seealso \link{plot.power.bftest}, \link{ptbf01}, \link{ntbf01}, \link{tbf01}
 #'

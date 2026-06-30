@@ -115,5 +115,5 @@ powertbf01(power = 0.95, k = 1/6, dpm = 0.5, dps = 0, alternative = "greater")
 \link{plot.power.bftest}, \link{ptbf01}, \link{ntbf01}, \link{tbf01}
 }
 \author{
-Samuel Pawel
+Samuel Pawel, František Bartoš
 }

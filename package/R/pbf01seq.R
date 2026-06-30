@@ -65,7 +65,7 @@
 #' res$cumpH0 # cumulative probability to stop for H0 by each stage
 #' res$EN # expected sample size
 #'
-#' @author Samuel Pawel
+#' @author Samuel Pawel, František Bartoš
 #'
 #' @export
 pbf01seq <- function(k1, k0 = 1/k1, se, n = NULL, pm = NULL, psd, dpm = pm,
@@ -231,7 +231,7 @@ pbf01seq <- function(k1, k0 = 1/k1, se, n = NULL, pm = NULL, psd, dpm = pm,
 #' @return Prints text summary in the console and invisibly returns the
 #'     \code{"bfseqdesign"} object
 #'
-#' @author Samuel Pawel
+#' @author Samuel Pawel, František Bartoš
 #'
 #' @seealso \link{pbf01seq}
 #'
@@ -411,7 +411,7 @@ print.bfseqdesign <- function(x, digits = max(3L, getOption("digits") - 3L), ...
 #' @return Plots stopping curves (if specified) and invisibly returns a list of
 #'     data frames containing the data underlying the stopping curves
 #'
-#' @author Samuel Pawel
+#' @author Samuel Pawel, František Bartoš
 #'
 #' @seealso \link{pbf01seq}
 #'

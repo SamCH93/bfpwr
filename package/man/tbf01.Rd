@@ -120,5 +120,5 @@ Gronau, Q. F., Ly., A., Wagenmakers, E.J. (2020). Informed Bayesian
 \link{powertbf01}, \link{ptbf01}, \link{ntbf01}
 }
 \author{
-Samuel Pawel
+Samuel Pawel, František Bartoš
 }

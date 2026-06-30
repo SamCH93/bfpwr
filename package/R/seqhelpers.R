@@ -54,7 +54,7 @@ predpars <- function(se, dpm, dpsd) {
 #'
 #' @return Numeric vector of per-stage probabilities
 #'
-#' @author Samuel Pawel
+#' @author Samuel Pawel, František Bartoš
 #'
 #' @noRd
 #'

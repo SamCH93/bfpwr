@@ -984,6 +984,8 @@
 #'
 #' @return Numeric vector of critical t-value(s)
 #'
+#' @author František Bartoš
+#'
 #' @examples
 #' tseq <- seq(-10, 10, length.out = 100)
 #' n1 <- 50
