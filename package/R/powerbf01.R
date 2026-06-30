@@ -207,8 +207,7 @@ print.power.bftest <- function(x, digits = getOption("digits"), ...) {
     } else {
         ratio <- if (is.null(x$ratio)) 1 else x$ratio
         nNote <- if (x$test == "t" && ratio != 1) {
-            paste0("n is sample size in group 1; fixed-n calculations use ",
-                   "group 2 = ceiling(n * allocation ratio)")
+            "n is sample size in group 1; group 2 = ceiling(n * allocation ratio)"
         } else {
             "n is number of *observations per group*"
         }
