@@ -175,8 +175,10 @@ ntbf01seq <- function(k1, k0 = 1/k1, power, plocation = 0,
                       tail.nquad = 128,
                       integer = TRUE,
                       search = c("adaptive", "exhaustive"),
-                      details = FALSE,
-                      progress = NULL, ...) {
+                      details = FALSE, ...) {
+    progressInfo <- .bfseq_extract_progress(list(...))
+    progress <- progressInfo$progress
+    dots <- progressInfo$dots
     type <- if (missing(type)) {
         "two.sample"
     } else {
@@ -200,7 +202,7 @@ ntbf01seq <- function(k1, k0 = 1/k1, power, plocation = 0,
             length(target) != 1) {
             stop("'details = TRUE' requires scalar 'type', 'alternative', and 'target'")
         }
-        return(ntbf01seq.(
+        return(do.call(ntbf01seq., c(list(
             k1 = k1, k0 = k0, power = power, plocation = plocation,
             pscale = pscale, pdf = pdf, dpm = dpm, dpsd = dpsd,
             type = type, alternative = alternative, target = target,
@@ -208,22 +210,22 @@ ntbf01seq <- function(k1, k0 = 1/k1, power, plocation = 0,
             by = by, ratio = ratio, strict = strict, trange = trange,
             tail.eps = tail.eps, tail.nquad = tail.nquad,
             integer = integer, search = search, details = TRUE,
-            progress = progress, ...
-        ))
+            progress = progress
+        ), dots)))
     }
 
     f <- Vectorize(FUN = ntbf01seq.,
                    vectorize.args = c("k1", "k0", "power",
-                                      "plocation", "pscale", "pdf",
-                                      "dpm", "dpsd", "type",
-                                      "alternative", "target", "ratio",
-                                      "tail.eps", "integer"))
-    f(k1 = k1, k0 = k0, power = power, plocation = plocation,
+                                       "plocation", "pscale", "pdf",
+                                       "dpm", "dpsd", "type",
+                                       "alternative", "target", "ratio",
+                                       "tail.eps", "integer"))
+    do.call(f, c(list(k1 = k1, k0 = k0, power = power, plocation = plocation,
       pscale = pscale, pdf = pdf, dpm = dpm, dpsd = dpsd, type = type,
       alternative = alternative, target = target, nrange = nrange,
       looks = looks, timing = timing, minN = minN, by = by,
       ratio = ratio, strict = strict, trange = trange,
       tail.eps = tail.eps, tail.nquad = tail.nquad,
       integer = integer, search = search, details = FALSE,
-      progress = progress, ...)
+      progress = progress), dots))
 }

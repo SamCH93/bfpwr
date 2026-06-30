@@ -56,10 +56,12 @@ powerbf01seq <- function(n = NULL, power = NULL, k1 = 1/10, k0 = 1/k1,
                          dpm = pm, dpsd = psd, target = c("H1", "H0"),
                          nrange = c(2, 10^5), looks = 1, timing = NULL,
                          minN = NULL, by = NULL, strict = TRUE,
-                         search = c("adaptive", "exhaustive"),
-                         progress = NULL, ...) {
+                         search = c("adaptive", "exhaustive"), ...) {
     pmMissing <- missing(pm)
     dpmMissing <- missing(dpm)
+    progressInfo <- .bfseq_extract_progress(list(...))
+    progress <- progressInfo$progress
+    dots <- progressInfo$dots
 
     if (is.null(n) == is.null(power)) {
         stop("exactly one of 'n' and 'power' must be NULL")
@@ -86,7 +88,6 @@ powerbf01seq <- function(n = NULL, power = NULL, k1 = 1/10, k0 = 1/k1,
         is.finite(k0),
         k0 >= 1
     )
-    progress <- .bfseq_validate_progress(progress)
     if (bftype == "moment") {
         if (pmMissing) {
             pm <- NULL
@@ -101,14 +102,14 @@ powerbf01seq <- function(n = NULL, power = NULL, k1 = 1/10, k0 = 1/k1,
     usd <- if (type == "two.sample") sqrt(2)*sd else sd
 
     if (is.null(n)) {
-        solver <- nbf01seq.(
+        solver <- do.call(nbf01seq., c(list(
             k1 = k1, k0 = k0, power = power, usd = usd, pm = pm,
             psd = psd, dpm = dpm, dpsd = dpsd, type = bftype,
             target = target, nrange = nrange, looks = looks,
             timing = timing, minN = minN, by = by, strict = strict,
             integer = TRUE, search = search, details = TRUE,
-            progress = progress, ...
-        )
+            progress = progress
+        ), dots))
         design <- solver$result
         if (is.null(design)) {
             msg <- "no valid sequential design could be computed within 'nrange'"
@@ -129,11 +130,11 @@ powerbf01seq <- function(n = NULL, power = NULL, k1 = 1/10, k0 = 1/k1,
                                          minN = minN, by = by,
                                          nrange = fixedNrange)
         nseq <- .bfseq_schedule_n(maxN = n, schedule = schedule)
-        design <- pbf01seq(
+        design <- do.call(pbf01seq, c(list(
             k1 = k1, k0 = k0, se = usd/sqrt(nseq), n = nseq,
             pm = pm, psd = psd, dpm = dpm, dpsd = dpsd,
-            type = bftype, strict = strict, ...
-        )
+            type = bftype, strict = strict
+        ), dots))
         solver <- .bfseq_fixed_solver(n = n, target = target, design = design,
                                       schedule = schedule)
         design$solver <- solver

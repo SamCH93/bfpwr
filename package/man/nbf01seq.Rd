@@ -24,7 +24,6 @@ nbf01seq(
   integer = TRUE,
   search = c("adaptive", "exhaustive"),
   details = FALSE,
-  progress = NULL,
   ...
 )
 }
@@ -110,11 +109,6 @@ candidates and stopping at terminal invalid candidates. Ignored when
 returned instead of only the maximum sample size. The detailed result is
 scalar; vectorized inputs require \code{details = FALSE}. Defaults to
 \code{FALSE}.}
-
-\item{progress}{Optional function called after each newly evaluated
-candidate maximum sample size. A callback with arguments receives a list
-of search diagnostics; a zero-argument callback is called without
-arguments.}
 
 \item{...}{Additional arguments passed to \code{\link{pbf01seq}}.}
 }

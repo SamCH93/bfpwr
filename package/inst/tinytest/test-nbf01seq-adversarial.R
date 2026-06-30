@@ -13,10 +13,41 @@ expect_true(all(diff(dense$result$n) > 0),
 expect_true(min(dense$result$n) >= 2,
             info = "dense timing search should keep look sizes feasible")
 
-increment <- powerbf01seq(n = 23, k1 = 1/2, k0 = 2, pm = 0, psd = 1,
-                          dpm = 0.5, dpsd = 0, by = 10, minN = 5)
-expect_equal(increment$n, c(5, 15, 23),
-             info = "z increment schedule should append requested final n")
+defaultSearchLower <- nbf01seq(k1 = 1/2, k0 = 2, power = 0.4,
+                               usd = sqrt(2), pm = 0, psd = 1,
+                               dpm = 0.5, dpsd = 0, looks = 1,
+                               nrange = c(2, 80), details = TRUE)
+expect_equal(defaultSearchLower$nrange[1], 10,
+             info = "z non-increment search should use the internal default lower bound")
+
+raisedSearchLower <- nbf01seq(k1 = 1/2, k0 = 2, power = 0.4,
+                              usd = sqrt(2), pm = 0, psd = 1,
+                              dpm = 0.5, dpsd = 0, looks = 1,
+                              nrange = c(12, 80), details = TRUE)
+expect_equal(raisedSearchLower$nrange[1], 12,
+             info = "z non-increment search should respect a higher nrange lower bound")
+
+customIncrement <- powerbf01seq(n = 23, k1 = 1/2, k0 = 2, pm = 0, psd = 1,
+                                dpm = 0.5, dpsd = 0, by = 10, minN = 5)
+expect_equal(customIncrement$n, c(5, 15, 23),
+             info = "z increment schedule should respect custom first look")
+
+defaultIncrement <- powerbf01seq(n = 23, k1 = 1/2, k0 = 2, pm = 0,
+                                 psd = 1, dpm = 0.5, dpsd = 0, by = 10)
+expect_equal(defaultIncrement$n, c(2, 12, 22, 23),
+             info = "z increment schedule without minN should start at lower bound")
+
+shortRangeIncrement <- powerbf01seq(n = 5, k1 = 1/2, k0 = 2, pm = 0,
+                                    psd = 1, dpm = 0.5, dpsd = 0, by = 10,
+                                    nrange = c(2, 5))
+expect_equal(shortRangeIncrement$n, c(2, 5),
+             info = "z increment schedule should use lower bound when nrange is below 10")
+
+highRangeIncrement <- powerbf01seq(n = 23, k1 = 1/2, k0 = 2, pm = 0,
+                                   psd = 1, dpm = 0.5, dpsd = 0, by = 10,
+                                   nrange = c(12, 100))
+expect_equal(highRangeIncrement$n, c(12, 22, 23),
+             info = "z increment schedule should use lower bound when nrange starts above 10")
 
 unreachableWarning <- NULL
 unreachable <- withCallingHandlers(
@@ -55,18 +86,15 @@ oneLookH1 <- nbf01seq(k1 = 1/2, k0 = 2, power = 0.4, usd = sqrt(2),
                       pm = 0, psd = 1, dpm = 0.5, dpsd = 0,
                       looks = 1, nrange = c(2, 100))
 fixedH1 <- nbf01(k = 1/2, power = 0.4, usd = sqrt(2), pm = 0,
-                 psd = 1, dpm = 0.5, dpsd = 0, nrange = c(2, 100),
+                 psd = 1, dpm = 0.5, dpsd = 0, nrange = c(10, 100),
                  analytical = FALSE)
 oneLookH0 <- nbf01seq(k1 = 1/2, k0 = 2, power = 0.4, usd = sqrt(2),
                       pm = 0, psd = 1, dpm = 0, dpsd = 0, target = "H0",
                       looks = 1, nrange = c(2, 100))
-fixedH0 <- nbf01(k = 2, power = 0.4, usd = sqrt(2), pm = 0, psd = 1,
-                 dpm = 0, dpsd = 0, lower.tail = FALSE,
-                 nrange = c(2, 100), analytical = FALSE)
 expect_equal(oneLookH1, fixedH1,
-             info = "one-look z H1 search should match fixed-design search")
-expect_equal(oneLookH0, fixedH0,
-             info = "one-look z H0 search should match fixed-design search")
+             info = "one-look z H1 search should match fixed-design search from internal start")
+expect_equal(oneLookH0, 10,
+             info = "one-look z H0 search should return internal start when it already reaches")
 
 early <- nbf01seq(k1 = 1/3, k0 = 5, power = 0.9826,
                   pm = 0.5, psd = 2, dpm = 1, dpsd = 0, looks = 4,
@@ -199,12 +227,12 @@ expect_true(lowerDip$reached,
             info = "lower-bound first crossing should be considered reached")
 
 syntheticSchedule <- bfpwr:::.bfseq_schedule_spec(looks = 1,
-                                                  nrange = c(2, 10))
+                                                  nrange = c(2, 9))
 synthetic <- suppressWarnings(
     bfpwr:::.bfseq_search(
         power = 0.8,
         target = "H1",
-        nrange = c(2, 10),
+        nrange = c(2, 9),
         schedule = syntheticSchedule,
         evaluate = function(maxN) {
             list(result = list(cumpH1 = if (maxN >= 9) 0.9 else 0.5,
@@ -220,7 +248,7 @@ expect_true(synthetic$reached,
             info = "first-crossing search should not require post-crossing stability")
 
 searchPolicySchedule <- bfpwr:::.bfseq_schedule_spec(looks = 1,
-                                                     nrange = c(2, 20))
+                                                     nrange = c(2, 9))
 searchPolicyResult <- function(maxN, power) {
     list(result = list(cumpH1 = power, cumpH0 = 0, n = maxN),
          power = power)
@@ -230,7 +258,7 @@ ordinarySearchError <- try(
     bfpwr:::.bfseq_search(
         power = 0.8,
         target = "H1",
-        nrange = c(2, 20),
+        nrange = c(2, 9),
         schedule = searchPolicySchedule,
         evaluate = function(maxN) stop("ordinary evaluator bug")
     ),
@@ -248,7 +276,7 @@ malformedSearchResult <- try(
     bfpwr:::.bfseq_search(
         power = 0.8,
         target = "H1",
-        nrange = c(2, 20),
+        nrange = c(2, 9),
         schedule = searchPolicySchedule,
         evaluate = function(maxN) list(power = 0.1)
     ),
@@ -265,7 +293,7 @@ expect_true(
 terminalInvalidSearch <- bfpwr:::.bfseq_search(
     power = 0.8,
     target = "H1",
-    nrange = c(2, 20),
+    nrange = c(2, 9),
     schedule = searchPolicySchedule,
     evaluate = function(maxN) {
         if (maxN >= 4) {
@@ -290,7 +318,7 @@ expect_true(terminalInvalidSearch$terminal,
 transientAdaptiveSearch <- bfpwr:::.bfseq_search(
     power = 0.8,
     target = "H1",
-    nrange = c(2, 20),
+    nrange = c(2, 9),
     schedule = searchPolicySchedule,
     evaluate = function(maxN) {
         if (maxN == 4) {
@@ -316,7 +344,7 @@ expect_false(transientAdaptiveSearch$terminal,
 transientExhaustiveSearch <- bfpwr:::.bfseq_search(
     power = 0.8,
     target = "H1",
-    nrange = c(2, 20),
+    nrange = c(2, 9),
     schedule = searchPolicySchedule,
     search = "exhaustive",
     evaluate = function(maxN) {
@@ -342,7 +370,7 @@ expect_false(
 terminalExhaustiveSearch <- bfpwr:::.bfseq_search(
     power = 0.8,
     target = "H1",
-    nrange = c(2, 20),
+    nrange = c(2, 9),
     schedule = searchPolicySchedule,
     search = "exhaustive",
     evaluate = function(maxN) {
@@ -369,7 +397,7 @@ expect_true(
 nonfinitePowerSearch <- bfpwr:::.bfseq_search(
     power = 0.8,
     target = "H1",
-    nrange = c(2, 20),
+    nrange = c(2, 9),
     schedule = searchPolicySchedule,
     evaluate = function(maxN) {
         searchPolicyResult(maxN, NaN)
@@ -386,7 +414,7 @@ islandAdaptiveSearch <- suppressWarnings(
     bfpwr:::.bfseq_search(
         power = 0.8,
         target = "H1",
-        nrange = c(2, 20),
+        nrange = c(2, 9),
         schedule = searchPolicySchedule,
         evaluate = function(maxN) {
             searchPolicyResult(maxN, if (maxN == 5) 0.9 else 0.2)
@@ -396,7 +424,7 @@ islandAdaptiveSearch <- suppressWarnings(
 islandExhaustiveSearch <- bfpwr:::.bfseq_search(
     power = 0.8,
     target = "H1",
-    nrange = c(2, 20),
+    nrange = c(2, 9),
     schedule = searchPolicySchedule,
     search = "exhaustive",
     evaluate = function(maxN) {

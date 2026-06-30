@@ -155,10 +155,6 @@ nbf01seq. <- function(k1, k0 = 1/k1, power, usd = sqrt(2),
 #'     returned instead of only the maximum sample size. The detailed result is
 #'     scalar; vectorized inputs require \code{details = FALSE}. Defaults to
 #'     \code{FALSE}.
-#' @param progress Optional function called after each newly evaluated
-#'     candidate maximum sample size. A callback with arguments receives a list
-#'     of search diagnostics; a zero-argument callback is called without
-#'     arguments.
 #' @param integer Logical indicating whether only integer-valued maximum sample
 #'     sizes should be returned. If \code{TRUE}, the required maximum sample
 #'     size is rounded to the next larger integer. Defaults to \code{TRUE}.
@@ -185,7 +181,10 @@ nbf01seq <- function(k1, k0 = 1/k1, power, usd = sqrt(2),
                      looks = 1, timing = NULL, minN = NULL, by = NULL,
                      strict = TRUE, integer = TRUE,
                      search = c("adaptive", "exhaustive"),
-                     details = FALSE, progress = NULL, ...) {
+                     details = FALSE, ...) {
+    progressInfo <- .bfseq_extract_progress(list(...))
+    progress <- progressInfo$progress
+    dots <- progressInfo$dots
     type <- if (missing(type)) {
         "normal"
     } else {
@@ -202,14 +201,14 @@ nbf01seq <- function(k1, k0 = 1/k1, power, usd = sqrt(2),
         if (length(type) != 1 || length(target) != 1) {
             stop("'details = TRUE' requires scalar 'type' and 'target'")
         }
-        return(nbf01seq.(
+        return(do.call(nbf01seq., c(list(
             k1 = k1, k0 = k0, power = power, usd = usd, pm = pm,
             psd = psd, dpm = dpm, dpsd = dpsd, type = type,
             target = target, nrange = nrange, looks = looks,
             timing = timing, minN = minN, by = by, strict = strict,
             integer = integer, search = search, details = TRUE,
-            progress = progress, ...
-        ))
+            progress = progress
+        ), dots)))
     }
 
     vectorizeArgs <- c("k1", "k0", "power", "usd", "psd", "dpm", "dpsd",
@@ -218,9 +217,9 @@ nbf01seq <- function(k1, k0 = 1/k1, power, usd = sqrt(2),
         vectorizeArgs <- c(vectorizeArgs, "pm")
     }
     f <- Vectorize(FUN = nbf01seq., vectorize.args = vectorizeArgs)
-    f(k1 = k1, k0 = k0, power = power, usd = usd, pm = pm, psd = psd,
+    do.call(f, c(list(k1 = k1, k0 = k0, power = power, usd = usd, pm = pm, psd = psd,
       dpm = dpm, dpsd = dpsd, type = type, target = target,
       nrange = nrange, looks = looks, timing = timing, minN = minN,
       by = by, strict = strict, integer = integer, search = search,
-      details = FALSE, progress = progress, ...)
+      details = FALSE, progress = progress), dots))
 }

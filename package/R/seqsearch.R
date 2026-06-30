@@ -1,6 +1,13 @@
 ## Helper functions for sequential BF sample-size searches
 ## -----------------------------------------------------------------------------
 
+.bfseq_default_search_lower <- function(nrange, default = 10) {
+    lower <- as.integer(ceiling(nrange[1]))
+    upper <- as.integer(ceiling(nrange[2]))
+    default <- as.integer(ceiling(default))
+    if (lower <= default && default <= upper) default else lower
+}
+
 .bfseq_schedule_spec <- function(looks = 1, timing = NULL, minN = NULL,
                                  by = NULL, nrange, lookMinN = 2) {
     stopifnot(
@@ -152,6 +159,9 @@
     )
 
     lower <- max(as.integer(ceiling(nrange[1])), .bfseq_minimum_max_n(schedule))
+    if (!identical(schedule$type, "increase")) {
+        lower <- max(lower, .bfseq_default_search_lower(nrange))
+    }
     upper <- as.integer(ceiling(nrange[2]))
     if (lower > upper) {
         stop("the lower sample-size search bound exceeds the upper bound after applying the look schedule")
@@ -1033,6 +1043,26 @@
         stop("argument 'progress' must be NULL or a function")
     }
     progress
+}
+
+.bfseq_extract_progress <- function(dots) {
+    dotNames <- names(dots)
+    hasProgress <- rep(FALSE, length(dots))
+    if (!is.null(dotNames)) {
+        hasProgress <- !is.na(dotNames) & dotNames == "progress"
+    }
+    if (sum(hasProgress) > 1) {
+        stop("argument 'progress' matched multiple values", call. = FALSE)
+    }
+    progress <- if (any(hasProgress)) {
+        dots[[which(hasProgress)[1L]]]
+    } else {
+        NULL
+    }
+    list(
+        progress = .bfseq_validate_progress(progress),
+        dots = dots[!hasProgress]
+    )
 }
 
 .bfseq_call_progress <- function(progress, info) {

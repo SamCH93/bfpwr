@@ -28,7 +28,6 @@ powertbf01seq(
   tail.eps = 0.001,
   tail.nquad = 128,
   search = c("adaptive", "exhaustive"),
-  progress = NULL,
   ...
 )
 }
@@ -131,11 +130,6 @@ candidates and stopping at terminal invalid candidates. Ignored when
 \code{by} is supplied, where scheduled maximum sample sizes
 \code{minN + j * by} are scanned in increasing order. Defaults to
 \code{"adaptive"}.}
-
-\item{progress}{Optional function called after each newly evaluated
-candidate maximum sample size. A callback with arguments receives a list
-of search diagnostics; a zero-argument callback is called without
-arguments.}
 
 \item{...}{Additional arguments passed to \code{\link{ptbf01seq}}.}
 }

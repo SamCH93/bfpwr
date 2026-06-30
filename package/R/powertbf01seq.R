@@ -46,8 +46,10 @@ powertbf01seq <- function(n = NULL, power = NULL, k1 = 1/10, k0 = 1/k1,
                           ratio = 1, strict = TRUE, trange = "adaptive",
                           tail.eps = 1e-3,
                           tail.nquad = 128,
-                          search = c("adaptive", "exhaustive"),
-                          progress = NULL, ...) {
+                          search = c("adaptive", "exhaustive"), ...) {
+    progressInfo <- .bfseq_extract_progress(list(...))
+    progress <- progressInfo$progress
+    dots <- progressInfo$dots
     if (is.null(n) == is.null(power)) {
         stop("exactly one of 'n' and 'power' must be NULL")
     }
@@ -80,18 +82,17 @@ powertbf01seq <- function(n = NULL, power = NULL, k1 = 1/10, k0 = 1/k1,
 
         .tbf01_valid_tail_nquad(tail.nquad)
     )
-    progress <- .bfseq_validate_progress(progress)
 
     if (is.null(n)) {
-        solver <- ntbf01seq.(
+        solver <- do.call(ntbf01seq., c(list(
             k1 = k1, k0 = k0, power = power, plocation = plocation,
             pscale = pscale, pdf = pdf, dpm = dpm, dpsd = dpsd,
             type = type, alternative = alternative, target = target,
             nrange = nrange, looks = looks, timing = timing, minN = minN,
             by = by, ratio = ratio, strict = strict, trange = trange,
             tail.eps = tail.eps, tail.nquad = tail.nquad, integer = TRUE,
-            search = search, details = TRUE, progress = progress, ...
-        )
+            search = search, details = TRUE, progress = progress
+        ), dots))
         design <- solver$result
         if (is.null(design)) {
             msg <- "no valid sequential design could be computed within 'nrange'"
@@ -121,13 +122,13 @@ powertbf01seq <- function(n = NULL, power = NULL, k1 = 1/10, k0 = 1/k1,
         } else {
             n1
         }
-        design <- ptbf01seq(
+        design <- do.call(ptbf01seq, c(list(
             k1 = k1, k0 = k0, n1 = n1, n2 = n2,
             plocation = plocation, pscale = pscale, pdf = pdf,
             dpm = dpm, dpsd = dpsd, type = type,
             alternative = alternative, strict = strict, trange = trange,
-            tail.eps = tail.eps, tail.nquad = tail.nquad, ...
-        )
+            tail.eps = tail.eps, tail.nquad = tail.nquad
+        ), dots))
         solver <- .bfseq_fixed_solver(n = n, target = target, design = design,
                                       schedule = schedule)
         design$solver <- solver

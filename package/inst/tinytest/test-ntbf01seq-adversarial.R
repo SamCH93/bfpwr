@@ -14,13 +14,52 @@ expect_equal(dense$nrange[1], 10,
 expect_true(all(diff(dense$result$n1) > 0),
             info = "dense t timing search should generate increasing n1 looks")
 
-increment <- suppressWarnings(
+defaultSearchLower <- suppressWarnings(
+    ntbf01seq(k1 = k1, k0 = k0, power = 0.4, dpm = 0.5, dpsd = 0,
+              alternative = "greater", looks = 1, nrange = c(2, 80),
+              strict = FALSE, details = TRUE)
+)
+expect_equal(defaultSearchLower$nrange[1], 10,
+             info = "t non-increment search should use the internal default lower bound")
+
+raisedSearchLower <- suppressWarnings(
+    ntbf01seq(k1 = k1, k0 = k0, power = 0.4, dpm = 0.5, dpsd = 0,
+              alternative = "greater", looks = 1, nrange = c(12, 80),
+              strict = FALSE, details = TRUE)
+)
+expect_equal(raisedSearchLower$nrange[1], 12,
+             info = "t non-increment search should respect a higher nrange lower bound")
+
+customIncrement <- suppressWarnings(
     powertbf01seq(n = 23, k1 = k1, k0 = k0, dpm = 0.5, dpsd = 0,
                   alternative = "greater", by = 10, minN = 5,
                   strict = FALSE)
 )
-expect_equal(increment$n1, c(5, 15, 23),
-             info = "t increment schedule should append requested final n")
+expect_equal(customIncrement$n1, c(5, 15, 23),
+             info = "t increment schedule should respect custom first look")
+
+defaultIncrement <- suppressWarnings(
+    powertbf01seq(n = 23, k1 = k1, k0 = k0, dpm = 0.5, dpsd = 0,
+                  alternative = "greater", by = 10, strict = FALSE)
+)
+expect_equal(defaultIncrement$n1, c(2, 12, 22, 23),
+             info = "t increment schedule without minN should start at lower bound")
+
+shortRangeIncrement <- suppressWarnings(
+    powertbf01seq(n = 5, k1 = k1, k0 = k0, dpm = 0.5, dpsd = 0,
+                  alternative = "greater", by = 10, nrange = c(2, 5),
+                  strict = FALSE)
+)
+expect_equal(shortRangeIncrement$n1, c(2, 5),
+             info = "t increment schedule should use lower bound when nrange is below 10")
+
+highRangeIncrement <- suppressWarnings(
+    powertbf01seq(n = 23, k1 = k1, k0 = k0, dpm = 0.5, dpsd = 0,
+                  alternative = "greater", by = 10, nrange = c(12, 100),
+                  strict = FALSE)
+)
+expect_equal(highRangeIncrement$n1, c(12, 22, 23),
+             info = "t increment schedule should use lower bound when nrange starts above 10")
 
 badRatio <- try(
     powertbf01seq(n = 20, k1 = k1, k0 = k0, dpm = 0.5, dpsd = 0,
@@ -92,21 +131,17 @@ oneLookH1 <- suppressWarnings(
 )
 fixedH1 <- suppressWarnings(
     ntbf01(k = k1, power = 0.4, dpm = 0.5, dpsd = 0,
-           alternative = "greater", nrange = c(2, 80))
+           alternative = "greater", nrange = c(10, 80))
 )
 oneLookH0 <- suppressWarnings(
     ntbf01seq(k1 = k1, k0 = k0, power = 0.4, dpm = 0, dpsd = 0,
               alternative = "greater", target = "H0", looks = 1,
               nrange = c(2, 80), strict = FALSE)
 )
-fixedH0 <- suppressWarnings(
-    ntbf01(k = k0, power = 0.4, dpm = 0, dpsd = 0,
-           alternative = "greater", lower.tail = FALSE, nrange = c(2, 80))
-)
 expect_equal(oneLookH1, fixedH1,
-             info = "one-look t H1 search should match fixed-design search")
-expect_equal(oneLookH0, fixedH0,
-             info = "one-look t H0 search should match fixed-design search")
+             info = "one-look t H1 search should match fixed-design search from internal start")
+expect_equal(oneLookH0, 10,
+             info = "one-look t H0 search should return internal start when it already reaches")
 
 detailsVector <- try(
     ntbf01seq(k1 = c(1/2, 1/3), k0 = 2, power = 0.4, dpm = 0.5,
