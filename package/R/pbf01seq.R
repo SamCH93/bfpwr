@@ -15,6 +15,8 @@
 #' @param se Numeric vector of standard errors for each sequential stage
 #' @param n Optional numeric vector of sample sizes corresponding to \code{se}.
 #'     If supplied, the expected sample size is computed
+#' @param null Parameter value under the point null hypothesis. Defaults to
+#'     \code{0}
 #' @param pm Analysis prior mean. Not taken into account for \code{type =
 #'     "moment"}
 #' @param psd Analysis prior standard deviation (\code{type = "moment"} and
@@ -27,10 +29,10 @@
 #' \item \code{"normal"}
 #'     (default): point null vs. normal alternative (set \code{psd = 0} to
 #'     obtain a point alternative) \item \code{"directional"}: directional null
-#'     \eqn{\theta \leq 0}{theta <= 0} vs. directional alternative
-#'     \eqn{\theta > 0}{theta > 0} with a marginal normal prior \item
+#'     \eqn{\theta \leq \code{null}}{theta <= null} vs. directional alternative
+#'     \eqn{\theta > \code{null}}{theta > null} with a marginal normal prior \item
 #'     \code{"moment"}: point null vs. normal moment alternative which is
-#'     centered around 0
+#'     centered around \code{null}
 #' }
 #'
 #' @param strict Logical. If \code{TRUE} and there are more than two critical
@@ -52,7 +54,9 @@
 #'     \code{k0}, then computes the probability of these regions under a
 #'     predictive distribution defined by \code{se} and the normal design prior
 #'     with \code{dpm} and \code{dpsd}. Integration is performed via
-#'     \code{mvtnorm::lpmvnorm}.
+#'     \code{mvtnorm::lpmvnorm}. The null value and the analysis and design
+#'     prior means are all specified on the original parameter scale, matching
+#'     the fixed-sample z-test functions.
 #'
 #' @examples
 #' n <- seq(50, 200, 50) # sample size per stage
@@ -68,8 +72,9 @@
 #' @author Samuel Pawel, František Bartoš
 #'
 #' @export
-pbf01seq <- function(k1, k0 = 1/k1, se, n = NULL, pm = NULL, psd, dpm = pm,
-                     dpsd = psd, type = c("normal", "directional", "moment"),
+pbf01seq <- function(k1, k0 = 1/k1, se, n = NULL, null = 0, pm = NULL,
+                     psd, dpm = pm, dpsd = psd,
+                     type = c("normal", "directional", "moment"),
                      strict = TRUE, ...) {
 
     ## input checks
@@ -87,7 +92,11 @@ pbf01seq <- function(k1, k0 = 1/k1, se, n = NULL, pm = NULL, psd, dpm = pm,
         length(se) >= 1,
         is.numeric(se),
         all(is.finite(se)),
-        all(se > 0)
+        all(se > 0),
+
+        length(null) == 1,
+        is.numeric(null),
+        is.finite(null)
     )
     if (!is.null(n)) {
         stopifnot(
@@ -130,7 +139,7 @@ pbf01seq <- function(k1, k0 = 1/k1, se, n = NULL, pm = NULL, psd, dpm = pm,
         stopifnot(psd > 0)
     }
 
-    .bfseq_build_z_design(k1 = k1, k0 = k0, se = se, n = n,
+    .bfseq_build_z_design(k1 = k1, k0 = k0, se = se, n = n, null = null,
                           pm = pm, psd = psd, dpm = dpm, dpsd = dpsd,
                           type = type, strict = strict, dots = list(...))
 }
@@ -268,6 +277,7 @@ print.bfseqdesign <- function(x, digits = max(3L, getOption("digits") - 3L), ...
 
     } else {
         par <- parlong <- "parameter"
+        znull <- if (is.null(x$null)) 0 else x$null
         if (x$type %in% c("normal", "moment")) {
             null <- " ="
             alt <- "!="
@@ -277,8 +287,11 @@ print.bfseqdesign <- function(x, digits = max(3L, getOption("digits") - 3L), ...
             alt <- " >"
         }
     }
-    cat(paste0("H0:               ", parlong,  " ", null, " 0\n"))
-    cat(paste0("H1:               ", parlong, " ", alt, " 0\n"))
+    nullValue <- if (x$test == "t") 0 else znull
+    cat(paste0("H0:               ", parlong,  " ", null, " ",
+               round(nullValue, digits = digits), "\n"))
+    cat(paste0("H1:               ", parlong, " ", alt, " ",
+               round(nullValue, digits = digits), "\n"))
 
     ## Analysis prior
     if (x$test == "t") {
@@ -306,7 +319,8 @@ print.bfseqdesign <- function(x, digits = max(3L, getOption("digits") - 3L), ...
                              ", sd = ", round(x$psd, digits = digits), ")")
         }
     } else {
-        aprior <- paste0("parameter|H1 ~ NM(location = 0, scale = ",
+        aprior <- paste0("parameter|H1 ~ NM(location = ",
+                         round(znull, digits = digits), ", scale = ",
                          round(x$psd, digits = digits), ")")
     }
     cat(paste0("Analysis prior:   ", aprior, "\n"))
@@ -495,9 +509,10 @@ plot.bfseqdesign <- function(x, plot = TRUE, nullplot = TRUE, zplot = FALSE,
                                 strict = x$strict, tail.eps = tail.eps,
                                 tail.nquad = tail.nquad)
             } else {
+                znull <- if (is.null(x$null)) 0 else x$null
                 x0 <- pbf01seq(k1 = x$k1, k0 = x$k0, se = x$se, pm = x$pm,
-                               psd = x$psd, dpm = 0, dpsd = 0, type = x$type,
-                               strict = x$strict)
+                               psd = x$psd, null = znull, dpm = znull,
+                               dpsd = 0, type = x$type, strict = x$strict)
             }
             plotDF0 <- data.frame(stage = stages, n = x$n, pH0 = x0$cumpH0,
                                   pH1 = x0$cumpH1, pInc = x0$cumpInc)
@@ -588,10 +603,16 @@ plot.bfseqdesign <- function(x, plot = TRUE, nullplot = TRUE, zplot = FALSE,
                            labels = paste0(seq(0, 100, 20), "%"), las = 1)
 
             if (nullplot == TRUE) {
+                nullTitle <- if (x$test != "t" && !is.null(x$null)) {
+                    x$null
+                } else {
+                    0
+                }
                 plot(xvar, x0$cumpH1, type = "n", xlab = xlab, ylab = "Probability",
                      ylim = c(0, 100), yaxt = "n",
                      panel.first = graphics::grid(lty = 3, col = "#0000001A"),
-                     main = paste0(parameter, " = 0"))
+                     main = paste0(parameter, " = ",
+                                   round(nullTitle, digits = digits)))
                 graphics::matlines(xvar, cbind(x0$cumpH1, x0$cumpInc, x0$cumpH0)*100,
                                    type = "b", pch = 20, col = c(4, 1, 2), lwd = 1.5,
                                    lty = 1, cex = 1.5)

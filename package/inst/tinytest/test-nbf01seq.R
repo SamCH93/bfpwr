@@ -10,6 +10,47 @@ psd <- 1
 dpm <- 0.5
 dpsd <- 0
 
+helperNull <- 0.2
+helperSe <- 0.1
+helperPm <- 0.6
+helperPsd <- 0.8
+helperK <- 3
+normalZ <- bfpwr:::zcrit(k = helperK, se = helperSe, null = helperNull,
+                         mu = helperPm, tau = helperPsd, type = "normal")
+expect_equal(bf01(estimate = helperNull + normalZ*helperSe, se = helperSe,
+                  null = helperNull, pm = helperPm, psd = helperPsd),
+             rep(helperK, length(normalZ)),
+             tolerance = 1e-10,
+             info = "zcrit normal boundaries should use original-scale null and prior mean")
+pointZ <- bfpwr:::zcrit(k = helperK, se = helperSe, null = helperNull,
+                        mu = helperPm, tau = 0, type = "normal")
+expect_equal(bf01(estimate = helperNull + pointZ*helperSe, se = helperSe,
+                  null = helperNull, pm = helperPm, psd = 0),
+             helperK,
+             tolerance = 1e-10,
+             info = "zcrit point-prior boundary should use original-scale null and prior mean")
+directionalZ <- bfpwr:::zcrit(k = helperK, se = helperSe, null = helperNull,
+                              mu = helperPm, tau = helperPsd,
+                              type = "directional")
+expect_equal(dirbf01(estimate = helperNull + directionalZ*helperSe,
+                     se = helperSe, null = helperNull, pm = helperPm,
+                     psd = helperPsd),
+             helperK,
+             tolerance = 1e-10,
+             info = "zcrit directional boundary should use original-scale null and prior mean")
+momentZ <- bfpwr:::zcrit(k = helperK, se = helperSe, null = helperNull,
+                         tau = 0.5, type = "moment")
+expect_equal(nmbf01(estimate = helperNull + momentZ*helperSe, se = helperSe,
+                    null = helperNull, psd = 0.5),
+             rep(helperK, length(momentZ)),
+             tolerance = 1e-10,
+             info = "zcrit moment boundaries should use original-scale null")
+helperPars <- bfpwr:::predpars(se = c(helperSe, helperSe/2),
+                               null = helperNull, dpm = 0.45, dpsd = 0.1)
+expect_equal(helperPars$mean, (0.45 - helperNull)/c(helperSe, helperSe/2),
+             tolerance = 1e-10,
+             info = "predpars should use original-scale null and design prior mean")
+
 search <- nbf01seq(k1 = k1, k0 = k0, power = pow, usd = usd, pm = pm,
                    psd = psd, dpm = dpm, dpsd = dpsd, looks = 3,
                    nrange = c(2, 200), details = TRUE)
@@ -114,8 +155,8 @@ timingSchedule <- bfpwr:::.bfseq_schedule_spec(
     looks = 3, timing = c(0.25, 0.55, 1), nrange = c(2, 200)
 )
 timingEval <- bfpwr:::.bfseq_z_schedule_evaluator(
-    k1 = k1, k0 = k0, usd = usd, pm = pm, psd = psd, dpm = dpm,
-    dpsd = dpsd, type = "normal", target = "H1",
+    k1 = k1, k0 = k0, usd = usd, null = 0, pm = pm, psd = psd,
+    dpm = dpm, dpsd = dpsd, type = "normal", target = "H1",
     schedule = timingSchedule, strict = TRUE, dots = list()
 )
 for (maxN in c(80, 123)) {
@@ -180,6 +221,106 @@ expect_true(inherits(fixed, "bfseqdesign"),
             info = "powerbf01seq fixed-n mode should return a sequential design")
 expect_equal(max(fixed$n), 60,
              info = "powerbf01seq fixed-n mode should use requested final n")
+
+theta0 <- 0.2
+shiftN <- 50
+shiftPm <- 0.6
+shiftDpm <- 0.45
+shiftPsd <- 0.8
+shiftDpsd <- 0.1
+shiftSeq <- pbf01seq(k1 = 1/3, k0 = 3, se = usd/sqrt(shiftN), n = shiftN,
+                     null = theta0, pm = shiftPm, psd = shiftPsd,
+                     dpm = shiftDpm, dpsd = shiftDpsd, type = "normal")
+expect_equal(shiftSeq$cumpH1,
+             pbf01(k = 1/3, n = shiftN, usd = usd, null = theta0,
+                   pm = shiftPm, psd = shiftPsd, dpm = shiftDpm,
+                   dpsd = shiftDpsd),
+             tolerance = 1e-10,
+             info = "one-look sequential z H1 probability should match fixed pbf01 with nonzero null")
+expect_equal(shiftSeq$cumpH0,
+             pbf01(k = 3, n = shiftN, usd = usd, null = theta0,
+                   pm = shiftPm, psd = shiftPsd, dpm = shiftDpm,
+                   dpsd = shiftDpsd, lower.tail = FALSE),
+             tolerance = 1e-10,
+             info = "one-look sequential z H0 probability should match fixed pbf01 with nonzero null")
+expect_equal(shiftSeq$null, theta0,
+             info = "sequential z design should retain user-facing null value")
+expect_equal(shiftSeq$pm, shiftPm,
+             info = "sequential z design should retain user-facing analysis prior mean")
+expect_equal(shiftSeq$dpm, shiftDpm,
+             info = "sequential z design should retain user-facing design prior mean")
+
+shiftManual <- pbf01seq(k1 = 1/3, k0 = 3, se = usd/sqrt(c(25, 50)),
+                        n = c(25, 50), null = 0, pm = shiftPm - theta0,
+                        psd = shiftPsd, dpm = shiftDpm - theta0,
+                        dpsd = shiftDpsd, type = "directional")
+shiftDirectional <- pbf01seq(k1 = 1/3, k0 = 3, se = usd/sqrt(c(25, 50)),
+                             n = c(25, 50), null = theta0, pm = shiftPm,
+                             psd = shiftPsd, dpm = shiftDpm,
+                             dpsd = shiftDpsd, type = "directional")
+expect_equal(shiftDirectional$cumpH1, shiftManual$cumpH1,
+             tolerance = 1e-10,
+             info = "directional sequential z design should match equivalent shifted zero-null design")
+expect_equal(shiftDirectional$cumpH0, shiftManual$cumpH0,
+             tolerance = 1e-10,
+             info = "directional sequential z H0 probability should use the supplied null split point")
+
+shiftMoment <- pbf01seq(k1 = 1/3, k0 = 3, se = usd/sqrt(shiftN), n = shiftN,
+                        null = theta0, psd = 0.5, dpm = shiftDpm,
+                        dpsd = shiftDpsd, type = "moment")
+expect_equal(shiftMoment$cumpH1,
+             pnmbf01(k = 1/3, n = shiftN, usd = usd, null = theta0,
+                     psd = 0.5, dpm = shiftDpm, dpsd = shiftDpsd),
+             tolerance = 1e-10,
+             info = "moment sequential z H1 probability should match fixed pnmbf01 with nonzero null")
+expect_equal(shiftMoment$cumpH0,
+             pnmbf01(k = 3, n = shiftN, usd = usd, null = theta0,
+                     psd = 0.5, dpm = shiftDpm, dpsd = shiftDpsd,
+                     lower.tail = FALSE),
+             tolerance = 1e-10,
+             info = "moment sequential z H0 probability should match fixed pnmbf01 with nonzero null")
+
+shiftMomentSearch <- nbf01seq(k1 = 1/3, k0 = 3, power = 0.1, usd = usd,
+                              null = theta0, psd = 0.5, dpm = shiftDpm,
+                              dpsd = shiftDpsd, type = "moment",
+                              looks = 1, nrange = c(10, 500))
+fixedMomentSearch <- nnmbf01(k = 1/3, power = 0.1, usd = usd,
+                             null = theta0, psd = 0.5, dpm = shiftDpm,
+                             dpsd = shiftDpsd, nrange = c(10, 500))
+expect_equal(shiftMomentSearch, fixedMomentSearch,
+             info = "one-look sequential moment z sample-size search should match fixed nnmbf01 with nonzero null")
+
+shiftSearch <- nbf01seq(k1 = 1/3, k0 = 3, power = 0.4, usd = usd,
+                        null = theta0, pm = shiftPm, psd = shiftPsd,
+                        dpm = shiftDpm, dpsd = shiftDpsd, looks = 1,
+                        nrange = c(10, 120))
+fixedShiftSearch <- nbf01(k = 1/3, power = 0.4, usd = usd, null = theta0,
+                          pm = shiftPm, psd = shiftPsd, dpm = shiftDpm,
+                          dpsd = shiftDpsd, nrange = c(10, 120),
+                          analytical = FALSE)
+expect_equal(shiftSearch, fixedShiftSearch,
+             info = "one-look sequential z sample-size search should match fixed nbf01 with nonzero null")
+
+shiftPower <- powerbf01seq(n = shiftN, k1 = 1/3, k0 = 3, null = theta0,
+                           pm = shiftPm, psd = shiftPsd, dpm = shiftDpm,
+                           dpsd = shiftDpsd)
+expect_equal(shiftPower$cumpH1, shiftSeq$cumpH1,
+             tolerance = 1e-10,
+             info = "powerbf01seq fixed-n mode should pass nonzero null to pbf01seq")
+expect_equal(shiftPower$null, theta0,
+             info = "powerbf01seq design should retain user-facing null value")
+
+shiftMomentPower <- powerbf01seq(n = shiftN, k1 = 1/3, k0 = 3,
+                                 null = theta0, psd = 0.5,
+                                 dpm = shiftDpm, dpsd = shiftDpsd,
+                                 bftype = "moment")
+fixedMomentPower <- powernmbf01(n = shiftN, k = 1/3, null = theta0,
+                                psd = 0.5, dpm = shiftDpm,
+                                dpsd = shiftDpsd)
+expect_equal(utils::tail(shiftMomentPower$cumpH1, 1),
+             fixedMomentPower$power,
+             tolerance = 1e-10,
+             info = "powerbf01seq moment fixed-n mode should match fixed powernmbf01 with nonzero null")
 
 fixedIncrease <- powerbf01seq(n = increaseSearch$n, k1 = 1/10, k0 = 10,
                               pm = 0, psd = 1/sqrt(2), dpm = 0, dpsd = 0,

@@ -50,7 +50,7 @@
 #'
 #' @export
 powerbf01seq <- function(n = NULL, power = NULL, k1 = 1/10, k0 = 1/k1,
-                         sd = 1, pm, psd,
+                         sd = 1, null = 0, pm, psd,
                          type = c("two.sample", "one.sample", "paired"),
                          bftype = c("normal", "directional", "moment"),
                          dpm = pm, dpsd = psd, target = c("H1", "H0"),
@@ -70,7 +70,11 @@ powerbf01seq <- function(n = NULL, power = NULL, k1 = 1/10, k0 = 1/k1,
         length(sd) == 1,
         is.numeric(sd),
         is.finite(sd),
-        0 < sd
+        0 < sd,
+
+        length(null) == 1,
+        is.numeric(null),
+        is.finite(null)
     )
     type <- match.arg(type)
     bftype <- match.arg(bftype)
@@ -103,8 +107,8 @@ powerbf01seq <- function(n = NULL, power = NULL, k1 = 1/10, k0 = 1/k1,
 
     if (is.null(n)) {
         solver <- do.call(nbf01seq., c(list(
-            k1 = k1, k0 = k0, power = power, usd = usd, pm = pm,
-            psd = psd, dpm = dpm, dpsd = dpsd, type = bftype,
+            k1 = k1, k0 = k0, power = power, usd = usd, null = null,
+            pm = pm, psd = psd, dpm = dpm, dpsd = dpsd, type = bftype,
             target = target, nrange = nrange, looks = looks,
             timing = timing, minN = minN, by = by, strict = strict,
             integer = TRUE, search = search, details = TRUE,
@@ -132,7 +136,7 @@ powerbf01seq <- function(n = NULL, power = NULL, k1 = 1/10, k0 = 1/k1,
         nseq <- .bfseq_schedule_n(maxN = n, schedule = schedule)
         design <- do.call(pbf01seq, c(list(
             k1 = k1, k0 = k0, se = usd/sqrt(nseq), n = nseq,
-            pm = pm, psd = psd, dpm = dpm, dpsd = dpsd,
+            null = null, pm = pm, psd = psd, dpm = dpm, dpsd = dpsd,
             type = bftype, strict = strict
         ), dots))
         solver <- .bfseq_fixed_solver(n = n, target = target, design = design,

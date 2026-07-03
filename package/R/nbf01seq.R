@@ -1,4 +1,4 @@
-nbf01seq. <- function(k1, k0 = 1/k1, power, usd = sqrt(2),
+nbf01seq. <- function(k1, k0 = 1/k1, power, usd = sqrt(2), null = 0,
                       pm = NULL, psd, dpm = pm, dpsd = psd,
                       type = c("normal", "directional", "moment"),
                       target = c("H1", "H0"), nrange = c(2, 10^5),
@@ -35,6 +35,10 @@ nbf01seq. <- function(k1, k0 = 1/k1, power, usd = sqrt(2),
         is.numeric(usd),
         is.finite(usd),
         0 < usd,
+
+        length(null) == 1,
+        is.numeric(null),
+        is.finite(null),
 
         length(psd) == 1,
         is.numeric(psd),
@@ -77,7 +81,7 @@ nbf01seq. <- function(k1, k0 = 1/k1, power, usd = sqrt(2),
     schedule <- .bfseq_schedule_spec(looks = looks, timing = timing,
                                      minN = minN, by = by, nrange = nrange)
     evalDesign <- .bfseq_z_schedule_evaluator(
-        k1 = k1, k0 = k0, usd = usd, pm = pm, psd = psd,
+        k1 = k1, k0 = k0, usd = usd, null = null, pm = pm, psd = psd,
         dpm = dpm, dpsd = dpsd, type = type, target = target,
         schedule = schedule, strict = strict, dots = list(...)
     )
@@ -174,7 +178,7 @@ nbf01seq. <- function(k1, k0 = 1/k1, power, usd = sqrt(2),
 #'          looks = 3, nrange = c(2, 200))
 #'
 #' @export
-nbf01seq <- function(k1, k0 = 1/k1, power, usd = sqrt(2),
+nbf01seq <- function(k1, k0 = 1/k1, power, usd = sqrt(2), null = 0,
                      pm = NULL, psd, dpm = pm, dpsd = psd,
                      type = c("normal", "directional", "moment"),
                      target = c("H1", "H0"), nrange = c(2, 10^5),
@@ -202,8 +206,8 @@ nbf01seq <- function(k1, k0 = 1/k1, power, usd = sqrt(2),
             stop("'details = TRUE' requires scalar 'type' and 'target'")
         }
         return(do.call(nbf01seq., c(list(
-            k1 = k1, k0 = k0, power = power, usd = usd, pm = pm,
-            psd = psd, dpm = dpm, dpsd = dpsd, type = type,
+            k1 = k1, k0 = k0, power = power, usd = usd, null = null,
+            pm = pm, psd = psd, dpm = dpm, dpsd = dpsd, type = type,
             target = target, nrange = nrange, looks = looks,
             timing = timing, minN = minN, by = by, strict = strict,
             integer = integer, search = search, details = TRUE,
@@ -211,15 +215,16 @@ nbf01seq <- function(k1, k0 = 1/k1, power, usd = sqrt(2),
         ), dots)))
     }
 
-    vectorizeArgs <- c("k1", "k0", "power", "usd", "psd", "dpm", "dpsd",
-                       "type", "target", "integer")
+    vectorizeArgs <- c("k1", "k0", "power", "usd", "null", "psd", "dpm",
+                       "dpsd", "type", "target", "integer")
     if (!is.null(pm)) {
         vectorizeArgs <- c(vectorizeArgs, "pm")
     }
     f <- Vectorize(FUN = nbf01seq., vectorize.args = vectorizeArgs)
-    do.call(f, c(list(k1 = k1, k0 = k0, power = power, usd = usd, pm = pm, psd = psd,
-      dpm = dpm, dpsd = dpsd, type = type, target = target,
-      nrange = nrange, looks = looks, timing = timing, minN = minN,
-      by = by, strict = strict, integer = integer, search = search,
-      details = FALSE, progress = progress), dots))
+    do.call(f, c(list(k1 = k1, k0 = k0, power = power, usd = usd,
+      null = null, pm = pm, psd = psd, dpm = dpm, dpsd = dpsd,
+      type = type, target = target, nrange = nrange, looks = looks,
+      timing = timing, minN = minN, by = by, strict = strict,
+      integer = integer, search = search, details = FALSE,
+      progress = progress), dots))
 }

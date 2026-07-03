@@ -10,6 +10,7 @@ powerbf01seq(
   k1 = 1/10,
   k0 = 1/k1,
   sd = 1,
+  null = 0,
   pm,
   psd,
   type = c("two.sample", "one.sample", "paired"),
@@ -43,6 +44,9 @@ powerbf01seq(
 "two.sample"} or \code{type = "one.sample"}) or of one difference within
 a pair of observations (\code{type = "paired"}). Is assumed to be known.
 Defaults to \code{1}.}
+
+\item{null}{Parameter value under the point null hypothesis. Defaults to
+\code{0}}
 
 \item{pm}{Analysis prior mean. Not taken into account for \code{bftype =
 "moment"}.}

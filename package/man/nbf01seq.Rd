@@ -9,6 +9,7 @@ nbf01seq(
   k0 = 1/k1,
   power,
   usd = sqrt(2),
+  null = 0,
   pm = NULL,
   psd,
   dpm = pm,
@@ -39,6 +40,9 @@ nbf01seq(
 \item{usd}{Unit standard deviation, the standard error of the parameter
 estimate at \eqn{n = 1}{n = 1}.}
 
+\item{null}{Parameter value under the point null hypothesis. Defaults to
+\code{0}}
+
 \item{pm}{Analysis prior mean. Not taken into account for \code{type =
 "moment"}}
 
@@ -54,10 +58,10 @@ estimate at \eqn{n = 1}{n = 1}.}
 \item \code{"normal"}
     (default): point null vs. normal alternative (set \code{psd = 0} to
     obtain a point alternative) \item \code{"directional"}: directional null
-    \eqn{\theta \leq 0}{theta <= 0} vs. directional alternative
-    \eqn{\theta > 0}{theta > 0} with a marginal normal prior \item
+    \eqn{\theta \leq \code{null}}{theta <= null} vs. directional alternative
+    \eqn{\theta > \code{null}}{theta > null} with a marginal normal prior \item
     \code{"moment"}: point null vs. normal moment alternative which is
-    centered around 0
+    centered around \code{null}
 }}
 
 \item{target}{Character string. Either \code{"H1"} for the final cumulative

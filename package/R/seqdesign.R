@@ -31,8 +31,9 @@
 
 ## Integrate the predictive distribution over the H1 and H0 stopping regions
 ## for a single stage.
-.bfseq_stage_stop_probabilities <- function(regions, se, dpm, dpsd, dots) {
-    pars <- predpars(se = se, dpm = dpm, dpsd = dpsd)
+.bfseq_stage_stop_probabilities <- function(regions, se, null = 0, dpm, dpsd,
+                                            dots) {
+    pars <- predpars(se = se, null = null, dpm = dpm, dpsd = dpsd)
     pH1 <- do.call(.bfseq_intstage,
                    c(list(stageregions = regions$H1,
                           mean = pars$mean,
@@ -57,8 +58,8 @@
 ## Full stage calculation from raw boundary objects: reshape boundaries,
 ## construct stopping regions, then integrate them.
 .bfseq_stage_probabilities_from_bounds <- function(bounds, oneCritical, strict,
-                                                   direction, dpm, dpsd,
-                                                   dots) {
+                                                   direction, null = 0, dpm,
+                                                   dpsd, dots) {
     boundaries <- .bfseq_boundary_data(bounds = bounds,
                                        oneCritical = oneCritical)
     regions <- .bfseq_stage_regions(boundaries = boundaries,
@@ -66,7 +67,8 @@
                                     strict = strict,
                                     direction = direction)
     .bfseq_stage_stop_probabilities(regions = regions, se = boundaries$se,
-                                    dpm = dpm, dpsd = dpsd, dots = dots)
+                                    null = null, dpm = dpm, dpsd = dpsd,
+                                    dots = dots)
 }
 
 ## First two moments of the stopping sample size under the stage-wise stopping
@@ -80,21 +82,20 @@
 
 ## Build a sequential z-test design object from a look schedule. Optional
 ## boundary and stage callbacks let sample-size searches reuse cached work.
-.bfseq_build_z_design <- function(k1, k0, se, n = NULL, pm, psd, dpm, dpsd,
-                                  type, strict, dots, getBoundary = NULL,
-                                  evalStage = NULL) {
+.bfseq_build_z_design <- function(k1, k0, se, n = NULL, null = 0, pm, psd,
+                                  dpm, dpsd, type, strict, dots,
+                                  getBoundary = NULL, evalStage = NULL) {
     oneCritical <- (type == "normal" && psd == 0) || type == "directional"
-    relpm <- if (type == "moment") NULL else pm
 
     if (is.null(getBoundary)) {
         getBoundary <- function(i) {
             list(
                 n = if (is.null(n)) NA_real_ else n[[i]],
                 se = se[[i]],
-                zk0 = zcrit(k = k0, se = se[[i]], mu = relpm, tau = psd,
-                            type = type),
-                zk1 = zcrit(k = k1, se = se[[i]], mu = relpm, tau = psd,
-                            type = type)
+                zk0 = zcrit(k = k0, se = se[[i]], null = null, mu = pm,
+                            tau = psd, type = type),
+                zk1 = zcrit(k = k1, se = se[[i]], null = null, mu = pm,
+                            tau = psd, type = type)
             )
         }
     }
@@ -108,8 +109,8 @@
         }
         .bfseq_stage_probabilities_from_bounds(
             bounds = bounds[seq_len(i)], oneCritical = oneCritical,
-            strict = strict, direction = NULL, dpm = dpm, dpsd = dpsd,
-            dots = dots
+            strict = strict, direction = NULL, null = null, dpm = dpm,
+            dpsd = dpsd, dots = dots
         )
     })
     pH1 <- vapply(stages, `[[`, numeric(1), "pH1")
@@ -128,7 +129,7 @@
     }
 
     structure(list(
-        k1 = k1, k0 = k0, se = boundaries$se, n = n, pm = relpm,
+        k1 = k1, k0 = k0, se = boundaries$se, n = n, null = null, pm = pm,
         psd = psd, dpm = dpm, dpsd = dpsd, type = type,
         strict = strict, test = "z", zk1 = boundaries$zk1,
         zk0 = boundaries$zk0, EN = EN, VarN = VarN,

@@ -7,6 +7,8 @@
 #'     predictive distribution of z-statistics
 #'
 #' @param se Vector of standard errors
+#' @param null Parameter value under the point null hypothesis. Defaults to
+#'     \code{0}
 #' @param dpm Design prior mean
 #' @param dpsd Design prior standard deviation
 #'
@@ -21,10 +23,10 @@
 #' @examples
 #' ## regions to stop with two-sided p < 0.05 in first or second stage
 #' predpars(se = sqrt(2/seq(10, 50, 10)), dpm = 0.5, dpsd = 0.1)
-predpars <- function(se, dpm, dpsd) {
+predpars <- function(se, null = 0, dpm, dpsd) {
     m <- length(se)
     inf <- 1/se^2 # information levels
-    mean <- dpm/se # mean vector
+    mean <- (dpm - null)/se # mean vector
     sigma <- matrix(nrow = m, ncol = m)
     for (i in seq_len(m)) {
         for (j in seq_len(m)) {
@@ -517,6 +519,8 @@ genregions2 <- function(zcrit0, zcrit1, strict = FALSE) {
 #' @param k Positive numeric. Bayes factor threshold (BF01 oriented in favor of
 #'     H0)
 #' @param se Positive numeric. Standard error
+#' @param null Parameter value under the point null hypothesis. Defaults to
+#'     \code{0}
 #' @param mu Numeric. Prior location. Not taken into account for \code{type =
 #'     "moment"}
 #' @param tau Non-negative numeric. Prior scale
@@ -529,27 +533,37 @@ genregions2 <- function(zcrit0, zcrit1, strict = FALSE) {
 #'
 #' @examples
 #' se <- 0.05
+#' null <- 0
 #' pm <- 0.2
 #' psd <- 0.1
-#' zcrit1 <- zcrit(k = 3, se = se, mu = pm, tau = psd, type = "normal")
-#' bf01(estimate = zcrit1*se, se = se, null = 0, pm = pm, psd = psd)
+#' zcrit1 <- zcrit(k = 3, se = se, null = null, mu = pm, tau = psd,
+#'                 type = "normal")
+#' bf01(estimate = null + zcrit1*se, se = se, null = null, pm = pm, psd = psd)
 #'
 #' ## tau = 0 leads to point alternative
-#' zcrit2 <- zcrit(k = 5, se = se, mu = pm, tau = 0, type = "normal")
-#' bf01(estimate = zcrit2*se, se = se, null = 0, pm = pm, psd = 0)
+#' zcrit2 <- zcrit(k = 5, se = se, null = null, mu = pm, tau = 0,
+#'                 type = "normal")
+#' bf01(estimate = null + zcrit2*se, se = se, null = null, pm = pm, psd = 0)
 #'
-#' zcrit3 <- zcrit(k = 5, se = se, mu = pm, tau = psd, type = "directional")
-#' dirbf01(estimate = zcrit3*se, se = se, null = 0, pm = pm, psd = psd)
+#' zcrit3 <- zcrit(k = 5, se = se, null = null, mu = pm, tau = psd,
+#'                 type = "directional")
+#' dirbf01(estimate = null + zcrit3*se, se = se, null = null, pm = pm,
+#'         psd = psd)
 #'
-#' zcrit4 <- zcrit(k = 1/10, se = se, mu = 0, tau = psd, type = "moment")
-#' nmbf01(estimate = zcrit4*se, se = se, null = 0, psd = psd)
+#' zcrit4 <- zcrit(k = 1/10, se = se, null = null, tau = psd,
+#'                 type = "moment")
+#' nmbf01(estimate = null + zcrit4*se, se = se, null = null, psd = psd)
 #'
 #' @noRd
 #'
 #' @keywords internal
-zcrit <- function(k, se, mu = NULL, tau, type = c("normal", "directional", "moment")) {
+zcrit <- function(k, se, null = 0, mu = NULL, tau,
+                  type = c("normal", "directional", "moment")) {
 
     type <- match.arg(type)
+    if (type != "moment") {
+        mu <- mu - null
+    }
 
     if (type == "normal") {
         if (tau == 0) {

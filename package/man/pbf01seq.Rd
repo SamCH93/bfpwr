@@ -9,6 +9,7 @@ pbf01seq(
   k0 = 1/k1,
   se,
   n = NULL,
+  null = 0,
   pm = NULL,
   psd,
   dpm = pm,
@@ -32,6 +33,9 @@ evidence for \eqn{H_0})}
 \item{n}{Optional numeric vector of sample sizes corresponding to \code{se}.
 If supplied, the expected sample size is computed}
 
+\item{null}{Parameter value under the point null hypothesis. Defaults to
+\code{0}}
+
 \item{pm}{Analysis prior mean. Not taken into account for \code{type =
 "moment"}}
 
@@ -47,10 +51,10 @@ If supplied, the expected sample size is computed}
 \item \code{"normal"}
     (default): point null vs. normal alternative (set \code{psd = 0} to
     obtain a point alternative) \item \code{"directional"}: directional null
-    \eqn{\theta \leq 0}{theta <= 0} vs. directional alternative
-    \eqn{\theta > 0}{theta > 0} with a marginal normal prior \item
+    \eqn{\theta \leq \code{null}}{theta <= null} vs. directional alternative
+    \eqn{\theta > \code{null}}{theta > null} with a marginal normal prior \item
     \code{"moment"}: point null vs. normal moment alternative which is
-    centered around 0
+    centered around \code{null}
 }}
 
 \item{strict}{Logical. If \code{TRUE} and there are more than two critical
@@ -82,7 +86,9 @@ The function constructs per-stage integration regions for cumulative
     \code{k0}, then computes the probability of these regions under a
     predictive distribution defined by \code{se} and the normal design prior
     with \code{dpm} and \code{dpsd}. Integration is performed via
-    \code{mvtnorm::lpmvnorm}.
+    \code{mvtnorm::lpmvnorm}. The null value and the analysis and design
+    prior means are all specified on the original parameter scale, matching
+    the fixed-sample z-test functions.
 }
 \examples{
 n <- seq(50, 200, 50) # sample size per stage
