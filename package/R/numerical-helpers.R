@@ -138,6 +138,18 @@
             return(get(key, envir = cache, inherits = FALSE))
         }
 
+        ## Build the n-point Gauss-Legendre rule with the Golub-Welsch
+        ## algorithm. The symmetric tridiagonal Jacobi matrix stores the
+        ## Legendre recurrence coefficients for integration on [-1, 1].
+        ## Its eigenvalues are the quadrature nodes, and the squared first-row
+        ## eigenvector entries give the corresponding weights after scaling.
+        ## https://en.wikipedia.org/wiki/Gaussian_quadrature#The_Golub-Welsch_algorithm
+        ##
+        ## i indexes the n - 1 off-diagonal entries. beta_j is the Legendre
+        ## recurrence coefficient placed on both neighboring diagonals of J,
+        ## making J the Jacobi matrix for the rule. eig then contains the raw
+        ## nodes and weight information, and o puts the nodes in increasing
+        ## order before storing the cached result.
         i <- seq_len(n - 1)
         beta <- i/sqrt(4*i^2 - 1)
         J <- matrix(0, nrow = n, ncol = n)
@@ -146,7 +158,13 @@
         eig <- eigen(J, symmetric = TRUE)
         o <- order(eig$values)
         ans <- list(
+            ## Map nodes from [-1, 1] to [0, 1]. In the t-test fallback these
+            ## are used as probabilities, so sum(w * f(x)) approximates the
+            ## probability-scale integral integral_0^1 f(u) du.
             x = (eig$values[o] + 1)/2,
+            ## Standard [-1, 1] weights are 2 * v_1^2; mapping to [0, 1]
+            ## divides them by 2, leaving v_1^2. The rule is exact for
+            ## polynomials up to degree 2*n - 1.
             w = eig$vectors[1, o]^2
         )
         assign(key, ans, envir = cache)
