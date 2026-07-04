@@ -1108,7 +1108,9 @@
 }
 
 ## Keep progress hidden from the public signature while removing it from dots
-## before numerical integration/root-finding helpers receive them.
+## before numerical integration/root-finding helpers receive them. JASP uses
+## this internal hook to provide a user-facing progress bar by supplying
+## callback functions.
 .bfseq_extract_progress <- function(dots) {
     dotNames <- names(dots)
     hasProgress <- rep(FALSE, length(dots))
