@@ -139,6 +139,30 @@
     result
 }
 
+## Try both roots from a proposed split before paying for a numerical maximum.
+## A valid pair must be ordered and enclose a point where BF01 exceeds the
+## requested threshold. The latter check prevents two searches from accepting
+## the same crossing when the proposed split lies outside both roots.
+.bfpwr_two_sided_root_pair <- function(f, lowerInterval, upperInterval,
+                                       verifyPair = FALSE, dots = list()) {
+    lower <- try(do.call(stats::uniroot, c(list(
+        f = f, interval = lowerInterval, extendInt = "upX"
+    ), dots))$root, silent = TRUE)
+    upper <- try(do.call(stats::uniroot, c(list(
+        f = f, interval = upperInterval, extendInt = "downX"
+    ), dots))$root, silent = TRUE)
+
+    valid <- !inherits(lower, "try-error") &&
+        !inherits(upper, "try-error") &&
+        is.finite(lower) && is.finite(upper) && lower < upper
+    if (valid && verifyPair) {
+        between <- .bfpwr_root_value(f = f, x = mean(c(lower, upper)))
+        valid <- is.finite(between) && between >= -sqrt(.Machine$double.eps)
+    }
+
+    list(lower = lower, upper = upper, valid = valid)
+}
+
 ## Structured tcrit issues preserve whether a warning is handled internally or
 ## should be surfaced to callers.
 .bfpwr_tcrit_issue <- function(code, status, message, handled = TRUE) {
@@ -1119,17 +1143,19 @@ tcrit <- function(k, n1, n2, plocation, pscale, pdf, type, alternative,
             searchIntLow <- c(trange[1], meant)
             searchIntUp <- c(meant, trange[2])
         }
-        ## Use the actual t-prior BF maximum as the root split. For shifted,
-        ## heavy-tailed priors the normal approximation above may place both
-        ## roots in one of its two intervals.
+        ## Centered priors have a known maximum at zero. Shifted priors use the
+        ## inexpensive approximate split first and pay for a bounded maximum
+        ## only when those searches do not enclose the BF-above-threshold
+        ## region.
         maxInt <- c(searchIntLow[1], searchIntUp[2])
-        opt <- .bfpwr_two_sided_maximum(
-            f = rootFun,
-            interval = maxInt,
-            centeredAt = if (plocation == 0) 0 else NULL
-        )
-        if (!is.null(opt)) {
-            if (k > 1 && opt$objective < 0) {
+        centered <- plocation == 0
+        if (centered && 0 > maxInt[1] && 0 < maxInt[2]) {
+            searchIntLow <- c(maxInt[1], 0)
+            searchIntUp <- c(0, maxInt[2])
+        }
+        if (centered && k > 1) {
+            maximumValue <- .bfpwr_root_value(f = rootFun, x = 0)
+            if (is.finite(maximumValue) && maximumValue < 0) {
                 .bfpwr_tcrit_warning(
                     "maximum BF is less than k; BF01 = k impossible",
                     code = "maximum_bf_below_k",
@@ -1137,19 +1163,36 @@ tcrit <- function(k, n1, n2, plocation, pscale, pdf, type, alternative,
                 )
                 return(c(NaN, NaN))
             }
-            if (opt$maximum > maxInt[1] && opt$maximum < maxInt[2]) {
+        }
+
+        roots <- .bfpwr_two_sided_root_pair(
+            f = rootFun, lowerInterval = searchIntLow,
+            upperInterval = searchIntUp, verifyPair = !centered,
+            dots = rootDots
+        )
+        if (!centered && !roots$valid) {
+            opt <- .bfpwr_two_sided_maximum(f = rootFun, interval = maxInt)
+            if (!is.null(opt) && k > 1 && opt$objective < 0) {
+                .bfpwr_tcrit_warning(
+                    "maximum BF is less than k; BF01 = k impossible",
+                    code = "maximum_bf_below_k",
+                    status = "impossible"
+                )
+                return(c(NaN, NaN))
+            }
+            if (!is.null(opt) && opt$maximum > maxInt[1] &&
+                opt$maximum < maxInt[2]) {
                 searchIntLow <- c(maxInt[1], opt$maximum)
                 searchIntUp <- c(opt$maximum, maxInt[2])
+                roots <- .bfpwr_two_sided_root_pair(
+                    f = rootFun, lowerInterval = searchIntLow,
+                    upperInterval = searchIntUp, dots = rootDots
+                )
             }
         }
-        ## search for critical values
         tcrit <- c(NaN, NaN)
-        lower <- try(stats::uniroot(f = rootFun, interval = searchIntLow,
-                                    extendInt = "upX", ...)$root,
-                     silent = TRUE)
-        upper <- try(stats::uniroot(f = rootFun, interval = searchIntUp,
-                                    extendInt = "downX", ...)$root,
-                     silent = TRUE)
+        lower <- roots$lower
+        upper <- roots$upper
         if (inherits(lower, "try-error") || inherits(upper, "try-error")) {
             .bfpwr_tcrit_warning(
                 "Numerical problems: Could not find 2 t-roots",

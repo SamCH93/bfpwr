@@ -143,35 +143,55 @@ ptbf01. <- function(k, n, n1 = n, n2 = n, null = 0, plocation = 0,
             searchIntLow <- c(drange[1], meant)
             searchIntUp <- c(meant, drange[2])
         }
-        ## Split at the actual t-prior BF maximum. A shifted heavy-tailed prior
-        ## can move both roots to one side of the normal-prior approximation.
+        ## For centered priors the maximum is known, so use it as the split
+        ## without evaluating the BF unless an H0 threshold may be impossible.
+        ## For shifted priors, first try the inexpensive approximate split. If
+        ## it does not produce a certified pair, locate the actual maximum and
+        ## repeat the root searches from that reliable split.
         maxInt <- c(searchIntLow[1], searchIntUp[2])
-        opt <- .bfpwr_two_sided_maximum(
-            f = rootFun,
-            interval = maxInt,
-            centeredAt = if (plocation == null) null else NULL
-        )
-        if (!is.null(opt)) {
-            if (opt$objective < 0) {
+        centered <- plocation == null
+        if (centered && null > maxInt[1] && null < maxInt[2]) {
+            searchIntLow <- c(maxInt[1], null)
+            searchIntUp <- c(null, maxInt[2])
+        }
+
+        if (centered && k > 1) {
+            maximumValue <- .bfpwr_root_value(f = rootFun, x = null)
+            if (is.finite(maximumValue) && maximumValue < 0) {
                 if (lower.tail == FALSE) {
                     return(0)
                 } else {
                     return(1)
                 }
             }
-            if (opt$maximum > maxInt[1] && opt$maximum < maxInt[2]) {
+        }
+
+        roots <- .bfpwr_two_sided_root_pair(
+            f = rootFun, lowerInterval = searchIntLow,
+            upperInterval = searchIntUp, verifyPair = !centered,
+            dots = rootDots
+        )
+        if (!centered && !roots$valid) {
+            opt <- .bfpwr_two_sided_maximum(f = rootFun, interval = maxInt)
+            if (!is.null(opt) && opt$objective < 0) {
+                if (lower.tail == FALSE) {
+                    return(0)
+                } else {
+                    return(1)
+                }
+            }
+            if (!is.null(opt) && opt$maximum > maxInt[1] &&
+                opt$maximum < maxInt[2]) {
                 searchIntLow <- c(maxInt[1], opt$maximum)
                 searchIntUp <- c(opt$maximum, maxInt[2])
+                roots <- .bfpwr_two_sided_root_pair(
+                    f = rootFun, lowerInterval = searchIntLow,
+                    upperInterval = searchIntUp, dots = rootDots
+                )
             }
         }
-        ## search for critical values. The lower and upper roots have opposite
-        ## crossing directions, so use directional interval extension.
-        upper <- try(stats::uniroot(f = rootFun, interval = searchIntUp,
-                                    extendInt = "downX", ...)$root,
-                     silent = TRUE)
-        lower <- try(stats::uniroot(f = rootFun, interval = searchIntLow,
-                                    extendInt = "upX", ...)$root,
-                     silent = TRUE)
+        upper <- roots$upper
+        lower <- roots$lower
 
         ## compute power
         if (inherits(upper, "try-error")) {
