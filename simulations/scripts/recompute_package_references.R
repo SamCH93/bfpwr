@@ -229,7 +229,7 @@ finite_scalar <- function(x) {
 }
 
 target_tail <- function(row) {
-    if (identical(row$evidence[[1]], "H1")) "h1" else "h0"
+    if (identical(row$evidence[[1]], "H1")) "H1" else "H0"
 }
 
 threshold_for_row <- function(row) {
@@ -433,7 +433,6 @@ eval_t_seq_search <- function(row, bf_prior, design, metadata) {
             k1 = 1 / row$evidence_threshold[[1]],
             k0 = row$evidence_threshold[[1]],
             power = row$target_prob[[1]],
-            null = prior$null,
             plocation = prior$plocation,
             pscale = prior$pscale,
             pdf = prior$pdf,
@@ -713,7 +712,6 @@ recompute_search_validation <- function(corpus_root,
     }
     metadata$sequential_search_diagnostics_evaluated <-
         isTRUE(evaluate_diagnostics)
-
     out <- list(
         metadata = metadata,
         simulation = simulation,
