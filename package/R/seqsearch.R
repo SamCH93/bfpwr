@@ -1,15 +1,6 @@
 ## Helper functions for sequential BF sample-size searches
 ## -----------------------------------------------------------------------------
 
-## Default lower bound for non-increment searches. Increment schedules keep the
-## user's minN/lower-bound convention instead.
-.bfseq_default_search_lower <- function(nrange, default = 10) {
-    lower <- as.integer(ceiling(nrange[1]))
-    upper <- as.integer(ceiling(nrange[2]))
-    default <- as.integer(ceiling(default))
-    if (lower <= default && default <= upper) default else lower
-}
-
 ## Normalize the look-schedule inputs into one internal representation used by
 ## both fixed-n evaluation and sample-size search.
 .bfseq_schedule_spec <- function(looks = 1, timing = NULL, minN = NULL,
@@ -133,34 +124,11 @@
     invisible(TRUE)
 }
 
-## Smallest candidate maximum N that can produce a valid rounded look schedule.
-.bfseq_minimum_max_n <- function(schedule) {
-    if (schedule$type == "increase") {
-        return(schedule$minN)
-    }
-
-    timing <- schedule$timing
-    lower <- max(schedule$lookMinN,
-                 floor((schedule$lookMinN - 1)/timing[1]) + 1)
-    if (length(timing) > 1) {
-        lower <- max(lower, floor(max(1/diff(timing))))
-    }
-    lower <- as.integer(lower)
-
-    ## The formula above is a conservative lower bound. Verify because ceiling
-    ## at exact integer information levels can still create duplicate looks.
-    while (TRUE) {
-        valid <- try(.bfseq_schedule_n(lower, schedule), silent = TRUE)
-        if (!inherits(valid, "try-error")) {
-            return(lower)
-        }
-        lower <- lower + 1L
-    }
-}
-
-## Apply user bounds, schedule feasibility, and the internal default search
-## start to get the candidate range searched by the solver.
-.bfseq_search_bounds <- function(nrange, schedule) {
+## Candidate maximum sample sizes that produce valid rounded look schedules.
+## With closely spaced information fractions, feasible and infeasible values
+## can alternate. Filtering the integer grid is therefore safer than treating
+## one conservative feasible value as a lower bound for every later value.
+.bfseq_search_candidates <- function(nrange, schedule) {
     stopifnot(
         length(nrange) == 2,
         all(is.numeric(nrange)),
@@ -168,17 +136,78 @@
         nrange[2] > nrange[1],
         nrange[1] > 0
     )
-
-    lower <- max(as.integer(ceiling(nrange[1])), .bfseq_minimum_max_n(schedule))
-    if (!identical(schedule$type, "increase")) {
-        lower <- max(lower, .bfseq_default_search_lower(nrange))
-    }
-    upper <- as.integer(ceiling(nrange[2]))
-    if (lower > upper) {
-        stop("the lower sample-size search bound exceeds the upper bound after applying the look schedule")
+    if (nrange[2] > .Machine$integer.max) {
+        stop("the upper sample-size search bound exceeds the supported integer range")
     }
 
-    c(lower, upper)
+    bounds <- as.integer(c(ceiling(nrange[1]), floor(nrange[2])))
+    if (bounds[1] > bounds[2]) {
+        stop("the sample-size search range contains no integer candidate")
+    }
+    if (identical(schedule$type, "increase")) {
+        bounds[1] <- max(bounds[1], schedule$minN)
+        if (bounds[1] > bounds[2]) {
+            stop("the first-look sample size exceeds the upper sample-size search bound")
+        }
+        candidates <- .bfseq_increase_candidates(bounds = bounds,
+                                                  schedule = schedule)
+    } else {
+        if (length(schedule$timing) == 1) {
+            firstFeasible <- max(
+                bounds[1],
+                as.integer(floor((schedule$lookMinN - 1)/
+                                     schedule$timing[1]) + 1)
+            )
+            candidates <- if (firstFeasible <= bounds[2]) {
+                seq.int(firstFeasible, bounds[2])
+            } else {
+                integer(0)
+            }
+        } else {
+            ## Once every adjacent unrounded look differs by more than one and
+            ## the first look exceeds its minimum, all later schedules are
+            ## feasible. Only the smaller, potentially alternating prefix must
+            ## be checked one candidate at a time.
+            alwaysFeasible <- max(
+                schedule$lookMinN,
+                floor((schedule$lookMinN - 1)/schedule$timing[1]) + 1,
+                floor(1/min(diff(schedule$timing))) + 1
+            )
+            prefixUpper <- min(bounds[2], alwaysFeasible - 1)
+            prefix <- if (bounds[1] <= prefixUpper) {
+                seq.int(bounds[1], prefixUpper)
+            } else {
+                integer(0)
+            }
+            suffixLower <- max(bounds[1], alwaysFeasible)
+            suffix <- if (suffixLower <= bounds[2]) {
+                seq.int(suffixLower, bounds[2])
+            } else {
+                integer(0)
+            }
+            candidates <- prefix
+            if (length(prefix) > 0) {
+                valid <- vapply(prefix, function(maxN) {
+                    n <- as.integer(ceiling(
+                        maxN*schedule$timing - sqrt(.Machine$double.eps)
+                    ))
+                    n[length(n)] <- maxN
+                    all(n >= schedule$lookMinN) && all(diff(n) > 0)
+                }, logical(1))
+                candidates <- prefix[valid]
+            }
+            candidates <- c(candidates, suffix)
+        }
+    }
+    if (length(candidates) == 0) {
+        stop("the sample-size search range contains no valid look schedule")
+    }
+    candidates
+}
+
+## Effective candidate range stored in solver output and progress callbacks.
+.bfseq_search_bounds <- function(nrange, schedule) {
+    range(.bfseq_search_candidates(nrange = nrange, schedule = schedule))
 }
 
 ## Extract the stopping probability corresponding to the requested target.
@@ -337,19 +366,12 @@
                           search = c("adaptive", "exhaustive")) {
     search <- match.arg(search)
     progress <- .bfseq_validate_progress(progress)
-    bounds <- .bfseq_search_bounds(nrange = nrange, schedule = schedule)
-    lowerN <- bounds[1]
-    upperLimit <- bounds[2]
-    increaseCandidates <- if (identical(schedule$type, "increase")) {
-        .bfseq_increase_candidates(bounds = bounds, schedule = schedule)
-    } else {
-        NULL
-    }
-    maxEvaluations <- if (is.null(increaseCandidates)) {
-        upperLimit - lowerN + 1L
-    } else {
-        length(increaseCandidates)
-    }
+    candidateNs <- .bfseq_search_candidates(nrange = nrange,
+                                             schedule = schedule)
+    bounds <- range(candidateNs)
+    lowerIndex <- 1L
+    upperIndex <- length(candidateNs)
+    maxEvaluations <- length(candidateNs)
     cache <- new.env(parent = emptyenv())
     evaluations <- 0L
     phase <- "initial"
@@ -424,27 +446,29 @@
         out
     }
 
+    ## Search helpers operate on consecutive integer positions in the feasible
+    ## candidate grid. The candidate record and progress callback continue to
+    ## report the corresponding maximum sample size.
+    evalIndex <- function(index) {
+        evalN(candidateNs[[index]])
+    }
+
     ## Full-range scans are used for explicit exhaustive requests and, below,
     ## for increment schedules with a fixed candidate grid.
     if (identical(search, "exhaustive")) {
-        candidates <- if (is.null(increaseCandidates)) {
-            lowerN:upperLimit
-        } else {
-            increaseCandidates
-        }
         return(.bfseq_search_full_range(
             power = power, target = target, nrange = bounds,
-            schedule = schedule, evalN = evalN, candidates = candidates,
+            schedule = schedule, evalN = evalN, candidates = candidateNs,
             search = search, getEvaluations = function() evaluations,
             setPhase = setPhase
         ))
     }
 
-    if (!is.null(increaseCandidates)) {
+    if (identical(schedule$type, "increase")) {
         return(.bfseq_search_full_range(
             power = power, target = target, nrange = bounds,
             schedule = schedule, evalN = evalN,
-            candidates = increaseCandidates, search = search,
+            candidates = candidateNs, search = search,
             getEvaluations = function() evaluations,
             setPhase = setPhase
         ))
@@ -453,7 +477,7 @@
     ## Adaptive timing search first checks the lower bound, then brackets a
     ## crossing with geometric steps before binary refinement.
     phase <- "lower"
-    lower <- evalN(lowerN)
+    lower <- evalIndex(lowerIndex)
     if (.bfseq_candidate_reached(lower)) {
         return(.bfseq_solver_result(candidate = lower,
                                     target = target, targetPower = power,
@@ -473,8 +497,9 @@
     }
 
     phase <- "bracket"
-    bracket <- .bfseq_find_bracket(evalN = evalN, lower = lower,
-                                   lowerN = lowerN, upperLimit = upperLimit)
+    bracket <- .bfseq_find_bracket(evalN = evalIndex, lower = lower,
+                                   lowerN = lowerIndex,
+                                   upperLimit = upperIndex)
 
     if (is.null(bracket$upper)) {
         limit <- if (.bfseq_candidate_is_invalid(bracket$limit)) {
@@ -493,9 +518,11 @@
 
     phase <- "binary"
     firstScan <- .bfseq_first_scan(search, schedule)
-    found <- .bfseq_binary_search(evalN = evalN, lowerN = bracket$lowerN,
-                                  upperN = bracket$upper$n,
-                                  minimumN = lowerN,
+    bracketUpperIndex <- match(bracket$upper$n, candidateNs)
+    found <- .bfseq_binary_search(evalN = evalIndex,
+                                  lowerN = bracket$lowerN,
+                                  upperN = bracketUpperIndex,
+                                  minimumN = lowerIndex,
                                   firstScan = firstScan, setPhase = setPhase)
 
     .bfseq_solver_result(candidate = found$candidate,
@@ -971,7 +998,8 @@
         )
         if (!is.null(zk0Message)) {
             .bfseq_candidate_invalid(
-                zk0Message, reason = "t_boundary", terminal = TRUE
+                zk0Message, reason = "t_boundary",
+                terminal = identical(zk0Result$status, "error")
             )
         }
         zk1Message <- .bfseq_t_boundary_status_message(
@@ -979,7 +1007,8 @@
         )
         if (!is.null(zk1Message)) {
             .bfseq_candidate_invalid(
-                zk1Message, reason = "t_boundary", terminal = TRUE
+                zk1Message, reason = "t_boundary",
+                terminal = identical(zk1Result$status, "error")
             )
         }
         unhandled <- .bfpwr_tcrit_unhandled_warnings(list(zk0Result,
@@ -1076,10 +1105,11 @@
          lookMinN = schedule$lookMinN)
 }
 
-## Single-look searches are monotone enough for binary search; multi-look timing
-## schedules may need backward scanning to certify the first crossing.
+## Timing-schedule power curves can be non-monotone, including single-look
+## designs under a point design prior. Adaptive backward probing is therefore
+## useful for every timing schedule, but it cannot certify a first crossing.
 .bfseq_first_scan <- function(search, schedule) {
-    if (identical(schedule$type, "timing") && length(schedule$timing) > 1) {
+    if (identical(schedule$type, "timing")) {
         return(search)
     }
     "none"

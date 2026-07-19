@@ -17,8 +17,8 @@ defaultSearchLower <- nbf01seq(k1 = 1/2, k0 = 2, power = 0.4,
                                usd = sqrt(2), pm = 0, psd = 1,
                                dpm = 0.5, dpsd = 0, looks = 1,
                                nrange = c(2, 80), details = TRUE)
-expect_equal(defaultSearchLower$nrange[1], 10,
-             info = "z non-increment search should use the internal default lower bound")
+expect_equal(defaultSearchLower$nrange[1], 2,
+             info = "z search should respect the requested lower bound")
 
 raisedSearchLower <- nbf01seq(k1 = 1/2, k0 = 2, power = 0.4,
                               usd = sqrt(2), pm = 0, psd = 1,
@@ -86,15 +86,15 @@ oneLookH1 <- nbf01seq(k1 = 1/2, k0 = 2, power = 0.4, usd = sqrt(2),
                       pm = 0, psd = 1, dpm = 0.5, dpsd = 0,
                       looks = 1, nrange = c(2, 100))
 fixedH1 <- nbf01(k = 1/2, power = 0.4, usd = sqrt(2), pm = 0,
-                 psd = 1, dpm = 0.5, dpsd = 0, nrange = c(10, 100),
+                 psd = 1, dpm = 0.5, dpsd = 0, nrange = c(2, 100),
                  analytical = FALSE)
 oneLookH0 <- nbf01seq(k1 = 1/2, k0 = 2, power = 0.4, usd = sqrt(2),
                       pm = 0, psd = 1, dpm = 0, dpsd = 0, target = "H0",
                       looks = 1, nrange = c(2, 100))
 expect_equal(oneLookH1, fixedH1,
-             info = "one-look z H1 search should match fixed-design search from internal start")
-expect_equal(oneLookH0, 10,
-             info = "one-look z H0 search should return internal start when it already reaches")
+             info = "one-look z H1 search should match fixed-design search")
+expect_equal(oneLookH0, 8,
+             info = "one-look z H0 search should return the first requested-range crossing")
 
 early <- nbf01seq(k1 = 1/3, k0 = 5, power = 0.9826,
                   pm = 0.5, psd = 2, dpm = 1, dpsd = 0, looks = 4,
@@ -205,6 +205,44 @@ badK1 <- try(
 )
 expect_true(inherits(badK1, "try-error"),
             info = "z search should reject non-positive H1 BF thresholds")
+
+expect_error(
+    nbf01seq(k1 = 1/2, k0 = 2, power = 0.4, usd = sqrt(2), pm = 0,
+             psd = 1, dpm = 0.5, dpsd = 0, nrange = c(2.2, 2.8)),
+    "no integer candidate",
+    info = "z search should not evaluate an integer outside nrange"
+)
+
+denseTimingSchedule <- bfpwr:::.bfseq_schedule_spec(
+    timing = c(0.49, 0.5, 1), nrange = c(2, 80)
+)
+denseTimingCandidates <- bfpwr:::.bfseq_search_candidates(
+    nrange = c(2, 80), schedule = denseTimingSchedule
+)
+expect_equal(denseTimingCandidates[1], 51,
+             info = "timing candidate search should retain the first feasible schedule")
+expect_false(52 %in% denseTimingCandidates,
+             info = "timing candidate search should skip later duplicate schedules")
+
+ngridDesign <- pbf01seq(
+    k1 = 1/2, k0 = 2, se = sqrt(2/c(10, 20)), n = c(10, 20),
+    pm = 0, psd = 1, dpm = 0.5, dpsd = 0, ngrid = 128
+)
+expect_equal(ngridDesign$integration,
+             list(method = "lpmvnorm", ngrid = 128L),
+             info = "sequential z designs should record user integration controls")
+expect_error(
+    pbf01seq(k1 = 1/2, k0 = 2, se = c(0.2, 0.3), n = c(10, 20),
+             pm = 0, psd = 1, dpm = 0.5, dpsd = 0),
+    "information must be strictly increasing",
+    info = "direct z designs should reject decreasing information"
+)
+expect_error(
+    pbf01seq(k1 = 1, k0 = 2, se = 0.2, n = 10,
+             pm = 0, psd = 1, dpm = 0.5, dpsd = 0),
+    "k1 < 1",
+    info = "sequential z thresholds should be strictly separated from one"
+)
 
 lowerSchedule <- bfpwr:::.bfseq_schedule_spec(looks = 1,
                                               nrange = c(2, 5))
@@ -321,7 +359,7 @@ transientAdaptiveSearch <- bfpwr:::.bfseq_search(
     nrange = c(2, 9),
     schedule = searchPolicySchedule,
     evaluate = function(maxN) {
-        if (maxN == 4) {
+        if (maxN == 9) {
             bfpwr:::.bfseq_candidate_invalid(
                 "synthetic transient invalid",
                 reason = "synthetic_transient",
@@ -431,8 +469,10 @@ islandExhaustiveSearch <- bfpwr:::.bfseq_search(
         searchPolicyResult(maxN, if (maxN == 5) 0.9 else 0.2)
     }
 )
-expect_true(is.nan(islandAdaptiveSearch$n),
-            info = "adaptive bracketing can miss an isolated early crossing")
+expect_equal(islandAdaptiveSearch$n, 5,
+             info = "adaptive local checks should find this isolated early crossing")
+expect_false(islandAdaptiveSearch$firstCrossingCertified,
+             info = "adaptive isolated-crossing results should remain uncertified")
 expect_equal(islandExhaustiveSearch$n, 5,
              info = "exhaustive search should scan the full candidate range")
 expect_true(islandExhaustiveSearch$firstCrossingCertified,

@@ -19,8 +19,8 @@ defaultSearchLower <- suppressWarnings(
               alternative = "greater", looks = 1, nrange = c(2, 80),
               strict = FALSE, details = TRUE)
 )
-expect_equal(defaultSearchLower$nrange[1], 10,
-             info = "t non-increment search should use the internal default lower bound")
+expect_equal(defaultSearchLower$nrange[1], 2,
+             info = "t search should respect the requested lower bound")
 
 raisedSearchLower <- suppressWarnings(
     ntbf01seq(k1 = k1, k0 = k0, power = 0.4, dpm = 0.5, dpsd = 0,
@@ -85,6 +85,29 @@ badK1 <- try(
 expect_true(inherits(badK1, "try-error"),
             info = "t search should reject non-positive H1 BF thresholds")
 
+expect_error(
+    ntbf01seq(k1 = k1, k0 = k0, power = 0.4, dpm = 0.5, dpsd = 0,
+              alternative = "greater", nrange = c(2.2, 2.8),
+              strict = FALSE),
+    "no integer candidate",
+    info = "t search should not evaluate an integer outside nrange"
+)
+
+transientBoundarySearch <- suppressWarnings(
+    ntbf01seq(
+        k1 = 0.05, k0 = 2, power = 0.1, dpm = 0.5, dpsd = 0,
+        alternative = "greater", target = "H1", looks = 1,
+        nrange = c(2, 80), trange = c(-100, 3),
+        search = "exhaustive", details = TRUE
+    )
+)
+expect_equal(transientBoundarySearch$n, 33,
+             info = "exhaustive t search should scan past transient boundary failures")
+expect_true(transientBoundarySearch$reached,
+            info = "exhaustive t search should find a later valid target crossing")
+expect_false(transientBoundarySearch$firstCrossingCertified,
+             info = "skipped t boundary failures should prevent certification")
+
 smallRatio <- suppressWarnings(
     ntbf01seq(k1 = k1, k0 = k0, power = 0.4, dpm = 0.5, dpsd = 0,
               alternative = "greater", ratio = 0.1, nrange = c(2, 200),
@@ -131,7 +154,7 @@ oneLookH1 <- suppressWarnings(
 )
 fixedH1 <- suppressWarnings(
     ntbf01(k = k1, power = 0.4, dpm = 0.5, dpsd = 0,
-           alternative = "greater", nrange = c(10, 80))
+           alternative = "greater", nrange = c(2, 80))
 )
 oneLookH0 <- suppressWarnings(
     ntbf01seq(k1 = k1, k0 = k0, power = 0.4, dpm = 0, dpsd = 0,
@@ -139,9 +162,9 @@ oneLookH0 <- suppressWarnings(
               nrange = c(2, 80), strict = FALSE)
 )
 expect_equal(oneLookH1, fixedH1,
-             info = "one-look t H1 search should match fixed-design search from internal start")
-expect_equal(oneLookH0, 10,
-             info = "one-look t H0 search should return internal start when it already reaches")
+             info = "one-look t H1 search should match fixed-design search")
+expect_equal(oneLookH0, 3,
+             info = "one-look t H0 search should return the first requested-range crossing")
 
 detailsVector <- try(
     ntbf01seq(k1 = c(1/2, 1/3), k0 = 2, power = 0.4, dpm = 0.5,
