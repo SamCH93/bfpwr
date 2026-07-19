@@ -85,12 +85,12 @@ powerbf01seq <- function(n = NULL, power = NULL, k1 = 1/10, k0 = 1/k1,
         is.numeric(k1),
         is.finite(k1),
         k1 > 0,
-        k1 <= 1,
+        k1 < 1,
 
         length(k0) == 1,
         is.numeric(k0),
         is.finite(k0),
-        k0 >= 1
+        k0 > 1
     )
     if (bftype == "moment") {
         if (pmMissing) {

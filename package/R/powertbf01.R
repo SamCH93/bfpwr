@@ -48,7 +48,7 @@ powertbf01 <- function(n = NULL, power = NULL, k = 1/10, null = 0,
                        tail.eps = 1e-3,
                        tail.nquad = 128) {
     ## input checks
-    if (is.null(n) && is.null(power)) {
+    if (is.null(n) == is.null(power)) {
         stop("exactly one of 'n' and 'power' must be NULL")
     }
     if (is.null(n)) {

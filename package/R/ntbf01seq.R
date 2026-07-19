@@ -19,12 +19,12 @@ ntbf01seq. <- function(k1, k0 = 1/k1, power, plocation = 0,
         is.numeric(k1),
         is.finite(k1),
         k1 > 0,
-        k1 <= 1,
+        k1 < 1,
 
         length(k0) == 1,
         is.numeric(k0),
         is.finite(k0),
-        k0 >= 1,
+        k0 > 1,
 
         length(power) == 1,
         is.numeric(power),
@@ -127,8 +127,9 @@ ntbf01seq. <- function(k1, k0 = 1/k1, power, plocation = 0,
 #'     two-sample designs, or the maximum sample size for one-sample and paired
 #'     designs. Candidate look schedules are rebuilt for each maximum sample
 #'     size according to \code{looks}/\code{timing} or \code{by}/\code{minN}.
-#'     For multi-look timing schedules, rounded interim looks can make the
-#'     power curve non-monotone; \code{search} selects the search rule. For
+#'     Power need not be monotone for every design-prior and target
+#'     combination, and rounded interim looks add further non-monotonicity;
+#'     \code{search} selects the search rule. For
 #'     \code{by}/\code{minN} schedules, scheduled maximum sample sizes are
 #'     scanned in increasing order and previous look calculations are reused;
 #'     \code{search} is ignored. If the target is not reached within

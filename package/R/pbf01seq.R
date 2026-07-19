@@ -36,12 +36,17 @@
 #' }
 #'
 #' @param strict Logical. If \code{TRUE} and there are more than two critical
-#'     values per stage, integrate over all possible region combinations (slow
-#'     but exact). If \code{FALSE}, only integrates over the main regions where
+#'     values per stage, enumerate all possible region combinations. If
+#'     \code{FALSE}, only integrate over the main regions where
 #'     the sign of the z-statistics does not change across stages (faster,
 #'     recommended when many interim analyses, e.g., more than 10, are
-#'     performed). Defaults to \code{TRUE}
-#' @param ... Additional arguments passed to \code{mvtnorm::lpmvnorm}
+#'     performed). Region probabilities are numerically integrated under both
+#'     settings. Defaults to \code{TRUE}
+#' @param ... Numerical integration controls. Use \code{ngrid} to set the
+#'     number of deterministic Halton grid points used by
+#'     \code{mvtnorm::lpmvnorm} (default \code{1000}). Alternatively, set
+#'     \code{method = "pmvnorm"} and pass controls for
+#'     \code{mvtnorm::pmvnorm}.
 #'
 #' @return An object of class \code{"bfseqdesign"}, which is a list containing
 #'     the input arguments, the critical z-values, the expected sample size, the
@@ -54,8 +59,10 @@
 #'     \code{k0}, then computes the probability of these regions under a
 #'     predictive distribution defined by \code{se} and the normal design prior
 #'     with \code{dpm} and \code{dpsd}. Integration is performed via
-#'     \code{mvtnorm::lpmvnorm}. The null value and the analysis and design
-#'     prior means are all specified on the original parameter scale, matching
+#'     \code{mvtnorm::lpmvnorm}. This is deterministic numerical integration;
+#'     increasing \code{ngrid} can be used to check convergence. The null value
+#'     and the analysis and design prior means are all specified on the
+#'     original parameter scale, matching
 #'     the fixed-sample z-test functions.
 #'
 #' @examples
@@ -82,12 +89,13 @@ pbf01seq <- function(k1, k0 = 1/k1, se, n = NULL, null = 0, pm = NULL,
         length(k1) == 1,
         is.numeric(k1),
         is.finite(k1),
-        k1 <= 1,
+        k1 > 0,
+        k1 < 1,
 
         length(k0) == 1,
         is.numeric(k0),
         is.finite(k0),
-        k0 >= 1,
+        k0 > 1,
 
         length(se) >= 1,
         is.numeric(se),
@@ -105,6 +113,12 @@ pbf01seq <- function(k1, k0 = 1/k1, se, n = NULL, null = 0, pm = NULL,
             all(is.finite(n)),
             all(n >= 1)
         )
+        if (length(n) > 1 && any(diff(n) <= 0)) {
+            stop("sample sizes must be strictly increasing across looks")
+        }
+    }
+    if (length(se) > 1 && any(diff(1/se^2) <= 0)) {
+        stop("information must be strictly increasing across looks")
     }
     type <- match.arg(type)
     if (type != "moment") {

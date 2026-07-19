@@ -85,6 +85,13 @@ expect_error(
     info = "powertbf01 should reject fixed-n allocations with n2 <= 1 clearly"
 )
 
+expect_error(
+    powertbf01(n = 20, power = 0.8, k = 1/6, dpm = 0.5, dpsd = 0,
+               alternative = "greater"),
+    "exactly one of 'n' and 'power'",
+    info = "powertbf01 should require exactly one of n and power"
+)
+
 small_ratio_args <- list(k = 1/6, dpm = 0.5, dpsd = 0,
                          alternative = "greater", type = "two.sample",
                          nrange = c(2, 200))

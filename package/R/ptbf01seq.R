@@ -19,18 +19,24 @@
 #'     adaptive boundary search; it is not split across looks or boundaries.
 #'     If no boundary is found before the cutoff, that boundary is treated as
 #'     unresolved with omitted marginal mass bounded by \code{tail.eps};
+#'     with \eqn{C} unresolved boundary searches, a conservative combined
+#'     bound is \code{min(1, C * tail.eps)} rather than \code{tail.eps}.
 #'     smaller values search farther at additional computational cost. Defaults
 #'     to \code{1e-3}.
-#' @param ... Additional arguments passed to \code{mvtnorm::lpmvnorm}
+#' @param ... Numerical integration controls inherited from
+#'     \code{\link{pbf01seq}}, including \code{ngrid}.
 #'
 #' @inherit pbf01seq return
 #'
 #' @details The function constructs per-stage integration regions for cumulative
 #'     z-statistics based on the Bayes factor thresholds \code{k1} and
 #'     \code{k0}, then computes the probability of these regions under a
-#'     predictive distribution defined by the asymptotic variance of the
+#'     predictive distribution defined by the known-variance, asymptotic
+#'     approximation to the variance of the
 #'     \eqn{t}-statistic and the normal design prior with \code{dpm} and
 #'     \code{dpsd}. Integration is performed via \code{mvtnorm::lpmvnorm}.
+#'     This is deterministic numerical integration; increasing \code{ngrid}
+#'     can be used to check convergence.
 #'
 #' @examples
 #' ## similar to example from Schönbrodt and Wagenmakers (2018, p. 138)
@@ -68,12 +74,13 @@ ptbf01seq <- function(k1, k0 = 1/k1, n, n1 = n, n2 = n, plocation = 0,
         length(k1) == 1,
         is.numeric(k1),
         is.finite(k1),
-        k1 <= 1,
+        k1 > 0,
+        k1 < 1,
 
         length(k0) == 1,
         is.numeric(k0),
         is.finite(k0),
-        k0 >= 1,
+        k0 > 1,
 
         length(n1) >= 1,
         is.numeric(n1),
@@ -124,11 +131,15 @@ ptbf01seq <- function(k1, k0 = 1/k1, n, n1 = n, n2 = n, plocation = 0,
     type <- match.arg(type)
     alternative <- match.arg(alternative)
     if (type != "two.sample") {
-        if (all(n1 != n2)) {
+        if (any(n1 != n2)) {
             warning(paste0('different n1 and n2 supplied but type set to "', type,
                            '", using n = n1'))
             n2 <- n1
         }
+    }
+    if (length(n1) > 1 &&
+        (any(diff(n1) < 0) || any(diff(n2) < 0))) {
+        stop("group sample sizes must be non-decreasing across looks")
     }
 
     ## effective sample size
@@ -136,6 +147,9 @@ ptbf01seq <- function(k1, k0 = 1/k1, n, n1 = n, n2 = n, plocation = 0,
         neff <- 1/(1/n1 + 1/n2)
     } else {
         neff <- n1
+    }
+    if (length(neff) > 1 && any(diff(neff) <= 0)) {
+        stop("information must be strictly increasing across looks")
     }
 
     ## get marginal mean and covariance matrix

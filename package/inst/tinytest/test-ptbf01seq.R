@@ -12,6 +12,35 @@ if (!bfpwr_run_extended_tests()) {
 ## Related manuscript source: t BF section in paper/bfssd.Rnw 1481-1530 and the
 ## BFGSD appendix JZS sequence; these specific fixtures are package regressions.
 
+expect_error(
+    ptbf01seq(k1 = 1/10, k0 = 10, n1 = c(10, 20), n2 = c(20, 10),
+              dpm = 0.5, dpsd = 0, alternative = "greater"),
+    "group sample sizes must be non-decreasing",
+    info = "sequential t designs should reject decreasing group sample sizes"
+)
+expect_error(
+    ptbf01seq(k1 = 1, k0 = 10, n = 20, dpm = 0.5, dpsd = 0,
+              alternative = "greater"),
+    "k1 < 1",
+    info = "sequential t thresholds should be strictly separated from one"
+)
+
+normalization_warning <- character()
+normalized_one_sample <- withCallingHandlers(
+    ptbf01seq(k1 = 1/10, k0 = 10, n1 = c(10, 20), n2 = c(10, 30),
+              type = "one.sample", dpm = 0.5, dpsd = 0,
+              alternative = "greater"),
+    warning = function(w) {
+        normalization_warning <<- c(normalization_warning,
+                                     conditionMessage(w))
+        invokeRestart("muffleWarning")
+    }
+)
+expect_true(any(grepl("using n = n1", normalization_warning, fixed = TRUE)),
+            info = "one-sample sequential designs should warn on any n2 mismatch")
+expect_equal(normalized_one_sample$n2, normalized_one_sample$n1,
+             info = "one-sample sequential designs should store normalized n2")
+
 ## One-stage sequential designs should agree with the non-sequential t-test
 ## power calculation. This also exercises the internal tcrit() root search.
 regression_n <- 9596.363636363636
