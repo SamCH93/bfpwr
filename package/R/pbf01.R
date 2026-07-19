@@ -49,17 +49,25 @@ pbf01. <- function(k, n, usd, null = 0, pm, psd, dpm = pm, dpsd = psd,
 
     ## point prior in analysis
     if (psd == 0) {
-        Z <- (usd^2*log(k)/n/(null - pm) + (null + pm)/2 - dpm)/sqrt(v)
-        if (sign(null - pm) >= 0) {
-            tail <- TRUE
+        if (pm == null) {
+            ## The null and point alternative are the same model, so BF01 is
+            ## identically one for every possible estimate.
+            logpow <- if (k >= 1) 0 else -Inf
+            logcomp <- if (k < 1) 0 else -Inf
         } else {
-            tail <- FALSE
+            Z <- (usd^2*log(k)/n/(null - pm) +
+                  (null + pm)/2 - dpm)/sqrt(v)
+            if (sign(null - pm) >= 0) {
+                tail <- TRUE
+            } else {
+                tail <- FALSE
+            }
+            ## Keep both requested tail and complement stable for extreme designs.
+            logpow <- stats::pnorm(q = Z, mean = 0, sd = 1,
+                                   lower.tail = tail, log.p = TRUE)
+            logcomp <- stats::pnorm(q = Z, mean = 0, sd = 1,
+                                    lower.tail = !tail, log.p = TRUE)
         }
-        ## Keep both requested tail and complement stable for extreme designs.
-        logpow <- stats::pnorm(q = Z, mean = 0, sd = 1, lower.tail = tail,
-                               log.p = TRUE)
-        logcomp <- stats::pnorm(q = Z, mean = 0, sd = 1, lower.tail = !tail,
-                                log.p = TRUE)
     } else {
         ## normal prior in the analysis
         X <- (log(1 + n*psd^2/usd^2) + (null - pm)^2/psd^2 - 2*log(k))*
