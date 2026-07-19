@@ -140,11 +140,12 @@
 }
 
 ## Try both roots from a proposed split before paying for a numerical maximum.
-## A valid pair must be ordered and enclose a point where BF01 exceeds the
-## requested threshold. The latter check prevents two searches from accepting
-## the same crossing when the proposed split lies outside both roots.
+## A valid pair must be ordered. When a proposed split is supplied, the roots
+## must also bracket it. Together with the opposite crossing directions passed
+## to uniroot(), this certifies that the two searches found different crossings
+## without requiring another Bayes-factor evaluation between the roots.
 .bfpwr_two_sided_root_pair <- function(f, lowerInterval, upperInterval,
-                                       verifyPair = FALSE, dots = list()) {
+                                       split = NULL, dots = list()) {
     lower <- try(do.call(stats::uniroot, c(list(
         f = f, interval = lowerInterval, extendInt = "upX"
     ), dots))$root, silent = TRUE)
@@ -155,9 +156,9 @@
     valid <- !inherits(lower, "try-error") &&
         !inherits(upper, "try-error") &&
         is.finite(lower) && is.finite(upper) && lower < upper
-    if (valid && verifyPair) {
-        between <- .bfpwr_root_value(f = f, x = mean(c(lower, upper)))
-        valid <- is.finite(between) && between >= -sqrt(.Machine$double.eps)
+    if (valid && !is.null(split)) {
+        valid <- length(split) == 1 && is.finite(split) &&
+            lower < split && split < upper
     }
 
     list(lower = lower, upper = upper, valid = valid)
@@ -1143,6 +1144,7 @@ tcrit <- function(k, n1, n2, plocation, pscale, pdf, type, alternative,
             searchIntLow <- c(trange[1], meant)
             searchIntUp <- c(meant, trange[2])
         }
+        proposedSplit <- searchIntLow[2]
         ## Centered priors have a known maximum at zero. Shifted priors use the
         ## inexpensive approximate split first and pay for a bounded maximum
         ## only when those searches do not enclose the BF-above-threshold
@@ -1167,7 +1169,8 @@ tcrit <- function(k, n1, n2, plocation, pscale, pdf, type, alternative,
 
         roots <- .bfpwr_two_sided_root_pair(
             f = rootFun, lowerInterval = searchIntLow,
-            upperInterval = searchIntUp, verifyPair = !centered,
+            upperInterval = searchIntUp,
+            split = if (centered) NULL else proposedSplit,
             dots = rootDots
         )
         if (!centered && !roots$valid) {

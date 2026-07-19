@@ -143,6 +143,7 @@ ptbf01. <- function(k, n, n1 = n, n2 = n, null = 0, plocation = 0,
             searchIntLow <- c(drange[1], meant)
             searchIntUp <- c(meant, drange[2])
         }
+        proposedSplit <- searchIntLow[2]
         ## For centered priors the maximum is known, so use it as the split
         ## without evaluating the BF unless an H0 threshold may be impossible.
         ## For shifted priors, first try the inexpensive approximate split. If
@@ -168,7 +169,8 @@ ptbf01. <- function(k, n, n1 = n, n2 = n, null = 0, plocation = 0,
 
         roots <- .bfpwr_two_sided_root_pair(
             f = rootFun, lowerInterval = searchIntLow,
-            upperInterval = searchIntUp, verifyPair = !centered,
+            upperInterval = searchIntUp,
+            split = if (centered) NULL else proposedSplit,
             dots = rootDots
         )
         if (!centered && !roots$valid) {
