@@ -276,8 +276,46 @@ if (!bfpwr_run_extended_tests()) {
 expect_equal(
     tbf01(t = -20, n1 = 7880, n2 = 7880, alternative = "greater",
           type = "two.sample", log = TRUE),
-    7.2302204, tolerance = 1e-5,
+    7.2302101, tolerance = 1e-5,
     info = "tbf01 should use a stable wrong-tail one-sided calculation"
+)
+
+shifted_tail_128 <- tbf01(
+    t = -20, n1 = 7880, n2 = 7880,
+    plocation = 0.35, pscale = 0.02, pdf = 1.5,
+    alternative = "greater", type = "two.sample", log = TRUE,
+    tail.nquad = 128
+)
+shifted_tail_256 <- tbf01(
+    t = -20, n1 = 7880, n2 = 7880,
+    plocation = 0.35, pscale = 0.02, pdf = 1.5,
+    alternative = "greater", type = "two.sample", log = TRUE,
+    tail.nquad = 256
+)
+expect_equal(
+    shifted_tail_128, 10.93372, tolerance = 5e-6,
+    info = "tbf01 should remain stable for a narrow shifted prior in the wrong tail"
+)
+expect_equal(
+    shifted_tail_128, shifted_tail_256, tolerance = 2e-6,
+    info = "wrong-tail quadrature should converge as tail.nquad increases"
+)
+
+remote_boundary_args <- list(
+    t = 20.1506887080614, n1 = 3325, n2 = 3088,
+    plocation = -0.881350668612868, pscale = 0.0660105370801499,
+    pdf = 26.7907634664795, alternative = "less",
+    type = "two.sample", log = TRUE
+)
+remote_boundary_128 <- do.call(
+    tbf01, c(remote_boundary_args, list(tail.nquad = 128))
+)
+remote_boundary_256 <- do.call(
+    tbf01, c(remote_boundary_args, list(tail.nquad = 256))
+)
+expect_equal(
+    remote_boundary_128, remote_boundary_256, tolerance = 2e-4,
+    info = "wrong-tail quadrature should resolve a remote light-tail prior boundary"
 )
 
 expect_equal(

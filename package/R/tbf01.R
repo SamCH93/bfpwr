@@ -89,57 +89,80 @@
 .tbf01_log_tail_quadrature <- function(t, df, neff, plocation, pscale, pdf,
                                        region, tail.nquad) {
     ## Wrong-tail one-sided calls can underflow in the noncentral-t density used
-    ## by the direct integral. This path rewrites the t statistic and
-    ## location-scale t prior as normal/gamma mixtures and integrates over the
-    ## two gamma mixing distributions on probability scale.
+    ## by the direct integral. Conditional on the observed statistic under H0,
+    ## its chi-square mixing variable has the gamma distribution below. The
+    ## alternative-to-null density ratio is then averaged over this posterior
+    ## and directly over the (possibly truncated) t prior. Integrating the
+    ## truncated prior on probability scale avoids dividing a poorly resolved
+    ## tail integral by a very small prior mass.
     if (!is.finite(region$log_norm_const)) {
         return(NaN)
     }
 
     nquad <- as.integer(tail.nquad)
     eta <- sqrt(neff)
-    shape_v <- (df + 1)/2
-    rate_v <- (1 + t^2/df)/2
-    shape_s <- pdf/2
-    rate_s <- pdf/2
+    shapeV <- (df + 1)/2
+    rateV <- (1 + t^2/df)/2
 
     quadrature <- .bfpwr_gauss_legendre(nquad)
     u <- quadrature$x
     w <- quadrature$w
-    v <- stats::qgamma(p = u, shape = shape_v, rate = rate_v)
-    s <- stats::qgamma(p = u, shape = shape_s, rate = rate_s)
+    v <- stats::qgamma(p = u, shape = shapeV, rate = rateV)
+    ## In the wrong tail the likelihood is concentrated close to the truncation
+    ## point d = 0. A power-transformed probability scale places
+    ## substantially more nodes there while leaving the integral exact after
+    ## its Jacobian is included. This matters for narrow shifted priors, where
+    ## the relevant prior probability can be far below the smallest ordinary
+    ## Gauss-Legendre node.
+    boundaryPower <- 16
+    priorU <- u
+    priorLogJacobian <- rep(0, nquad)
+    if (is.finite(region$lower)) {
+        priorU <- u^boundaryPower
+        priorLogJacobian <- log(boundaryPower) +
+            (boundaryPower - 1)*log(u)
+    } else if (is.finite(region$upper)) {
+        priorU <- 1 - (1 - u)^boundaryPower
+        priorLogJacobian <- log(boundaryPower) +
+            (boundaryPower - 1)*log1p(-u)
+    }
+    priorQuantiles <- if (is.infinite(region$lower)) {
+        if (is.infinite(region$upper)) {
+            stats::qt(p = priorU, df = pdf)
+        } else {
+            ## Compute log(priorU) without forming 1 - a tiny number.
+            logPriorU <- log1p(-(1 - u)^boundaryPower)
+            stats::qt(p = logPriorU + region$log_norm_const, df = pdf,
+                      lower.tail = TRUE, log.p = TRUE)
+        }
+    } else {
+        stats::qt(p = log1p(-priorU) + region$log_norm_const, df = pdf,
+                  lower.tail = FALSE, log.p = TRUE)
+    }
+    d <- plocation + pscale*priorQuantiles
 
     vv <- rep(v, each = nquad)
-    ss <- rep(s, times = nquad)
-    ok <- is.finite(vv) & vv > 0 & is.finite(ss) & ss > 0
+    dd <- rep(d, times = nquad)
+    ok <- is.finite(vv) & vv > 0 & is.finite(dd)
     if (!any(ok)) {
         return(NaN)
     }
     vv <- vv[ok]
-    ss <- ss[ok]
-    log_weights <- rep(log(w), each = nquad) + rep(log(w), times = nquad)
-    log_weights <- log_weights[ok]
+    dd <- dd[ok]
+    logWeights <- rep(log(w), each = nquad) +
+        rep(log(w) + priorLogJacobian, times = nquad)
+    logWeights <- logWeights[ok]
 
     y <- t*sqrt(vv/df)
-    prior_var <- pscale^2/ss
-    pred_var <- 1 + eta^2*prior_var
-    log_ratio <- stats::dnorm(x = y, mean = eta*plocation,
-                              sd = sqrt(pred_var), log = TRUE) -
-        stats::dnorm(x = y, mean = 0, sd = 1, log = TRUE)
-
-    post_var <- 1/(1/prior_var + eta^2)
-    post_mean <- post_var*(plocation/prior_var + eta*y)
-    log_mass <- .bfpwr_lpnorm_interval(lower = region$lower,
-                                       upper = region$upper,
-                                       mean = post_mean,
-                                       sd = sqrt(post_var))
-    log_terms <- log_weights + log_ratio + log_mass
-    log_terms <- log_terms[is.finite(log_terms)]
-    if (length(log_terms) == 0) {
+    noncentrality <- eta*dd
+    logRatio <- noncentrality*y - noncentrality^2/2
+    logTerms <- logWeights + logRatio
+    logTerms <- logTerms[is.finite(logTerms)]
+    if (length(logTerms) == 0) {
         return(NaN)
     }
 
-    -(.bfpwr_logspace_sum(log_terms) - region$log_norm_const)
+    -.bfpwr_logspace_sum(logTerms)
 }
 
 .tbf01_needs_exact_path <- function(t, alternative, log_bf) {
