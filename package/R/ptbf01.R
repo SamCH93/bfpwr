@@ -143,45 +143,25 @@ ptbf01. <- function(k, n, n1 = n, n2 = n, null = 0, plocation = 0,
             searchIntLow <- c(drange[1], meant)
             searchIntUp <- c(meant, drange[2])
         }
-        if (k > 1) {
-            ## For centered two-sided priors BF01 is maximized at the null. For
-            ## shifted informed priors the maximum can move away from the null,
-            ## so use a bounded maximum only on the unsafe branch; the maximum
-            ## also gives a reliable split point for the two root searches.
-            fNull <- .bfpwr_root_value(f = rootFun, x = null)
-            if (is.nan(fNull)) return(NaN)
-            if (fNull < 0) {
-                if (plocation == null) {
-                    if (lower.tail == FALSE) {
-                        return(0)
-                    } else {
-                        return(1)
-                    }
+        ## Split at the actual t-prior BF maximum. A shifted heavy-tailed prior
+        ## can move both roots to one side of the normal-prior approximation.
+        maxInt <- c(searchIntLow[1], searchIntUp[2])
+        opt <- .bfpwr_two_sided_maximum(
+            f = rootFun,
+            interval = maxInt,
+            centeredAt = if (plocation == null) null else NULL
+        )
+        if (!is.null(opt)) {
+            if (opt$objective < 0) {
+                if (lower.tail == FALSE) {
+                    return(0)
                 } else {
-                    maxInt <- c(searchIntLow[1], searchIntUp[2])
-                    opt <- try(stats::optimize(f = function(est) {
-                                                   ans <- suppressWarnings(rootFun(est))
-                                                   if (is.finite(ans)) ans else -Inf
-                                               },
-                                               interval = maxInt,
-                                               maximum = TRUE),
-                               silent = TRUE)
-                    if (!inherits(opt, "try-error") &&
-                        is.finite(opt$objective)) {
-                        if (opt$objective < 0) {
-                            if (lower.tail == FALSE) {
-                                return(0)
-                            } else {
-                                return(1)
-                            }
-                        }
-                        if (opt$maximum > maxInt[1] &&
-                            opt$maximum < maxInt[2]) {
-                            searchIntLow <- c(maxInt[1], opt$maximum)
-                            searchIntUp <- c(opt$maximum, maxInt[2])
-                        }
-                    }
+                    return(1)
                 }
+            }
+            if (opt$maximum > maxInt[1] && opt$maximum < maxInt[2]) {
+                searchIntLow <- c(maxInt[1], opt$maximum)
+                searchIntUp <- c(opt$maximum, maxInt[2])
             }
         }
         ## search for critical values. The lower and upper roots have opposite
@@ -360,7 +340,12 @@ ptbf01. <- function(k, n, n1 = n, n2 = n, null = 0, plocation = 0,
 #'
 #' @description This function computes the probability of obtaining a
 #'     \eqn{t}-test Bayes factor (\link{tbf01}) more extreme than a threshold
-#'     \code{k} with a specified sample size.
+#'     \code{k} with a specified sample size. The future standardized estimate
+#'     is modeled with its known-variance normal distribution. Thus, although
+#'     the analysis Bayes factor uses the finite-sample \eqn{t} distribution,
+#'     the returned power is an asymptotic approximation rather than exact
+#'     noncentral-\eqn{t} power; differences can be material at small sample
+#'     sizes.
 #'
 #' @inheritParams tbf01
 #' @inheritParams pbf01
@@ -421,7 +406,7 @@ ptbf01. <- function(k, n, n1 = n, n2 = n, null = 0, plocation = 0,
 ptbf01 <- Vectorize(FUN = ptbf01.,
                     vectorize.args = c("k", "n", "n1", "n2", "null",
                                        "plocation", "pscale", "pdf", "type",
-                                       "alternative", "dpm", "dpsd", "type",
+                                       "alternative", "dpm", "dpsd",
                                        "lower.tail"))
 
 ## ## verify with simulation

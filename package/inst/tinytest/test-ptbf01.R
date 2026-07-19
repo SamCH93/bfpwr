@@ -223,6 +223,42 @@ expect_true(is.finite(informed_two_sided_h0) && informed_two_sided_h0 > 0.9,
 expect_equal(informed_two_sided_h0, informed_expected, tolerance = 1e-5,
              info = "two-sided informed-prior ptbf01 should match explicit roots")
 
+## Both critical roots can lie on one side of the split suggested by a normal
+## approximation when the informed prior is shifted and heavy tailed.
+heavy_tail_args <- list(
+    k = 18.1241087146303, n1 = 10, n2 = 13,
+    plocation = 2.41468008980155, pscale = 0.254380572902165,
+    pdf = 1.90000312660144, type = "two.sample",
+    alternative = "two.sided", dpm = 0, dpsd = 0,
+    lower.tail = FALSE
+)
+heavy_tail_adaptive <- suppressWarnings(do.call(ptbf01, heavy_tail_args))
+heavy_tail_numeric <- suppressWarnings(do.call(
+    ptbf01, c(heavy_tail_args, list(drange = c(-20, 20)))
+))
+heavy_tail_roots <- suppressWarnings(
+    bfpwr:::tcrit(
+        k = heavy_tail_args$k, n1 = heavy_tail_args$n1,
+        n2 = heavy_tail_args$n2, plocation = heavy_tail_args$plocation,
+        pscale = heavy_tail_args$pscale, pdf = heavy_tail_args$pdf,
+        type = heavy_tail_args$type, alternative = heavy_tail_args$alternative
+    )
+)
+heavy_tail_residuals <- tbf01(
+    t = heavy_tail_roots, n1 = heavy_tail_args$n1, n2 = heavy_tail_args$n2,
+    plocation = heavy_tail_args$plocation, pscale = heavy_tail_args$pscale,
+    pdf = heavy_tail_args$pdf, type = heavy_tail_args$type,
+    alternative = heavy_tail_args$alternative, log = TRUE
+) - log(heavy_tail_args$k)
+expect_equal(
+    heavy_tail_adaptive, heavy_tail_numeric, tolerance = 1e-5,
+    info = "adaptive two-sided t power should find both shifted heavy-tail roots"
+)
+expect_true(
+    length(heavy_tail_roots) == 2 && max(abs(heavy_tail_residuals)) < 5e-5,
+    info = "shifted heavy-tail t critical values should satisfy BF01 = k"
+)
+
 tiny_upper_tail <- suppressWarnings(
     ptbf01(k = 3, n = 1000, plocation = 0, pscale = 1/sqrt(2), pdf = 1,
            dpm = 0.5, dpsd = 0, type = "two.sample",

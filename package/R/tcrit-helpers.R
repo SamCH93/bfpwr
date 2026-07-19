@@ -111,6 +111,34 @@
     dots[keep]
 }
 
+## Locate the maximum that separates the two roots of a two-sided BF. Centered
+## priors have their maximum at the null; shifted priors require a bounded
+## numerical search because a normal-prior approximation can put both roots on
+## the same side of its proposed split point.
+.bfpwr_two_sided_maximum <- function(f, interval, centeredAt = NULL) {
+    if (!is.null(centeredAt)) {
+        value <- .bfpwr_root_value(f = f, x = centeredAt)
+        if (!is.finite(value)) {
+            return(NULL)
+        }
+        return(list(maximum = centeredAt, objective = value))
+    }
+
+    result <- try(stats::optimize(
+        f = function(x) {
+            value <- .bfpwr_root_value(f = f, x = x)
+            if (is.finite(value)) value else -Inf
+        },
+        interval = interval,
+        maximum = TRUE
+    ), silent = TRUE)
+    if (inherits(result, "try-error") || !is.finite(result$maximum) ||
+        !is.finite(result$objective)) {
+        return(NULL)
+    }
+    result
+}
+
 ## Structured tcrit issues preserve whether a warning is handled internally or
 ## should be surfaced to callers.
 .bfpwr_tcrit_issue <- function(code, status, message, handled = TRUE) {
@@ -1091,25 +1119,27 @@ tcrit <- function(k, n1, n2, plocation, pscale, pdf, type, alternative,
             searchIntLow <- c(trange[1], meant)
             searchIntUp <- c(meant, trange[2])
         }
-        if (k > 1) {
-            ## Check impossible H0 boundaries only in the interval searched below.
-            ## This avoids unconstrained wrong-tail evaluations in tbf01().
-            maxInt <- c(searchIntLow[1], searchIntUp[2])
-            opt <- try(stats::optimize(f = function(t) {
-                                           ans <- suppressWarnings(rootFun(t))
-                                           if (is.finite(ans)) ans else -Inf
-                                       },
-                                       interval = maxInt,
-                                       maximum = TRUE),
-                       silent = TRUE)
-            if (!inherits(opt, "try-error") &&
-                is.finite(opt$objective) && opt$objective < 0) {
+        ## Use the actual t-prior BF maximum as the root split. For shifted,
+        ## heavy-tailed priors the normal approximation above may place both
+        ## roots in one of its two intervals.
+        maxInt <- c(searchIntLow[1], searchIntUp[2])
+        opt <- .bfpwr_two_sided_maximum(
+            f = rootFun,
+            interval = maxInt,
+            centeredAt = if (plocation == 0) 0 else NULL
+        )
+        if (!is.null(opt)) {
+            if (k > 1 && opt$objective < 0) {
                 .bfpwr_tcrit_warning(
                     "maximum BF is less than k; BF01 = k impossible",
                     code = "maximum_bf_below_k",
                     status = "impossible"
                 )
                 return(c(NaN, NaN))
+            }
+            if (opt$maximum > maxInt[1] && opt$maximum < maxInt[2]) {
+                searchIntLow <- c(maxInt[1], opt$maximum)
+                searchIntUp <- c(opt$maximum, maxInt[2])
             }
         }
         ## search for critical values
