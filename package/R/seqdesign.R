@@ -86,6 +86,7 @@
                                   dpm, dpsd, type, strict, dots,
                                   getBoundary = NULL, evalStage = NULL) {
     oneCritical <- (type == "normal" && psd == 0) || type == "directional"
+    integration <- .bfseq_integration_settings(dots)
 
     if (is.null(getBoundary)) {
         getBoundary <- function(i) {
@@ -131,7 +132,8 @@
     structure(list(
         k1 = k1, k0 = k0, se = boundaries$se, n = n, null = null, pm = pm,
         psd = psd, dpm = dpm, dpsd = dpsd, type = type,
-        strict = strict, test = "z", zk1 = boundaries$zk1,
+        strict = strict, integration = integration, test = "z",
+        zk1 = boundaries$zk1,
         zk0 = boundaries$zk0, EN = EN, VarN = VarN,
         cumpH1 = cumpH1, cumpH0 = cumpH0, cumpInc = cumpInc
     ), class = "bfseqdesign")
@@ -144,6 +146,7 @@
                                   strict, tail.eps, tail.nquad, dots,
                                   evalStage = NULL) {
     oneCritical <- alternative != "two.sided"
+    integration <- .bfseq_integration_settings(dots)
     regionDirection <- if (alternative == "greater") {
         "positive"
     } else if (alternative == "less") {
@@ -178,7 +181,7 @@
         k1 = k1, k0 = k0, n1 = n1, n2 = n2, dpm = dpm,
         dpsd = dpsd, plocation = plocation, pscale = pscale,
         pdf = pdf, alternative = alternative, type = type,
-        trange = trange, strict = strict, test = "t",
+        trange = trange, strict = strict, integration = integration, test = "t",
         tail.eps = tail.eps, tail.nquad = tail.nquad,
         zk1 = boundaries$zk1, zk0 = boundaries$zk0,
         EN1 = moments1$EN, EN2 = moments2$EN,

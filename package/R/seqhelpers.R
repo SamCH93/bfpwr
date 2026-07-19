@@ -1,6 +1,8 @@
 ## Helper functions for sequential BF design calculations
 ## -----------------------------------------------------------------------------
 
+.bfseq_ngrid_default <- 1000
+
 #' @title Predictive Distribution Parameters
 #'
 #' @description Compute mean vector and covariance matrix and covariance of
@@ -51,6 +53,8 @@ predpars <- function(se, null = 0, dpm, dpsd) {
 #' @param sigma Covariance matrix of the cumulative z-statistic
 #' @param method Method to compute the integral. Either \code{lpmvnorm}
 #'     (default) or \code{"pmvnorm"}
+#' @param ngrid Number of deterministic Halton grid points used by
+#'     \code{mvtnorm::lpmvnorm}.
 #' @param ... Other arguments passed to \code{mvtnorm::lpmvnorm} or
 #'     \code{mvtnorm::pmvnorm}
 #'
@@ -80,7 +84,8 @@ predpars <- function(se, null = 0, dpm, dpsd) {
 #'                   sqrt(n1/n2), 1), nrow = 2, byrow = TRUE)
 #' intstages(intregions = intregions, mean = mean, sigma = sigma)
 
-intstages <- function(intregions, mean, sigma, method = "lpmvnorm", ...) {
+intstages <- function(intregions, mean, sigma, method = "lpmvnorm",
+                      ngrid = .bfseq_ngrid_default, ...) {
     stopifnot(
         is.list(intregions),
         is.numeric(mean),
@@ -88,6 +93,8 @@ intstages <- function(intregions, mean, sigma, method = "lpmvnorm", ...) {
         length(mean) == nrow(sigma),
         nrow(sigma) == ncol(sigma)
     )
+    .bfseq_validate_integration(method = method, ngrid = ngrid)
+    ngrid <- as.integer(ngrid)
 
     m <- length(mean)
     probs <- numeric(m)
@@ -97,7 +104,6 @@ intstages <- function(intregions, mean, sigma, method = "lpmvnorm", ...) {
         C <- t(chol(sigma))
         Ct <- mvtnorm::ltMatrices(C[lower.tri(C, diag = TRUE)], diag = TRUE)
         ## use a fixed grid instead of Monte Carlo approach
-        ngrid <- 1000
         w <- withr::with_seed(seed = 42, code = {
             t(qrng::ghalton(n = ngrid, d = m - 1))
         })
@@ -125,7 +131,7 @@ intstages <- function(intregions, mean, sigma, method = "lpmvnorm", ...) {
 ## Integrate the stopping regions for one terminal stage, preparing the
 ## quasi-Monte Carlo grid when lpmvnorm is used.
 .bfseq_intstage <- function(stageregions, mean, sigma, method = "lpmvnorm",
-                            ...) {
+                            ngrid = .bfseq_ngrid_default, ...) {
     stopifnot(
         is.list(stageregions),
         is.numeric(mean),
@@ -133,12 +139,13 @@ intstages <- function(intregions, mean, sigma, method = "lpmvnorm", ...) {
         length(mean) == nrow(sigma),
         nrow(sigma) == ncol(sigma)
     )
+    .bfseq_validate_integration(method = method, ngrid = ngrid)
+    ngrid <- as.integer(ngrid)
 
     i <- length(mean)
     if (i > 1 && method == "lpmvnorm") {
         C <- t(chol(sigma))
         Ct <- mvtnorm::ltMatrices(C[lower.tri(C, diag = TRUE)], diag = TRUE)
-        ngrid <- 1000
         w <- withr::with_seed(seed = 42, code = {
             t(qrng::ghalton(n = ngrid, d = i - 1))
         })
@@ -155,8 +162,10 @@ intstages <- function(intregions, mean, sigma, method = "lpmvnorm", ...) {
 ## Sum the probability mass over all disjoint stopping regions for one stage.
 .bfseq_intstage_sum <- function(stageregions, mean, sigma,
                                 method = "lpmvnorm", cholFactor = NULL,
-                                w = NULL, ngrid = 1000, ...) {
+                                w = NULL,
+                                ngrid = .bfseq_ngrid_default, ...) {
     stopifnot(is.list(stageregions))
+    .bfseq_validate_integration(method = method, ngrid = ngrid)
 
     i <- length(mean)
     regionprobs <- vapply(stageregions,
@@ -199,6 +208,39 @@ intstages <- function(intregions, mean, sigma, method = "lpmvnorm", ...) {
     }
 
     sum(regionprobs)
+}
+
+## Validate numerical integration controls in one place. The public sequential
+## functions accept these controls through their dots argument.
+.bfseq_validate_integration <- function(method, ngrid) {
+    stopifnot(
+        length(method) == 1,
+        is.character(method),
+        !is.na(method),
+        method %in% c("lpmvnorm", "pmvnorm"),
+        length(ngrid) == 1,
+        is.numeric(ngrid),
+        is.finite(ngrid),
+        ngrid >= 1,
+        ngrid == floor(ngrid)
+    )
+    invisible(TRUE)
+}
+
+## Record the controls that determine numerical integration accuracy.
+.bfseq_integration_settings <- function(dots) {
+    method <- if ("method" %in% names(dots)) {
+        dots[["method"]]
+    } else {
+        "lpmvnorm"
+    }
+    ngrid <- if ("ngrid" %in% names(dots)) {
+        dots[["ngrid"]]
+    } else {
+        .bfseq_ngrid_default
+    }
+    .bfseq_validate_integration(method = method, ngrid = ngrid)
+    list(method = method, ngrid = as.integer(ngrid))
 }
 
 
