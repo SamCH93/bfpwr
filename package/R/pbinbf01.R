@@ -142,83 +142,106 @@ pbinbf01. <- function(k, n, p0 = 0.5, type = c("point", "direction"), a = 1,
         binbf01(x = x, n = n, p0 = p0, type = type, a = a, b = b, log = TRUE)
     }
 
-    ## find BF maximum
-    xmax <- stats::optim(par = p0*n, fn = logbf, control = list(fnscale = -1),
-                         lower = 0, upper = n, method = "Brent")
-    ## is BF below threshold k for any possible data value?
-    if (xmax$value <= log(k)) {
-        if (lower.tail == TRUE) {
-            return(1)
-        } else {
-            return(0)
+    ## The data are integer counts, so determine the successful counts on that
+    ## grid. Continuous optimization followed by floor/ceiling can lose a
+    ## boundary count when the root is numerically just to one side of an
+    ## integer.
+    logk <- log(k)
+    belowThreshold <- function(x) {
+        logbf(x) <= logk
+    }
+    firstBelow <- function(lower, upper) {
+        ## The predicate is FALSE then TRUE on this interval.
+        while (lower < upper) {
+            midpoint <- floor((lower + upper)/2)
+            if (belowThreshold(midpoint)) {
+                upper <- midpoint
+            } else {
+                lower <- midpoint + 1
+            }
         }
+        lower
+    }
+    lastBelow <- function(lower, upper) {
+        ## The predicate is TRUE then FALSE on this interval.
+        while (lower < upper) {
+            midpoint <- ceiling((lower + upper)/2)
+            if (belowThreshold(midpoint)) {
+                lower <- midpoint
+            } else {
+                upper <- midpoint - 1
+            }
+        }
+        lower
     }
 
-    ## find BF minimum
-    xmin <- stats::optim(par = p0*n, fn = logbf, lower = 0, upper = n,
-                         method = "Brent")
-    ## is BF above threshold k for any possible data value?
-    if (xmin$value >= log(k)) {
-        if (lower.tail == TRUE) {
-            return(0)
-        } else {
-            return(1)
-        }
-    }
-
-    ## find the critical value(s) with root-finding
-    rootFun <- function(x) logbf(x) - log(k)
-
-    ## point null test
     logpow <- NULL
-    if (type == "point") {
-        xcrit1 <- try(stats::uniroot(f = rootFun, lower = 0, upper = xmax$par)$root,
-                      silent = TRUE)
-        xcrit2 <- try(stats::uniroot(f = rootFun, lower = xmax$par, upper = n)$root,
-                      silent = TRUE)
-
-        ## ## plot critical values
-        ## xseq <- seq(0, n)
-        ## plot(xseq, exp(logbf(xseq)), type = "b", log = "y", xlab = "x", ylab = "BF")
-        ## abline(h = k, lty = 2)
-        ## abline(v = xcrit1, lty = 2)
-        ## abline(v = xcrit2, lty = 2)
-
-        ## data values for which bf01 <= k
-        if (pointDesign) {
-            if (inherits(xcrit1, "try-error")) {
-                logpow <- predlogsf(ceiling(xcrit2))
-            } else if (inherits(xcrit2, "try-error")) {
-                logpow <- predlogcdf(floor(xcrit1))
+    xsuccess <- integer(0)
+    if (type == "direction") {
+        ## The directional BF01 decreases with the number of successes.
+        if (belowThreshold(0)) {
+            if (pointDesign) {
+                logpow <- 0
             } else {
-                logpow <- .bfpwr_logspace_sum(c(
-                    predlogcdf(floor(xcrit1)),
-                    predlogsf(ceiling(xcrit2))
-                ))
+                xsuccess <- 0:n
             }
-        } else {
-            if (inherits(xcrit1, "try-error")) {
-                xsuccess <- seq(ceiling(xcrit2), n)
-            } else if (inherits(xcrit2, "try-error")) {
-                xsuccess <- seq(0, floor(xcrit1))
+        } else if (belowThreshold(n)) {
+            xcrit <- firstBelow(0, n)
+            if (pointDesign) {
+                logpow <- predlogsf(xcrit)
             } else {
-                xsuccess <- c(seq(0, floor(xcrit1)), seq(ceiling(xcrit2), n))
+                xsuccess <- xcrit:n
             }
         }
-    } else { ## type == "direction"
-        xcrit <- stats::uniroot(f = rootFun, lower = 0, upper = n)$root
+    } else { ## type == "point"
+        ## The point-null log BF is concave on the integer grid. Its increment
+        ## from x to x + 1 changes sign at the value below, so the maximum is
+        ## one of the adjacent integer counts. Checking a small neighborhood
+        ## also protects the split against floating-point rounding at a flat
+        ## maximum.
+        turningPoint <- p0*(b + n - 1) - (1 - p0)*a
+        maximumCandidates <- unique(pmax(
+            0, pmin(n, floor(turningPoint) + (-1:2))
+        ))
+        xmax <- maximumCandidates[which.max(logbf(maximumCandidates))]
 
-        ## ## plot critical values
-        ## xseq <- seq(0, n)
-        ## plot(xseq, exp(logbf(xseq)), type = "b", log = "y", xlab = "x", ylab = "BF")
-        ## abline(h = k, lty = 2)
-        ## abline(v = xcrit, lty = 2)
-
-        ## data values for which bf01 <= k
-        if (pointDesign) {
-            logpow <- predlogsf(ceiling(xcrit))
+        if (belowThreshold(xmax)) {
+            if (pointDesign) {
+                logpow <- 0
+            } else {
+                xsuccess <- 0:n
+            }
         } else {
-            xsuccess <- seq(ceiling(xcrit), n)
+            leftCrit <- NULL
+            rightCrit <- NULL
+            if (belowThreshold(0)) {
+                leftCrit <- lastBelow(0, xmax)
+            }
+            if (belowThreshold(n)) {
+                rightCrit <- firstBelow(xmax, n)
+            }
+
+            if (pointDesign) {
+                leftProbability <- if (is.null(leftCrit)) {
+                    -Inf
+                } else {
+                    predlogcdf(leftCrit)
+                }
+                rightProbability <- if (is.null(rightCrit)) {
+                    -Inf
+                } else {
+                    predlogsf(rightCrit)
+                }
+                logpow <- .bfpwr_logspace_sum(c(leftProbability,
+                                                 rightProbability))
+            } else {
+                if (!is.null(leftCrit)) {
+                    xsuccess <- c(xsuccess, 0:leftCrit)
+                }
+                if (!is.null(rightCrit)) {
+                    xsuccess <- c(xsuccess, rightCrit:n)
+                }
+            }
         }
     }
 
@@ -226,7 +249,11 @@ pbinbf01. <- function(k, n, p0 = 0.5, type = c("point", "direction"), a = 1,
     ## Sum the selected predictive probabilities on the log scale; xsuccess
     ## may be a far tail set for stringent thresholds.
     if (is.null(logpow)) {
-        logpow <- .bfpwr_logspace_sum(predlogpmf(xsuccess))
+        logpow <- if (length(xsuccess) == 0) {
+            -Inf
+        } else {
+            .bfpwr_logspace_sum(predlogpmf(xsuccess))
+        }
     }
     logpow <- min(0, logpow)
     if (lower.tail == TRUE) {
