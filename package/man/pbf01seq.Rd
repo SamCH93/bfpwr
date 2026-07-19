@@ -58,13 +58,18 @@ If supplied, the expected sample size is computed}
 }}
 
 \item{strict}{Logical. If \code{TRUE} and there are more than two critical
-values per stage, integrate over all possible region combinations (slow
-but exact). If \code{FALSE}, only integrates over the main regions where
+values per stage, enumerate all possible region combinations. If
+\code{FALSE}, only integrate over the main regions where
 the sign of the z-statistics does not change across stages (faster,
 recommended when many interim analyses, e.g., more than 10, are
-performed). Defaults to \code{TRUE}}
+performed). Region probabilities are numerically integrated under both
+settings. Defaults to \code{TRUE}}
 
-\item{...}{Additional arguments passed to \code{mvtnorm::lpmvnorm}}
+\item{...}{Numerical integration controls. Use \code{ngrid} to set the
+number of deterministic Halton grid points used by
+\code{mvtnorm::lpmvnorm} (default \code{1000}). Alternatively, set
+\code{method = "pmvnorm"} and pass controls for
+\code{mvtnorm::pmvnorm}.}
 }
 \value{
 An object of class \code{"bfseqdesign"}, which is a list containing
@@ -86,8 +91,10 @@ The function constructs per-stage integration regions for cumulative
     \code{k0}, then computes the probability of these regions under a
     predictive distribution defined by \code{se} and the normal design prior
     with \code{dpm} and \code{dpsd}. Integration is performed via
-    \code{mvtnorm::lpmvnorm}. The null value and the analysis and design
-    prior means are all specified on the original parameter scale, matching
+    \code{mvtnorm::lpmvnorm}. This is deterministic numerical integration;
+    increasing \code{ngrid} can be used to check convergence. The null value
+    and the analysis and design prior means are all specified on the
+    original parameter scale, matching
     the fixed-sample z-test functions.
 }
 \examples{

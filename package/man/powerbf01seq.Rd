@@ -90,16 +90,20 @@ are generated as \code{seq(minN, maximumN, by = by)} with
 \code{maximumN} appended as the final look.}
 
 \item{strict}{Logical. If \code{TRUE} and there are more than two critical
-values per stage, integrate over all possible region combinations (slow
-but exact). If \code{FALSE}, only integrates over the main regions where
+values per stage, enumerate all possible region combinations. If
+\code{FALSE}, only integrate over the main regions where
 the sign of the z-statistics does not change across stages (faster,
 recommended when many interim analyses, e.g., more than 10, are
-performed). Defaults to \code{TRUE}}
+performed). Region probabilities are numerically integrated under both
+settings. Defaults to \code{TRUE}}
 
 \item{search}{Sample-size search rule for schedules generated from
 \code{looks}/\code{timing}. \code{"adaptive"} uses bracketing and binary
-search with local checks, and stops with a diagnostic if a transient
-invalid candidate invalidates the bracket. \code{"exhaustive"} scans the
+search with local checks. It is a heuristic that can skip an isolated
+crossing on a non-monotone power curve, and stops with a diagnostic if a
+transient invalid candidate invalidates the bracket. Use
+\code{"exhaustive"} when the first crossing must be guaranteed.
+\code{"exhaustive"} scans the
 full feasible candidate maximum-sample-size range and returns the first
 finite candidate that reaches \code{power}, skipping transient invalid
 candidates and stopping at terminal invalid candidates. Ignored when

@@ -65,11 +65,12 @@ to \code{"less"} or \code{"greater"}, the power is only computed based on
 data with effect estimates in the direction of the alternative}
 
 \item{strict}{Logical. If \code{TRUE} and there are more than two critical
-values per stage, integrate over all possible region combinations (slow
-but exact). If \code{FALSE}, only integrates over the main regions where
+values per stage, enumerate all possible region combinations. If
+\code{FALSE}, only integrate over the main regions where
 the sign of the z-statistics does not change across stages (faster,
 recommended when many interim analyses, e.g., more than 10, are
-performed). Defaults to \code{TRUE}}
+performed). Region probabilities are numerically integrated under both
+settings. Defaults to \code{TRUE}}
 
 \item{trange}{Critical \eqn{t}-statistic search strategy for the sequential
 stopping boundaries. Can be either \code{"adaptive"} (default) or a
@@ -83,6 +84,8 @@ statistic is at most \code{tail.eps}. The same cutoff is used for each
 adaptive boundary search; it is not split across looks or boundaries.
 If no boundary is found before the cutoff, that boundary is treated as
 unresolved with omitted marginal mass bounded by \code{tail.eps};
+with \eqn{C} unresolved boundary searches, a conservative combined
+bound is \code{min(1, C * tail.eps)} rather than \code{tail.eps}.
 smaller values search farther at additional computational cost. Defaults
 to \code{1e-3}.}
 
@@ -90,7 +93,8 @@ to \code{1e-3}.}
 \code{\link{tbf01}} for stable wrong-tail one-sided calculations. Larger
 values are more accurate but slower. Defaults to \code{128}.}
 
-\item{...}{Additional arguments passed to \code{mvtnorm::lpmvnorm}}
+\item{...}{Numerical integration controls inherited from
+\code{\link{pbf01seq}}, including \code{ngrid}.}
 }
 \value{
 An object of class \code{"bfseqdesign"}, which is a list containing
@@ -110,9 +114,12 @@ Computes cumulative probabilities of observing \eqn{t}-test
 The function constructs per-stage integration regions for cumulative
     z-statistics based on the Bayes factor thresholds \code{k1} and
     \code{k0}, then computes the probability of these regions under a
-    predictive distribution defined by the asymptotic variance of the
+    predictive distribution defined by the known-variance, asymptotic
+    approximation to the variance of the
     \eqn{t}-statistic and the normal design prior with \code{dpm} and
     \code{dpsd}. Integration is performed via \code{mvtnorm::lpmvnorm}.
+    This is deterministic numerical integration; increasing \code{ngrid}
+    can be used to check convergence.
 }
 \examples{
 ## similar to example from Schönbrodt and Wagenmakers (2018, p. 138)

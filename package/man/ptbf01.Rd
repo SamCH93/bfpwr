@@ -97,7 +97,12 @@ The probability that the Bayes factor is less or greater (depending
 \description{
 This function computes the probability of obtaining a
     \eqn{t}-test Bayes factor (\link{tbf01}) more extreme than a threshold
-    \code{k} with a specified sample size.
+    \code{k} with a specified sample size. The future standardized estimate
+    is modeled with its known-variance normal distribution. Thus, although
+    the analysis Bayes factor uses the finite-sample \eqn{t} distribution,
+    the returned power is an asymptotic approximation rather than exact
+    noncentral-\eqn{t} power; differences can be material at small sample
+    sizes.
 }
 \examples{
 ## example from Schönbrodt and Wagenmakers (2018, p. 135)

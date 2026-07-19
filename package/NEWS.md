@@ -13,9 +13,24 @@
   direction and report unresolved finite searches with clearer diagnostics
 - fix two-sided `ptbf01()` power for shifted informed priors where BF01 is
   maximized away from the null
+- fix two-sided informed t critical-value searches for shifted, heavy-tailed
+  priors whose two roots lie on the same side of the old heuristic split
+- stabilize extreme one-sided informed t Bayes factors by integrating the
+  exact latent-chi-square likelihood ratio over truncated prior quantiles
+- make `pbinbf01()` locate inclusive critical counts on the integer data grid
+  instead of rounding continuous numerical roots
+- handle the identical point alternative in `pbf01()` and enforce strictly
+  separated sequential thresholds (`k1 < 1 < k0`)
 - make sequential sample-size search preserve typed numerical invalidity,
   propagate structural evaluator errors, and give `search = "exhaustive"`
   full-range semantics
+- respect both integer endpoints of sequential `nrange`, retain alternating
+  feasible rounded schedules, and scan past transient t-boundary failures in
+  exhaustive searches
+- expose the deterministic `lpmvnorm` grid size as `ngrid` and record the
+  integration settings in sequential design objects
+- reject direct sequential schedules with non-increasing information or sample
+  sizes
 - make fixed-`n` sequential wrapper schedules round-trip searched increment
   schedules by respecting `nrange[1]` as the default first look when `minN` is
   missing

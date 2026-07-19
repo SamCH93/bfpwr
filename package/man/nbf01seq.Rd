@@ -88,11 +88,12 @@ are generated as \code{seq(minN, maximumN, by = by)} with
 \code{maximumN} appended as the final look.}
 
 \item{strict}{Logical. If \code{TRUE} and there are more than two critical
-values per stage, integrate over all possible region combinations (slow
-but exact). If \code{FALSE}, only integrates over the main regions where
+values per stage, enumerate all possible region combinations. If
+\code{FALSE}, only integrate over the main regions where
 the sign of the z-statistics does not change across stages (faster,
 recommended when many interim analyses, e.g., more than 10, are
-performed). Defaults to \code{TRUE}}
+performed). Region probabilities are numerically integrated under both
+settings. Defaults to \code{TRUE}}
 
 \item{integer}{Logical indicating whether only integer-valued maximum sample
 sizes should be returned. If \code{TRUE}, the required maximum sample
@@ -100,8 +101,11 @@ size is rounded to the next larger integer. Defaults to \code{TRUE}.}
 
 \item{search}{Sample-size search rule for schedules generated from
 \code{looks}/\code{timing}. \code{"adaptive"} uses bracketing and binary
-search with local checks, and stops with a diagnostic if a transient
-invalid candidate invalidates the bracket. \code{"exhaustive"} scans the
+search with local checks. It is a heuristic that can skip an isolated
+crossing on a non-monotone power curve, and stops with a diagnostic if a
+transient invalid candidate invalidates the bracket. Use
+\code{"exhaustive"} when the first crossing must be guaranteed.
+\code{"exhaustive"} scans the
 full feasible candidate maximum-sample-size range and returns the first
 finite candidate that reaches \code{power}, skipping transient invalid
 candidates and stopping at terminal invalid candidates. Ignored when
@@ -130,9 +134,10 @@ Computes the maximum sample size required for a sequential
 The function searches over the maximum sample size of the
     sequential design. Candidate look schedules are rebuilt for each
     maximum sample size according to \code{looks}/\code{timing} or
-    \code{by}/\code{minN}. For multi-look timing schedules, rounded interim
-    looks can make the power curve non-monotone; \code{search} selects
-    the search rule. For \code{by}/\code{minN} schedules, scheduled maximum
+    \code{by}/\code{minN}. Power need not be monotone for every design-prior
+    and target combination, and rounded interim looks add further
+    non-monotonicity; \code{search} selects the search rule. For
+    \code{by}/\code{minN} schedules, scheduled maximum
     sample sizes are scanned in increasing order and previous look
     calculations are reused; \code{search} is ignored. If the target is not
     reached within \code{nrange}, the function returns \code{NaN} and issues
