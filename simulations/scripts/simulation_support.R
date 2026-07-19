@@ -18,6 +18,7 @@ repo_root <- function() {
 }
 
 source_package_checkout <- function(root = repo_root()) {
+    root <- normalizePath(root, winslash = "/", mustWork = TRUE)
     r_dir <- file.path(root, "package", "R")
     files <- list.files(r_dir, pattern = "[.]R$", full.names = TRUE)
     if (length(files) == 0) {
@@ -26,7 +27,50 @@ source_package_checkout <- function(root = repo_root()) {
     for (file in files) {
         source(file, local = .GlobalEnv)
     }
+    options(bfpwr.sim.package_checkout = root)
     invisible(files)
+}
+
+bfpwr_sim_package_provenance <- function(
+        root = getOption("bfpwr.sim.package_checkout", repo_root())) {
+    root <- normalizePath(root, winslash = "/", mustWork = TRUE)
+    git_output <- function(args) {
+        result <- try(system2("git", c("-C", shQuote(root), args),
+                              stdout = TRUE, stderr = FALSE), silent = TRUE)
+        if (inherits(result, "try-error") ||
+            !is.null(attr(result, "status"))) {
+            return(character())
+        }
+        result
+    }
+
+    revision <- git_output(c("rev-parse", "HEAD"))
+    package_status <- git_output(c("status", "--porcelain",
+                                   "--untracked-files=normal", "--",
+                                   "package"))
+    description <- file.path(root, "package", "DESCRIPTION")
+    version <- if (file.exists(description)) {
+        read.dcf(description, fields = "Version")[[1]]
+    } else {
+        NA_character_
+    }
+
+    data.frame(
+        package_git_revision = if (length(revision)) {
+            revision[[1]]
+        } else {
+            NA_character_
+        },
+        package_git_dirty = if (length(revision)) {
+            length(package_status) > 0
+        } else {
+            NA
+        },
+        package_version = version,
+        package_source_root = root,
+        package_recomputed_at = format(Sys.time(), "%Y-%m-%d %H:%M:%S %Z"),
+        stringsAsFactors = FALSE
+    )
 }
 
 source_simulation_library <- function(root = repo_root()) {

@@ -712,6 +712,12 @@ recompute_search_validation <- function(corpus_root,
     }
     metadata$sequential_search_diagnostics_evaluated <-
         isTRUE(evaluate_diagnostics)
+
+    provenance <- bfpwr_sim_package_provenance()
+    for (name in names(provenance)) {
+        metadata[[name]] <- provenance[[name]][[1]]
+    }
+
     out <- list(
         metadata = metadata,
         simulation = simulation,
@@ -738,6 +744,9 @@ main <- function() {
                                      winslash = "/", mustWork = FALSE)
     ensure_dir(output_dir)
     root <- repo_root()
+    provenance <- bfpwr_sim_package_provenance()
+    write_csv(provenance,
+              file.path(output_dir, "package-reference-provenance.csv"))
     package_manifest_file <- arg_value(args, "package-manifest", NULL)
     if (is.null(package_manifest_file)) {
         default_package_manifest <-

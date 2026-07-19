@@ -1168,6 +1168,24 @@ read_package_verification_csv <- function(filename) {
     utils::read.csv(path, stringsAsFactors = FALSE)
 }
 
+package_provenance_table <- function() {
+    if (!corpus_available) return(data.frame())
+    path <- file.path(corpus_root, "fixture-validation",
+                      "package-reference-provenance.csv")
+    if (!file.exists(path)) return(data.frame())
+    provenance <- utils::read.csv(path, stringsAsFactors = FALSE)
+    if (nrow(provenance) == 0) return(data.frame())
+    row <- provenance[nrow(provenance), , drop = FALSE]
+    data.frame(
+        "Package version" = row$package_version,
+        "Git revision" = substr(row$package_git_revision, 1, 12),
+        "Package tree dirty" = fmt_flag(row$package_git_dirty),
+        "Recomputed" = row$package_recomputed_at,
+        check.names = FALSE,
+        stringsAsFactors = FALSE
+    )
+}
+
 search_validation_file <- function(filename) {
     if (!corpus_available) return(NA_character_)
     path <- file.path(corpus_root, "search-validation", filename)
@@ -1755,6 +1773,11 @@ Sequential rows check probability, expected sample size, and selected
 sample-size search behavior.
 
 <<package-verification-section, results = 'asis', echo = FALSE>>=
+provenance <- package_provenance_table()
+if (nrow(provenance) > 0) {
+    latex_table(provenance,
+                caption = "Package checkout used for recomputed verification results.")
+}
 coverage <- package_verification_coverage_table()
 if (nrow(coverage) == 0) {
     cat("\\noindent Package-check coverage is not available in this checkout.\n\n")

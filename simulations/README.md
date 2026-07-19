@@ -37,6 +37,11 @@ The build script performs these steps:
 4. Validates the recomputed results against the fixture summaries.
 5. Renders the PDF report.
 
+Each recomputation writes `package-reference-provenance.csv` and records the
+same package Git revision in the search-comparison bundle. A release result
+should name a clean package checkout; a dirty package tree means the result is
+diagnostic and cannot be attributed to the recorded commit alone.
+
 If a prebuilt search-validation bundle is present, the build refreshes it. If it
 is missing, the build creates the search-validation bundle from the package
 manifest so the default command still completes end to end.
@@ -61,6 +66,21 @@ case-selection rules:
 ```sh
 Rscript simulations/scripts/build_verification.R --refresh-manifests --skip-report
 ```
+
+Compare timings from two fixture-reference recomputations performed in the
+same machine session:
+
+```sh
+Rscript simulations/scripts/compare_verification_timings.R \
+  --baseline-fixture-dir <baseline-output> \
+  --candidate-fixture-dir <candidate-output> \
+  --max-total-ratio 1.10
+```
+
+The comparison aligns explicit verification-case keys and ignores functions
+whose complete baseline workload took less than one second. It is intended for
+matched development runs; timings from different machines or unrelated
+sessions are descriptive only.
 
 Download only the fixture-test assets used by package fixture tests:
 
