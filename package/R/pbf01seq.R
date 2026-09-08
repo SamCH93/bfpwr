@@ -19,7 +19,7 @@
 #'     \code{0}
 #' @param pm Analysis prior mean. Not taken into account for \code{type =
 #'     "moment"}
-#' @param psd Analysis prior standard deviation (\code{type = "moment"} and
+#' @param psd Analysis prior standard deviation (\code{type = "normal"} and
 #'     \code{type = "directional"}) or scale (\code{type = "moment"})
 #' @param dpm Mean of the normal design prior
 #' @param dpsd Standard deviation of the normal design prior. Set \code{dpsd =

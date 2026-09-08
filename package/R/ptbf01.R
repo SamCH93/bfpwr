@@ -375,9 +375,7 @@ ptbf01. <- function(k, n, n1 = n, n2 = n, null = 0, plocation = 0,
 #'     Defaults to \code{0}
 #' @param alternative Direction of the test. Can be either \code{"two.sided"}
 #'     (default), \code{"less"}, or \code{"greater"}. The latter two truncate
-#'     the analysis prior to negative and positive effects, respectively. If set
-#'     to \code{"less"} or \code{"greater"}, the power is only computed based on
-#'     data with effect estimates in the direction of the alternative
+#'     the analysis prior to effects below and above \code{null}, respectively.
 #' @param dpm Mean of the normal design prior assigned to the standardized mean
 #'     difference. Defaults to the analysis prior location
 #' @param dpsd Standard deviation of the normal design prior assigned to the

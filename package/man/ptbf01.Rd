@@ -57,9 +57,7 @@ the design prior mean. Defaults to the analysis prior scale}
 
 \item{alternative}{Direction of the test. Can be either \code{"two.sided"}
 (default), \code{"less"}, or \code{"greater"}. The latter two truncate
-the analysis prior to negative and positive effects, respectively. If set
-to \code{"less"} or \code{"greater"}, the power is only computed based on
-data with effect estimates in the direction of the alternative}
+the analysis prior to effects below and above \code{null}, respectively.}
 
 \item{lower.tail}{Logical indicating whether Pr(\eqn{\mathrm{BF}_{01}}{BF01}
 \eqn{\leq}{<=} \code{k}) (\code{TRUE}) or Pr(\eqn{\mathrm{BF}_{01}}{BF01}

@@ -1,5 +1,11 @@
 # bfpwr 0.3
 
+- preserve the H0 and H1 stopping sides when sequential t boundary searches
+  reach a predictive tail cutoff
+- stabilize normal-prior critical values near the point-alternative limit and
+  avoid cancellation in sequential stopping-sample-size variances
+- share numerical integration setup between H0 and H1 events and preserve
+  custom integration controls when plotting sequential null curves
 - add sequential sample-size search helpers `nbf01seq()`, `ntbf01seq()`,
   `powerbf01seq()`, and `powertbf01seq()`
 - add sequential t-test stopping probabilities via `ptbf01seq()`

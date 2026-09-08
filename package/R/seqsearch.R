@@ -453,8 +453,8 @@
         evalN(candidateNs[[index]])
     }
 
-    ## Full-range scans are used for explicit exhaustive requests and, below,
-    ## for increment schedules with a fixed candidate grid.
+    ## Exhaustive requests and increment schedules both scan their candidate
+    ## grid in increasing order, stopping at the first success.
     if (identical(search, "exhaustive") ||
         identical(schedule$type, "increase")) {
         return(.bfseq_search_full_range(

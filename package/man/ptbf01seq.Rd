@@ -60,9 +60,7 @@ the design prior mean. Defaults to the analysis prior scale}
 
 \item{alternative}{Direction of the test. Can be either \code{"two.sided"}
 (default), \code{"less"}, or \code{"greater"}. The latter two truncate
-the analysis prior to negative and positive effects, respectively. If set
-to \code{"less"} or \code{"greater"}, the power is only computed based on
-data with effect estimates in the direction of the alternative}
+the analysis prior to effects below and above \code{null}, respectively.}
 
 \item{strict}{Logical. If \code{TRUE} and there are more than two critical
 values per stage, enumerate all possible region combinations. If

@@ -46,7 +46,7 @@ estimate at \eqn{n = 1}{n = 1}.}
 \item{pm}{Analysis prior mean. Not taken into account for \code{type =
 "moment"}}
 
-\item{psd}{Analysis prior standard deviation (\code{type = "moment"} and
+\item{psd}{Analysis prior standard deviation (\code{type = "normal"} and
 \code{type = "directional"}) or scale (\code{type = "moment"})}
 
 \item{dpm}{Mean of the normal design prior}

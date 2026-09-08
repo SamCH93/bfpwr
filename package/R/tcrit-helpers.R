@@ -1,3 +1,9 @@
+## tcrit() locates BF stopping boundaries; .bfpwr_tcrit_result() attaches the
+## structured statuses used by sequential designs and sample-size searches.
+## One-sided searches use the direct integral to scout, then check roots with
+## the stable tbf01() path. tail.eps bounds omitted predictive tail mass;
+## tail.nquad separately controls numerical accuracy of the BF fallback.
+
 ## Evaluate a root function defensively. Failed, non-scalar, or non-finite
 ## evaluations are treated as NaN so search code can keep classifying failures.
 .bfpwr_root_value <- function(f, x) {
