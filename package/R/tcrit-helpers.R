@@ -1274,7 +1274,13 @@ tcrit <- function(k, n1, n2, plocation, pscale, pdf, type, alternative,
                     status = "search_failed"
                 )
             }
-            tcrit <- NaN
+            ## No crossing before a tail cutoff does not imply an empty H0
+            ## event: H0 may hold throughout the searched region. Put the
+            ## unresolved boundary at infinity in the searched direction so
+            ## its H0 and H1 sides are preserved. This changes events only
+            ## beyond the cutoff, whose predictive mass is at most tail.eps.
+            tcrit <- if (identical(search_status, "tail_cutoff") &&
+                         search_limit_reached) search$direction * Inf else NaN
         } else {
             tcrit <- res
         }

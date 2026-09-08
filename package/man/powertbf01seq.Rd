@@ -112,8 +112,9 @@ numeric interval to force exact boundary searches over that interval.}
 marginal predictive tail probability beyond the searched \eqn{t}
 statistic is at most \code{tail.eps}. The same cutoff is used for each
 adaptive boundary search; it is not split across looks or boundaries.
-If no boundary is found before the cutoff, that boundary is treated as
-unresolved with omitted marginal mass bounded by \code{tail.eps};
+If no boundary is found before the cutoff, it is placed at infinity in
+the searched direction, preserving the H0 and H1 sides of the stopping
+event. The omitted marginal mass is bounded by \code{tail.eps};
 with \eqn{C} unresolved boundary searches, a conservative combined
 bound is \code{min(1, C * tail.eps)} rather than \code{tail.eps}.
 smaller values search farther at additional computational cost. Defaults

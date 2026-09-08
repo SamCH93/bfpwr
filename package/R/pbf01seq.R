@@ -562,12 +562,14 @@ plot.bfseqdesign <- function(x, plot = TRUE, nullplot = TRUE, zplot = FALSE,
             graphics::par(mar = c(5.1, 4.1, 4.1, 2.1))
             plot(xvar, zvals[,1], type = "n", xlab = xlab,
                  ylab = bquote("Critical" ~ italic(z) * "-value"),
-                 ylim = c(min(c(zvals, 0), na.rm = TRUE), max(c(zvals, 0), na.rm = TRUE)),
+                 ylim = range(c(0, zvals[is.finite(zvals)])),
                  las = 1,
                  panel.first = graphics::grid(lty = 3, col = "#0000001A"))
-            graphics::matlines(xvar, zvals, type = "b", pch = 20, lwd = 1.5,
-                               lty = 1, cex = 1.5,
-                               col = c(rep(4, ncol(zvals)/2), rep(2, ncol(zvals)/2)))
+            if (any(is.finite(zvals))) {
+                graphics::matlines(xvar, zvals, type = "b", pch = 20, lwd = 1.5,
+                                   lty = 1, cex = 1.5,
+                                   col = c(rep(4, ncol(zvals)/2), rep(2, ncol(zvals)/2)))
+            }
         } else {
 
 
