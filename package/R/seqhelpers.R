@@ -128,12 +128,12 @@ intstages <- function(intregions, mean, sigma, method = "lpmvnorm",
     return(probs)
 }
 
-## Integrate the stopping regions for one terminal stage, preparing the
-## quasi-Monte Carlo grid when lpmvnorm is used.
-.bfseq_intstage <- function(stageregions, mean, sigma, method = "lpmvnorm",
+## Integrate H1 and H0 regions for one terminal stage. Both events share the
+## same predictive covariance, so prepare the factorization and grid once.
+.bfseq_intstage <- function(regions, mean, sigma, method = "lpmvnorm",
                             ngrid = .bfseq_ngrid_default, ...) {
     stopifnot(
-        is.list(stageregions),
+        is.list(regions),
         is.numeric(mean),
         is.matrix(sigma),
         length(mean) == nrow(sigma),
@@ -143,20 +143,21 @@ intstages <- function(intregions, mean, sigma, method = "lpmvnorm",
     ngrid <- as.integer(ngrid)
 
     i <- length(mean)
+    Ct <- w <- NULL
     if (i > 1 && method == "lpmvnorm") {
         C <- t(chol(sigma))
         Ct <- mvtnorm::ltMatrices(C[lower.tri(C, diag = TRUE)], diag = TRUE)
         w <- withr::with_seed(seed = 42, code = {
             t(qrng::ghalton(n = ngrid, d = i - 1))
         })
-        return(.bfseq_intstage_sum(stageregions = stageregions,
-                                   mean = mean, sigma = sigma,
-                                   method = method, cholFactor = Ct,
-                                   w = w, ngrid = ngrid, ...))
     }
 
-    .bfseq_intstage_sum(stageregions = stageregions, mean = mean,
-                        sigma = sigma, method = method, ...)
+    vapply(regions, function(stageregions) {
+        .bfseq_intstage_sum(stageregions = stageregions,
+                            mean = mean, sigma = sigma,
+                            method = method, cholFactor = Ct,
+                            w = w, ngrid = ngrid, ...)
+    }, numeric(1))
 }
 
 ## Sum the probability mass over all disjoint stopping regions for one stage.

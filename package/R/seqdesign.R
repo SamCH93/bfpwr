@@ -34,16 +34,13 @@
 .bfseq_stage_stop_probabilities <- function(regions, se, null = 0, dpm, dpsd,
                                             dots) {
     pars <- predpars(se = se, null = null, dpm = dpm, dpsd = dpsd)
-    pH1 <- do.call(.bfseq_intstage,
-                   c(list(stageregions = regions$H1,
+    probabilities <- do.call(.bfseq_intstage,
+                   c(list(regions = regions,
                           mean = pars$mean,
                           sigma = pars$sigma),
                      dots))
-    pH0 <- do.call(.bfseq_intstage,
-                   c(list(stageregions = regions$H0,
-                          mean = pars$mean,
-                          sigma = pars$sigma),
-                     dots))
+    pH1 <- probabilities[["H1"]]
+    pH0 <- probabilities[["H0"]]
     if (!is.numeric(pH1) || length(pH1) != 1 || !is.finite(pH1) ||
         !is.numeric(pH0) || length(pH0) != 1 || !is.finite(pH0)) {
         .bfseq_candidate_invalid(
