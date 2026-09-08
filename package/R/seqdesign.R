@@ -75,9 +75,13 @@
 ## probabilities, with non-stoppers assigned the maximum planned sample size.
 .bfseq_sample_size_moments <- function(pH1, pH0, n) {
     stopProb <- pH1 + pH0
-    EN <- sum(stopProb*n) + (1 - sum(stopProb))*max(n)
-    EN2 <- sum(stopProb*n^2) + (1 - sum(stopProb))*max(n^2)
-    list(EN = EN, VarN = EN2 - EN^2)
+    ## Work with observations saved relative to the final look. Centering
+    ## before squaring avoids subtracting two nearly equal, large N^2 terms.
+    saved <- max(n) - n
+    meanSaved <- sum(stopProb*saved)
+    VarN <- sum(stopProb*(saved - meanSaved)^2) +
+        (1 - sum(stopProb))*meanSaved^2
+    list(EN = max(n) - meanSaved, VarN = VarN)
 }
 
 ## Build a sequential z-test design object from a look schedule. Optional

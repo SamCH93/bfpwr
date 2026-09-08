@@ -1,6 +1,17 @@
 library(tinytest)
 library(bfpwr)
 
+## A two-look design one observation apart has Bernoulli stopping variance,
+## regardless of the absolute sample sizes or the rarity of early stopping.
+for (p in c(0, 1e-9, 0.25, 1)) {
+    moments <- bfpwr:::.bfseq_sample_size_moments(
+        pH1 = c(p, 0), pH0 = c(0, 0), n = c(1e5, 1e5 + 1)
+    )
+    expect_equal(moments$EN, 1e5 + 1 - p)
+    expect_equal(moments$VarN, p*(1 - p), tolerance = 1e-14,
+                 info = "sample-size variance avoids cancellation at large N")
+}
+
 logs <- log(c(0.2, 0.3))
 expect_equal(
     bfpwr:::.bfpwr_logspace_sum(c(logs, -Inf)),
