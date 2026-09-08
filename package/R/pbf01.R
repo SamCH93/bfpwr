@@ -69,16 +69,16 @@ pbf01. <- function(k, n, usd, null = 0, pm, psd, dpm = pm, dpsd = psd,
                                     lower.tail = !tail, log.p = TRUE)
         }
     } else {
-        ## normal prior in the analysis
-        X <- (log(1 + n*psd^2/usd^2) + (null - pm)^2/psd^2 - 2*log(k))*
-            (1 + usd^2/n/psd^2)*usd^2/n/v
-        if (X < 0) {
+        ## Share the stable BF boundary calculation with sequential designs.
+        se <- usd/sqrt(n)
+        critical <- zcrit(k = k, se = se, null = null, mu = pm, tau = psd,
+                          type = "normal")
+        if (any(is.nan(critical))) {
             logpow <- 0
             logcomp <- -Inf
         } else {
-            M <- (dpm - null - usd^2/n/psd^2*(null - pm))/sqrt(v)
-            lower <- -sqrt(X) - M
-            upper <- sqrt(X) - M
+            lower <- (null - dpm + se*critical[1])/sqrt(v)
+            upper <- (null - dpm + se*critical[2])/sqrt(v)
             ## BF01 <= k is the union of two normal tails; its complement is
             ## the interval between the roots.
             logpow <- .bfpwr_logspace_sum(c(
@@ -134,7 +134,7 @@ pbf01. <- function(k, n, usd, null = 0, pm, psd, dpm = pm, dpsd = psd,
 #' @return The probability that the Bayes factor is less or greater (depending
 #'     on the specified \code{lower.tail}) than the specified threshold \code{k}
 #'
-#' @author Samuel Pawel
+#' @author Samuel Pawel, František Bartoš
 #'
 #' @seealso \link{nbf01}, \link{powerbf01}, \link{bf01}
 #'

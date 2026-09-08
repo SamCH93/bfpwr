@@ -614,14 +614,20 @@ zcrit <- function(k, se, null = 0, mu = NULL, tau,
             ## point prior under the alternative
             zcrit <- (mu^2/se^2 - 2*log(k))/(2*mu/se)
         } else {
-            ## normal prior under the alternative
-            X <- (mu^2/tau^2 + log(1 + tau^2/se^2) - 2*log(k))*
-                (1 + se^2/tau^2)
-            if (X < 0) {
+            ## In standardized units BF01 = k gives the quadratic
+            ## r2*z^2 + 2*m*z - C = 0. Compute the root with the larger
+            ## magnitude first, then use the product of the roots (-C/r2).
+            ## The usual midpoint +/- radius loses the finite root when a
+            ## narrow shifted normal prior approaches a point alternative.
+            r2 <- (tau/se)^2
+            m <- mu/se
+            C <- m^2 + (1 + r2)*(log1p(r2) - 2*log(k))
+            discriminant <- m^2 + r2*C
+            if (discriminant < 0) {
                 zcrit <- c(NaN, NaN)
             } else {
-                M <- -mu*se/tau^2
-                zcrit <- M + c(-1, 1)*sqrt(X)
+                q <- -m - (if (m >= 0) 1 else -1)*sqrt(discriminant)
+                zcrit <- if (q == 0) c(0, 0) else sort(c(q/r2, -C/q))
             }
         }
     }
