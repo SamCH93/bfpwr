@@ -516,17 +516,20 @@ plot.bfseqdesign <- function(x, plot = TRUE, nullplot = TRUE, zplot = FALSE,
                 } else {
                     x$tail.nquad
                 }
-                x0 <- ptbf01seq(k1 = x$k1, k0 = x$k0, n1 = x$n1, n2 = x$n2,
+                x0 <- do.call(ptbf01seq, c(list(
+                                k1 = x$k1, k0 = x$k0, n1 = x$n1, n2 = x$n2,
                                 plocation = x$plocation, pscale = x$pscale,
                                 pdf = x$pdf, dpm = 0, dpsd = 0, type = x$type,
                                 alternative = x$alternative, trange = x$trange,
                                 strict = x$strict, tail.eps = tail.eps,
-                                tail.nquad = tail.nquad)
+                                tail.nquad = tail.nquad), x$integration))
             } else {
                 znull <- if (is.null(x$null)) 0 else x$null
-                x0 <- pbf01seq(k1 = x$k1, k0 = x$k0, se = x$se, pm = x$pm,
+                x0 <- do.call(pbf01seq, c(list(
+                               k1 = x$k1, k0 = x$k0, se = x$se, pm = x$pm,
                                psd = x$psd, null = znull, dpm = znull,
-                               dpsd = 0, type = x$type, strict = x$strict)
+                               dpsd = 0, type = x$type, strict = x$strict),
+                               x$integration))
             }
             plotDF0 <- data.frame(stage = stages, n = x$n, pH0 = x0$cumpH0,
                                   pH1 = x0$cumpH1, pInc = x0$cumpInc)

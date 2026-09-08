@@ -240,7 +240,8 @@ intstages <- function(intregions, mean, sigma, method = "lpmvnorm",
         .bfseq_ngrid_default
     }
     .bfseq_validate_integration(method = method, ngrid = ngrid)
-    list(method = method, ngrid = as.integer(ngrid))
+    c(list(method = method, ngrid = as.integer(ngrid)),
+      dots[!names(dots) %in% c("method", "ngrid")])
 }
 
 
