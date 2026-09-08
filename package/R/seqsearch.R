@@ -1,5 +1,10 @@
 ## Helper functions for sequential BF sample-size searches
 ## -----------------------------------------------------------------------------
+## nbf01seq()/ntbf01seq() normalize a schedule and create a cached evaluator,
+## then call .bfseq_search(). The evaluator builds the same design object as
+## pbf01seq()/ptbf01seq() through seqdesign.R; seqhelpers.R handles the stopping
+## regions and their integration. This file owns candidate selection and
+## search diagnostics, independently of the z/t boundary calculations.
 
 ## Normalize the look-schedule inputs into one internal representation used by
 ## both fixed-n evaluation and sample-size search.
@@ -203,11 +208,6 @@
         stop("the sample-size search range contains no valid look schedule")
     }
     candidates
-}
-
-## Effective candidate range stored in solver output and progress callbacks.
-.bfseq_search_bounds <- function(nrange, schedule) {
-    range(.bfseq_search_candidates(nrange = nrange, schedule = schedule))
 }
 
 ## Extract the stopping probability corresponding to the requested target.
@@ -455,21 +455,12 @@
 
     ## Full-range scans are used for explicit exhaustive requests and, below,
     ## for increment schedules with a fixed candidate grid.
-    if (identical(search, "exhaustive")) {
+    if (identical(search, "exhaustive") ||
+        identical(schedule$type, "increase")) {
         return(.bfseq_search_full_range(
             power = power, target = target, nrange = bounds,
             schedule = schedule, evalN = evalN, candidates = candidateNs,
             search = search, getEvaluations = function() evaluations,
-            setPhase = setPhase
-        ))
-    }
-
-    if (identical(schedule$type, "increase")) {
-        return(.bfseq_search_full_range(
-            power = power, target = target, nrange = bounds,
-            schedule = schedule, evalN = evalN,
-            candidates = candidateNs, search = search,
-            getEvaluations = function() evaluations,
             setPhase = setPhase
         ))
     }
@@ -517,13 +508,12 @@
     }
 
     phase <- "binary"
-    firstScan <- .bfseq_first_scan(search, schedule)
     bracketUpperIndex <- match(bracket$upper$n, candidateNs)
     found <- .bfseq_binary_search(evalN = evalIndex,
                                   lowerN = bracket$lowerN,
                                   upperN = bracketUpperIndex,
                                   minimumN = lowerIndex,
-                                  firstScan = firstScan, setPhase = setPhase)
+                                  setPhase = setPhase)
 
     .bfseq_solver_result(candidate = found$candidate,
                          target = target, targetPower = power,
@@ -691,12 +681,12 @@
     invisible(NULL)
 }
 
-## Refine a valid lower/reaching upper bracket, then optionally scan backward to
-## certify the first crossing for non-monotone timing schedules.
+## Refine an adaptive timing bracket, then probe for earlier successes. Even a
+## single-look power curve can be non-monotone under a point design prior, so
+## these local checks cannot certify the first crossing. Exhaustive searches
+## use .bfseq_search_full_range() and never enter this helper.
 .bfseq_binary_search <- function(evalN, lowerN, upperN, minimumN,
-                                 firstScan = c("none", "adaptive", "exhaustive"),
                                  setPhase = NULL) {
-    firstScan <- match.arg(firstScan)
     if (!is.null(setPhase)) {
         setPhase("binary")
     }
@@ -723,28 +713,17 @@
     foundN <- .bfseq_local_first_success(evalN = evalN, foundN = upperN,
                                          minimumN = minimumN)
 
-    if (firstScan == "adaptive" && foundN > minimumN) {
+    if (foundN > minimumN) {
         if (!is.null(setPhase)) {
             setPhase("probe")
         }
         foundN <- .bfseq_adaptive_first_success(evalN = evalN,
                                                 foundN = foundN,
                                                 minimumN = minimumN)
-    } else if (firstScan == "exhaustive" && foundN > minimumN) {
-        if (!is.null(setPhase)) {
-            setPhase("scan")
-        }
-        for (candidateN in minimumN:foundN) {
-            current <- evalN(candidateN)
-            if (.bfseq_candidate_reached(current)) {
-                foundN <- candidateN
-                break
-            }
-        }
     }
 
     list(candidate = evalN(foundN), reached = TRUE,
-         firstCrossingCertified = firstScan != "adaptive")
+         firstCrossingCertified = FALSE)
 }
 
 ## Walk backward through adjacent successes after binary search lands inside a
@@ -1103,16 +1082,6 @@
     }
     list(type = schedule$type, looks = schedule$looks, timing = schedule$timing,
          lookMinN = schedule$lookMinN)
-}
-
-## Timing-schedule power curves can be non-monotone, including single-look
-## designs under a point design prior. Adaptive backward probing is therefore
-## useful for every timing schedule, but it cannot certify a first crossing.
-.bfseq_first_scan <- function(search, schedule) {
-    if (identical(schedule$type, "timing")) {
-        return(search)
-    }
-    "none"
 }
 
 ## Minimum first-look n1 that keeps n2 = ceiling(n1 * ratio) at least two.
