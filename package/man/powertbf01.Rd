@@ -16,11 +16,18 @@ powertbf01(
   alternative = c("two.sided", "less", "greater"),
   dpm = plocation,
   dpsd = pscale,
-  nrange = c(2, 10^4)
+  nrange = c(2, 10^4),
+  ratio = 1,
+  drange = "adaptive",
+  tail.eps = 0.001,
+  tail.nquad = 128
 )
 }
 \arguments{
-\item{n}{Sample size (per group)}
+\item{n}{Sample size. For two-sample designs with unequal allocation,
+\code{n} is the group-1 sample size and group 2 is evaluated as
+\code{ceiling(n * ratio)}. Has to be \code{NULL} if \code{power} is
+specified. Defaults to \code{NULL}}
 
 \item{power}{Target power. Has to be \code{NULL} if \code{n} is specified.
 Defaults to \code{NULL}}
@@ -43,9 +50,7 @@ prior)}
 
 \item{alternative}{Direction of the test. Can be either \code{"two.sided"}
 (default), \code{"less"}, or \code{"greater"}. The latter two truncate
-the analysis prior to negative and positive effects, respectively. If set
-to \code{"less"} or \code{"greater"}, the power is only computed based on
-data with effect estimates in the direction of the alternative}
+the analysis prior to effects below and above \code{null}, respectively.}
 
 \item{dpm}{Mean of the normal design prior assigned to the standardized mean
 difference. Defaults to the analysis prior location}
@@ -57,6 +62,27 @@ the design prior mean. Defaults to the analysis prior scale}
 \item{nrange}{Sample size search range over which numerical search is
 performed (only taken into account when \code{n} is \code{NULL}).
 Defaults to \code{c(2, 10^4)}}
+
+\item{ratio}{Allocation ratio \code{n2 / n1} for two-sample designs.
+Candidate group-2 sample sizes are \code{ceiling(n1 * ratio)}. Ignored
+for one-sample and paired designs.}
+
+\item{drange}{Standardized mean difference search range over which the
+critical values are searched for. Can be either set to a numerical range
+or to \code{"adaptive"} (default) which determines the range in an
+adaptive way from the other input parameters}
+
+\item{tail.eps}{One-sided adaptive searches stop once the remaining
+predictive probability in the searched tail is at most this value. If no
+boundary is found before that point, the boundary-free probability
+implied by the searched side is returned and the omitted tail probability
+is bounded by \code{tail.eps}. Smaller values search farther and can
+recover extremely remote boundaries at additional computational cost.
+Defaults to \code{1e-3}}
+
+\item{tail.nquad}{Number of Gauss-Legendre quadrature nodes used by
+\code{\link{tbf01}} for stable wrong-tail one-sided calculations. Larger
+values are more accurate but slower. Defaults to \code{128}.}
 }
 \value{
 Object of class \code{"power.bftest"}, a list of the arguments
@@ -87,5 +113,5 @@ powertbf01(power = 0.95, k = 1/6, dpm = 0.5, dps = 0, alternative = "greater")
 \link{plot.power.bftest}, \link{ptbf01}, \link{ntbf01}, \link{tbf01}
 }
 \author{
-Samuel Pawel
+Samuel Pawel, František Bartoš
 }

@@ -19,6 +19,8 @@ ptbf01seq(
   alternative = c("two.sided", "less", "greater"),
   strict = TRUE,
   trange = "adaptive",
+  tail.eps = 0.001,
+  tail.nquad = 128,
   ...
 )
 }
@@ -29,7 +31,7 @@ evidence for \eqn{H_1})}
 
 \item{k0}{Bayes factor threshold in favor of \eqn{H_0}{H0} (i.e.,
 \eqn{\text{BF}_{01} \geq \code{k0} > 1}{BF01 > \code{k0} > 1} implies
-evidence for \eqn{H_1})}
+evidence for \eqn{H_0})}
 
 \item{n}{Sample size (per group)}
 
@@ -58,23 +60,40 @@ the design prior mean. Defaults to the analysis prior scale}
 
 \item{alternative}{Direction of the test. Can be either \code{"two.sided"}
 (default), \code{"less"}, or \code{"greater"}. The latter two truncate
-the analysis prior to negative and positive effects, respectively. If set
-to \code{"less"} or \code{"greater"}, the power is only computed based on
-data with effect estimates in the direction of the alternative}
+the analysis prior to effects below and above \code{null}, respectively.}
 
 \item{strict}{Logical. If \code{TRUE} and there are more than two critical
-values per stage, integrate over all possible region combinations (slow
-but exact). If \code{FALSE}, only integrates over the main regions where
+values per stage, enumerate all possible region combinations. If
+\code{FALSE}, only integrate over the main regions where
 the sign of the z-statistics does not change across stages (faster,
 recommended when many interim analyses, e.g., more than 10, are
-performed). Defaults to \code{TRUE}}
+performed). Region probabilities are numerically integrated under both
+settings. Defaults to \code{TRUE}}
 
 \item{trange}{Critical \eqn{t}-statistic search strategy for the sequential
 stopping boundaries. Can be either \code{"adaptive"} (default) or a
-numeric interval. For one-sided adaptive searches, roots are bracketed up
-to \code{|t| <= 256}; pass a wider numeric interval to search farther.}
+numeric interval. For one-sided adaptive searches, \code{tail.eps}
+determines the predictive tail cutoff used to stop finite scans. Use a
+numeric interval to force exact boundary searches over that interval.}
 
-\item{...}{Additional arguments passed to \code{mvtnorm::lpmvnorm}}
+\item{tail.eps}{One-sided adaptive sequential boundary searches stop once the
+marginal predictive tail probability beyond the searched \eqn{t}
+statistic is at most \code{tail.eps}. The same cutoff is used for each
+adaptive boundary search; it is not split across looks or boundaries.
+If no boundary is found before the cutoff, it is placed at infinity in
+the searched direction, preserving the H0 and H1 sides of the stopping
+event. The omitted marginal mass is bounded by \code{tail.eps};
+with \eqn{C} unresolved boundary searches, a conservative combined
+bound is \code{min(1, C * tail.eps)} rather than \code{tail.eps}.
+smaller values search farther at additional computational cost. Defaults
+to \code{1e-3}.}
+
+\item{tail.nquad}{Number of Gauss-Legendre quadrature nodes used by
+\code{\link{tbf01}} for stable wrong-tail one-sided calculations. Larger
+values are more accurate but slower. Defaults to \code{128}.}
+
+\item{...}{Numerical integration controls inherited from
+\code{\link{pbf01seq}}, including \code{ngrid}.}
 }
 \value{
 An object of class \code{"bfseqdesign"}, which is a list containing
@@ -94,9 +113,12 @@ Computes cumulative probabilities of observing \eqn{t}-test
 The function constructs per-stage integration regions for cumulative
     z-statistics based on the Bayes factor thresholds \code{k1} and
     \code{k0}, then computes the probability of these regions under a
-    predictive distribution defined by the asymptotic variance of the
+    predictive distribution defined by the known-variance, asymptotic
+    approximation to the variance of the
     \eqn{t}-statistic and the normal design prior with \code{dpm} and
     \code{dpsd}. Integration is performed via \code{mvtnorm::lpmvnorm}.
+    This is deterministic numerical integration; increasing \code{ngrid}
+    can be used to check convergence.
 }
 \examples{
 ## similar to example from Schönbrodt and Wagenmakers (2018, p. 138)
@@ -119,5 +141,5 @@ plot(res, zplot = TRUE) # show critical z-values
 
 }
 \author{
-Samuel Pawel
+Samuel Pawel, František Bartoš
 }

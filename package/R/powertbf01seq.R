@@ -1,0 +1,139 @@
+#' @title Power and Maximum Sample Size Calculations for Sequential t-Test Bayes Factors
+#'
+#' @description Computes cumulative stopping probabilities for a sequential
+#'     t-test Bayes factor design, or determines the maximum sample size needed
+#'     to obtain a target stopping probability.
+#'
+#' @details This function provides a higher-level interface to
+#'     \code{\link{ptbf01seq}} and \code{\link{ntbf01seq}}. If \code{power} is
+#'     supplied, the returned design is evaluated at the searched maximum
+#'     sample size, and \code{solver$reached} records whether the target was
+#'     achieved within \code{nrange}. If \code{n} is supplied, no search is
+#'     performed and the \code{solver} element records the achieved stopping
+#'     probability for the fixed schedule. For fixed-\code{n} increment
+#'     schedules with missing \code{minN}, \code{nrange[1]} is used as the
+#'     default first look, clamped to \code{n} when necessary.
+#'
+#' @inheritParams ntbf01seq
+#' @param n Maximum sample size in group 1 for two-sample tests, or maximum
+#'     sample size for one-sample and paired tests. Has to be \code{NULL} if
+#'     \code{power} is specified. Defaults to \code{NULL}.
+#' @param ... Additional arguments passed to \code{\link{ptbf01seq}}.
+#'
+#' @return An object of class \code{"bfseqdesign"} containing the sequential
+#'     design, augmented with a \code{solver} element. In fixed-\code{n} mode,
+#'     \code{solver$targetPower} and \code{solver$reached} are \code{NA}.
+#'
+#' @author František Bartoš
+#'
+#' @seealso \link{ptbf01seq}, \link{ntbf01seq}, \link{powertbf01}
+#'
+#' @examples
+#' powertbf01seq(n = 20, k1 = 1/2, k0 = 2, dpm = 0.5, dpsd = 0,
+#'               alternative = "greater", looks = 2, strict = FALSE)
+#' powertbf01seq(power = 0.4, k1 = 1/2, k0 = 2, dpm = 0.5, dpsd = 0,
+#'               alternative = "greater", looks = 2, nrange = c(2, 80),
+#'               strict = FALSE)
+#'
+#' @export
+powertbf01seq <- function(n = NULL, power = NULL, k1 = 1/10, k0 = 1/k1,
+                          plocation = 0, pscale = 1/sqrt(2), pdf = 1,
+                          type = c("two.sample", "one.sample", "paired"),
+                          alternative = c("two.sided", "less", "greater"),
+                          dpm = plocation, dpsd = pscale,
+                          target = c("H1", "H0"), nrange = c(2, 10^4),
+                          looks = 1, timing = NULL, minN = NULL, by = NULL,
+                          ratio = 1, strict = TRUE, trange = "adaptive",
+                          tail.eps = 1e-3,
+                          tail.nquad = 128,
+                          search = c("adaptive", "exhaustive"), ...) {
+    progressInfo <- .bfseq_extract_progress(list(...))
+    progress <- progressInfo$progress
+    dots <- progressInfo$dots
+    if (is.null(n) == is.null(power)) {
+        stop("exactly one of 'n' and 'power' must be NULL")
+    }
+    type <- match.arg(type)
+    alternative <- match.arg(alternative)
+    target <- match.arg(target)
+    search <- match.arg(search)
+    stopifnot(
+        length(k1) == 1,
+        is.numeric(k1),
+        is.finite(k1),
+        k1 > 0,
+        k1 < 1,
+
+        length(k0) == 1,
+        is.numeric(k0),
+        is.finite(k0),
+        k0 > 1,
+
+        length(ratio) == 1,
+        is.numeric(ratio),
+        is.finite(ratio),
+        ratio > 0,
+
+        length(tail.eps) == 1,
+        is.numeric(tail.eps),
+        is.finite(tail.eps),
+        tail.eps > 0,
+        tail.eps < 0.5,
+
+        .tbf01_valid_tail_nquad(tail.nquad)
+    )
+
+    if (is.null(n)) {
+        solver <- do.call(ntbf01seq., c(list(
+            k1 = k1, k0 = k0, power = power, plocation = plocation,
+            pscale = pscale, pdf = pdf, dpm = dpm, dpsd = dpsd,
+            type = type, alternative = alternative, target = target,
+            nrange = nrange, looks = looks, timing = timing, minN = minN,
+            by = by, ratio = ratio, strict = strict, trange = trange,
+            tail.eps = tail.eps, tail.nquad = tail.nquad, integer = TRUE,
+            search = search, details = TRUE, progress = progress
+        ), dots))
+        design <- solver$result
+        if (is.null(design)) {
+            msg <- "no valid sequential design could be computed within 'nrange'"
+            if (!is.null(solver$error)) {
+                msg <- paste0(msg, ": ", solver$error)
+            }
+            stop(msg, call. = FALSE)
+        }
+    } else {
+        stopifnot(
+            length(n) == 1,
+            is.numeric(n),
+            is.finite(n),
+            n >= 2
+        )
+        lookMinN <- if (type == "two.sample") .bfseq_ratio_look_min_n(ratio) else 2
+        fixedNrange <- .bfseq_fixed_schedule_range(
+            n = n, nrange = nrange, lookMinN = lookMinN
+        )
+        schedule <- .bfseq_schedule_spec(looks = looks, timing = timing,
+                                         minN = minN, by = by,
+                                         nrange = fixedNrange,
+                                         lookMinN = lookMinN)
+        n1 <- .bfseq_schedule_n(maxN = n, schedule = schedule)
+        n2 <- if (type == "two.sample") {
+            as.integer(ceiling(n1*ratio))
+        } else {
+            n1
+        }
+        design <- do.call(ptbf01seq, c(list(
+            k1 = k1, k0 = k0, n1 = n1, n2 = n2,
+            plocation = plocation, pscale = pscale, pdf = pdf,
+            dpm = dpm, dpsd = dpsd, type = type,
+            alternative = alternative, strict = strict, trange = trange,
+            tail.eps = tail.eps, tail.nquad = tail.nquad
+        ), dots))
+        solver <- .bfseq_fixed_solver(n = n, target = target, design = design,
+                                      schedule = schedule)
+        design$solver <- solver
+    }
+
+    design$ratio <- ratio
+    design
+}

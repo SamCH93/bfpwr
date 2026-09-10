@@ -28,7 +28,7 @@ nbinbf01(
 
 \item{p0}{Tested binomial proportion. Defaults to \code{0.5}}
 
-\item{type}{Type of test. Can be \code{"point"} or \code{"directional"}.
+\item{type}{Type of test. Can be \code{"point"} or \code{"direction"}.
 Defaults to \code{"point"}}
 
 \item{a}{Number of successes parameter of the beta analysis prior

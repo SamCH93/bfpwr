@@ -10,18 +10,34 @@
 #' @inheritParams pbf01seq
 #' @param trange Critical \eqn{t}-statistic search strategy for the sequential
 #'     stopping boundaries. Can be either \code{"adaptive"} (default) or a
-#'     numeric interval. For one-sided adaptive searches, roots are bracketed up
-#'     to \code{|t| <= 256}; pass a wider numeric interval to search farther.
-#' @param ... Additional arguments passed to \code{mvtnorm::lpmvnorm}
+#'     numeric interval. For one-sided adaptive searches, \code{tail.eps}
+#'     determines the predictive tail cutoff used to stop finite scans. Use a
+#'     numeric interval to force exact boundary searches over that interval.
+#' @param tail.eps One-sided adaptive sequential boundary searches stop once the
+#'     marginal predictive tail probability beyond the searched \eqn{t}
+#'     statistic is at most \code{tail.eps}. The same cutoff is used for each
+#'     adaptive boundary search; it is not split across looks or boundaries.
+#'     If no boundary is found before the cutoff, it is placed at infinity in
+#'     the searched direction, preserving the H0 and H1 sides of the stopping
+#'     event. The omitted marginal mass is bounded by \code{tail.eps};
+#'     with \eqn{C} unresolved boundary searches, a conservative combined
+#'     bound is \code{min(1, C * tail.eps)} rather than \code{tail.eps}.
+#'     smaller values search farther at additional computational cost. Defaults
+#'     to \code{1e-3}.
+#' @param ... Numerical integration controls inherited from
+#'     \code{\link{pbf01seq}}, including \code{ngrid}.
 #'
 #' @inherit pbf01seq return
 #'
 #' @details The function constructs per-stage integration regions for cumulative
 #'     z-statistics based on the Bayes factor thresholds \code{k1} and
 #'     \code{k0}, then computes the probability of these regions under a
-#'     predictive distribution defined by the asymptotic variance of the
+#'     predictive distribution defined by the known-variance, asymptotic
+#'     approximation to the variance of the
 #'     \eqn{t}-statistic and the normal design prior with \code{dpm} and
 #'     \code{dpsd}. Integration is performed via \code{mvtnorm::lpmvnorm}.
+#'     This is deterministic numerical integration; increasing \code{ngrid}
+#'     can be used to check convergence.
 #'
 #' @examples
 #' ## similar to example from Schönbrodt and Wagenmakers (2018, p. 138)
@@ -42,7 +58,7 @@
 #' plot(res) # show stopping probabilities
 #' plot(res, zplot = TRUE) # show critical z-values
 #'
-#' @author Samuel Pawel
+#' @author Samuel Pawel, František Bartoš
 #'
 #' @export
 ptbf01seq <- function(k1, k0 = 1/k1, n, n1 = n, n2 = n, plocation = 0,
@@ -50,23 +66,22 @@ ptbf01seq <- function(k1, k0 = 1/k1, n, n1 = n, n2 = n, plocation = 0,
                       dpsd = pscale,
                       type = c("two.sample", "one.sample", "paired"),
                       alternative = c("two.sided", "less", "greater"),
-                      strict = TRUE, trange = "adaptive", ...) {
+                      strict = TRUE, trange = "adaptive",
+                      tail.eps = 1e-3,
+                      tail.nquad = 128, ...) {
 
     ## input checks
-    dotNames <- names(match.call(expand.dots = FALSE)$...)
-    if ("drange" %in% dotNames) {
-        stop("argument 'drange' was renamed to 'trange' in ptbf01seq")
-    }
     stopifnot(
         length(k1) == 1,
         is.numeric(k1),
         is.finite(k1),
-        k1 <= 1,
+        k1 > 0,
+        k1 < 1,
 
         length(k0) == 1,
         is.numeric(k0),
         is.finite(k0),
-        k0 >= 1,
+        k0 > 1,
 
         length(n1) >= 1,
         is.numeric(n1),
@@ -102,6 +117,14 @@ ptbf01seq <- function(k1, k0 = 1/k1, n, n1 = n, n2 = n, plocation = 0,
         is.finite(dpsd),
         0 <= dpsd,
 
+        length(tail.eps) == 1,
+        is.numeric(tail.eps),
+        is.finite(tail.eps),
+        tail.eps > 0,
+        tail.eps < 0.5,
+
+        .tbf01_valid_tail_nquad(tail.nquad),
+
         (is.numeric(trange) && length(trange) == 2 && all(is.finite(trange)) &&
          trange[2] > trange[1]) || (is.character(trange) && length(trange) == 1 &&
                                     !is.na(trange) && trange == "adaptive")
@@ -109,11 +132,15 @@ ptbf01seq <- function(k1, k0 = 1/k1, n, n1 = n, n2 = n, plocation = 0,
     type <- match.arg(type)
     alternative <- match.arg(alternative)
     if (type != "two.sample") {
-        if (all(n1 != n2)) {
+        if (any(n1 != n2)) {
             warning(paste0('different n1 and n2 supplied but type set to "', type,
                            '", using n = n1'))
             n2 <- n1
         }
+    }
+    if (length(n1) > 1 &&
+        (any(diff(n1) < 0) || any(diff(n2) < 0))) {
+        stop("group sample sizes must be non-decreasing across looks")
     }
 
     ## effective sample size
@@ -121,6 +148,9 @@ ptbf01seq <- function(k1, k0 = 1/k1, n, n1 = n, n2 = n, plocation = 0,
         neff <- 1/(1/n1 + 1/n2)
     } else {
         neff <- n1
+    }
+    if (length(neff) > 1 && any(diff(neff) <= 0)) {
+        stop("information must be strictly increasing across looks")
     }
 
     ## get marginal mean and covariance matrix
@@ -130,42 +160,45 @@ ptbf01seq <- function(k1, k0 = 1/k1, n, n1 = n, n2 = n, plocation = 0,
     sigma <- pars$sigma
 
     ## get integration regions
-    searchLimitWarnings <- 0L
-    evalTcrit <- function(...) {
-        ## Suppress per-stage boundary warnings and report one aggregate message.
-        withCallingHandlers(
-            tcrit(...),
-            warning = function(w) {
-                if (grepl("Adaptive t critical-value search reached",
-                          conditionMessage(w), fixed = TRUE)) {
-                    searchLimitWarnings <<- searchLimitWarnings + 1L
-                }
-                invokeRestart("muffleWarning")
-            }
-        )
+    adaptiveOneSided <- alternative != "two.sided" &&
+        !is.numeric(trange) && trange == "adaptive"
+    tSearchLimits <- if (adaptiveOneSided) {
+        lapply(seq_along(n1), function(i) {
+            .bfpwr_one_sided_tail_limits(
+                origin = 0, step_scale = 1, mean = mean[i],
+                sd = sqrt(sigma[i, i]), tail.eps = tail.eps
+            )
+        })
+    } else {
+        vector("list", length(n1))
     }
-    zk0 <- sapply(X = seq_along(n1), FUN = function(i) {
-        evalTcrit(
+    zk0Results <- lapply(seq_along(n1), function(i) {
+        .bfpwr_tcrit_result(
             k = k0, n1 = n1[i], n2 = n2[i], plocation = plocation,
             pscale = pscale, pdf = pdf, alternative = alternative,
-            type = type, trange = trange
+            type = type, trange = trange, search_limit = tSearchLimits[[i]],
+            tail.nquad = tail.nquad
         )
     })
-    zk1 <- sapply(X = seq_along(n1), FUN = function(i) {
-        evalTcrit(
+    zk1Results <- lapply(seq_along(n1), function(i) {
+        .bfpwr_tcrit_result(
             k = k1, n1 = n1[i], n2 = n2[i], plocation = plocation,
             pscale = pscale, pdf = pdf, alternative = alternative,
-            type = type, trange = trange
+            type = type, trange = trange, search_limit = tSearchLimits[[i]],
+            tail.nquad = tail.nquad
         )
     })
-    if (searchLimitWarnings > 0) {
-        warning(paste0(
-            "Adaptive t critical-value search reached |t| <= 256 in ",
-            searchLimitWarnings,
-            " sequential boundary search(es); pass a wider numeric 'trange' ",
-            "interval to search for exact bounds beyond this limit."
-        ))
-    }
+    .bfseq_validate_t_boundary_statuses(zk0Results, boundary = "H0")
+    .bfseq_validate_t_boundary_statuses(zk1Results, boundary = "H1")
+    .bfseq_warn_t_boundary_statuses(zk0Results, zk1Results,
+                                    tail.eps = tail.eps)
+    zk0 <- sapply(zk0Results, `[[`, "value")
+    zk1 <- sapply(zk1Results, `[[`, "value")
+    bounds <- lapply(seq_along(n1), function(i) {
+        list(n1 = n1[[i]], n2 = n2[[i]], se = se[[i]],
+             zk0 = zk0Results[[i]]$value,
+             zk1 = zk1Results[[i]]$value)
+    })
     if (alternative == "two.sided" && strict) {
         regionCount <- .count_strict_two_sided_regions(zk0)
         if (is.infinite(regionCount$total) || regionCount$total > 1000) {
@@ -188,50 +221,13 @@ ptbf01seq <- function(k1, k0 = 1/k1, n, n1 = n, n2 = n, plocation = 0,
             ), immediate. = TRUE, call. = FALSE)
         }
     }
-    if (alternative != "two.sided") {
-        ## construct regions with one critical value in each stage
-        intregions <- genregions1(zcrit0 = zk0, zcrit1 = zk1)
-    } else {
-        ## construct regions with two critical value in each stage
-        intregions <- genregions2(zcrit0 = zk0, zcrit1 = zk1, strict = strict)
-    }
-
-    ## compute stage-wise stopping probabilities
-    pH1 <- intstages(intregions = intregions$H1, mean = mean, sigma = sigma,
-                     ...)
-    pH0 <- intstages(intregions = intregions$H0, mean = mean, sigma = sigma,
-                     ...)
-
-    ## compute cumulate stopping probabilities
-    cumpH1 <- cumsum(pH1)
-    cumpH0 <- cumsum(pH0)
-    cumpInc <- 1 - cumpH1 - cumpH0 # inconclusive evidence
-
-    ## compute expected sample size and its variance
-    EN <- function(pH1, pH0, n) {
-        sum((pH1 + pH0)*n) + # stopping evidence for H0/H1 in stage n
-            (1 - sum(pH1 + pH0))*max(n) # no evidence until last stage
-    }
-    VarN <- function(pH1, pH0, n) {
-        EN(pH1, pH0, n^2) - EN(pH1, pH0, n)^2
-    }
-    EN1 <- EN(pH1, pH0, n1)
-    EN2 <- EN(pH1, pH0, n2)
-    VarN1 <- VarN(pH1, pH0, n1)
-    VarN2 <- VarN(pH1, pH0, n2)
-
-    ## put everything together
-    out <- structure(list("k1" = k1, "k0" = k0, "n1" = n1, "n2" = n2,
-                          "dpm" = dpm, "dpsd" = dpsd, "plocation" = plocation,
-                          "pscale" = pscale, "pdf" = pdf,
-                          "alternative" = alternative, "type" = type,
-                          "trange" = trange, "strict" = strict, "test" = "t",
-                          "zk1" = zk1, "zk0" = zk0, "EN1" = EN1, "EN2" = EN2,
-                          "VarN1" = VarN1, "VarN2" = VarN2,
-                          "cumpH1" = cumpH1, "cumpH0" = cumpH0,
-                          "cumpInc" = cumpInc),
-                     class = "bfseqdesign")
-    return(out)
+    .bfseq_build_t_design(k1 = k1, k0 = k0, bounds = bounds,
+                          dpm = dpm, dpsd = dpsd,
+                          plocation = plocation, pscale = pscale, pdf = pdf,
+                          alternative = alternative, type = type,
+                          trange = trange, strict = strict,
+                          tail.eps = tail.eps, tail.nquad = tail.nquad,
+                          dots = list(...))
 }
 
 ## ## compare to simulation-based probabilities

@@ -11,13 +11,15 @@
 #'     evidence for \eqn{H_1})
 #' @param k0 Bayes factor threshold in favor of \eqn{H_0}{H0} (i.e.,
 #'     \eqn{\text{BF}_{01} \geq \code{k0} > 1}{BF01 > \code{k0} > 1} implies
-#'     evidence for \eqn{H_1})
+#'     evidence for \eqn{H_0})
 #' @param se Numeric vector of standard errors for each sequential stage
 #' @param n Optional numeric vector of sample sizes corresponding to \code{se}.
 #'     If supplied, the expected sample size is computed
+#' @param null Parameter value under the point null hypothesis. Defaults to
+#'     \code{0}
 #' @param pm Analysis prior mean. Not taken into account for \code{type =
 #'     "moment"}
-#' @param psd Analysis prior standard deviation (\code{type = "moment"} and
+#' @param psd Analysis prior standard deviation (\code{type = "normal"} and
 #'     \code{type = "directional"}) or scale (\code{type = "moment"})
 #' @param dpm Mean of the normal design prior
 #' @param dpsd Standard deviation of the normal design prior. Set \code{dpsd =
@@ -27,18 +29,24 @@
 #' \item \code{"normal"}
 #'     (default): point null vs. normal alternative (set \code{psd = 0} to
 #'     obtain a point alternative) \item \code{"directional"}: directional null
-#'     vs. directional alternative with a marginal normal prior \item
+#'     \eqn{\theta \leq \code{null}}{theta <= null} vs. directional alternative
+#'     \eqn{\theta > \code{null}}{theta > null} with a marginal normal prior \item
 #'     \code{"moment"}: point null vs. normal moment alternative which is
-#'     centered around 0
+#'     centered around \code{null}
 #' }
 #'
 #' @param strict Logical. If \code{TRUE} and there are more than two critical
-#'     values per stage, integrate over all possible region combinations (slow
-#'     but exact). If \code{FALSE}, only integrates over the main regions where
+#'     values per stage, enumerate all possible region combinations. If
+#'     \code{FALSE}, only integrate over the main regions where
 #'     the sign of the z-statistics does not change across stages (faster,
 #'     recommended when many interim analyses, e.g., more than 10, are
-#'     performed). Defaults to \code{TRUE}
-#' @param ... Additional arguments passed to \code{mvtnorm::lpmvnorm}
+#'     performed). Region probabilities are numerically integrated under both
+#'     settings. Defaults to \code{TRUE}
+#' @param ... Numerical integration controls. Use \code{ngrid} to set the
+#'     number of deterministic Halton grid points used by
+#'     \code{mvtnorm::lpmvnorm} (default \code{1000}). Alternatively, set
+#'     \code{method = "pmvnorm"} and pass controls for
+#'     \code{mvtnorm::pmvnorm}.
 #'
 #' @return An object of class \code{"bfseqdesign"}, which is a list containing
 #'     the input arguments, the critical z-values, the expected sample size, the
@@ -51,7 +59,11 @@
 #'     \code{k0}, then computes the probability of these regions under a
 #'     predictive distribution defined by \code{se} and the normal design prior
 #'     with \code{dpm} and \code{dpsd}. Integration is performed via
-#'     \code{mvtnorm::lpmvnorm}.
+#'     \code{mvtnorm::lpmvnorm}. This is deterministic numerical integration;
+#'     increasing \code{ngrid} can be used to check convergence. The null value
+#'     and the analysis and design prior means are all specified on the
+#'     original parameter scale, matching
+#'     the fixed-sample z-test functions.
 #'
 #' @examples
 #' n <- seq(50, 200, 50) # sample size per stage
@@ -64,11 +76,12 @@
 #' res$cumpH0 # cumulative probability to stop for H0 by each stage
 #' res$EN # expected sample size
 #'
-#' @author Samuel Pawel
+#' @author Samuel Pawel, František Bartoš
 #'
 #' @export
-pbf01seq <- function(k1, k0 = 1/k1, se, n = NULL, pm = NULL, psd, dpm = pm,
-                     dpsd = psd, type = c("normal", "directional", "moment"),
+pbf01seq <- function(k1, k0 = 1/k1, se, n = NULL, null = 0, pm = NULL,
+                     psd, dpm = pm, dpsd = psd,
+                     type = c("normal", "directional", "moment"),
                      strict = TRUE, ...) {
 
     ## input checks
@@ -76,17 +89,22 @@ pbf01seq <- function(k1, k0 = 1/k1, se, n = NULL, pm = NULL, psd, dpm = pm,
         length(k1) == 1,
         is.numeric(k1),
         is.finite(k1),
-        k1 <= 1,
+        k1 > 0,
+        k1 < 1,
 
         length(k0) == 1,
         is.numeric(k0),
         is.finite(k0),
-        k0 >= 1,
+        k0 > 1,
 
         length(se) >= 1,
         is.numeric(se),
         all(is.finite(se)),
-        all(se > 0)
+        all(se > 0),
+
+        length(null) == 1,
+        is.numeric(null),
+        is.finite(null)
     )
     if (!is.null(n)) {
         stopifnot(
@@ -95,6 +113,12 @@ pbf01seq <- function(k1, k0 = 1/k1, se, n = NULL, pm = NULL, psd, dpm = pm,
             all(is.finite(n)),
             all(n >= 1)
         )
+        if (length(n) > 1 && any(diff(n) <= 0)) {
+            stop("sample sizes must be strictly increasing across looks")
+        }
+    }
+    if (length(se) > 1 && any(diff(1/se^2) <= 0)) {
+        stop("information must be strictly increasing across looks")
     }
     type <- match.arg(type)
     if (type != "moment") {
@@ -129,61 +153,9 @@ pbf01seq <- function(k1, k0 = 1/k1, se, n = NULL, pm = NULL, psd, dpm = pm,
         stopifnot(psd > 0)
     }
 
-    ## get marginal mean and covariance matrix
-    pars <- predpars(se = se, dpm = dpm, dpsd = dpsd)
-    mean <- pars$mean
-    sigma <- pars$sigma
-
-
-    ## get integration regions based on BFs with one critical value
-    if ((type == "normal" & psd == 0) | type == "directional") {
-        ## get region where evidence for H1 in each stage
-        zk0 <- zcrit(k = k0, se = se, mu = pm, tau = psd, type = type)
-        zk1 <- zcrit(k = k1, se = se, mu = pm, tau = psd, type = type)
-        intregions <- genregions1(zcrit0 = zk0, zcrit1 = zk1)
-    } else {
-        ## get integration regions based on BFs with two critical values
-        zk0 <- sapply(X = se, FUN = function(sei) {
-            zcrit(k = k0, se = sei, mu = pm, tau = psd, type = type)
-        })
-        zk1 <- sapply(X = se, FUN = function(sei) {
-            zcrit(k = k1, se = sei, mu = pm, tau = psd, type = type)
-        })
-        intregions <- genregions2(zcrit0 = zk0, zcrit1 = zk1, strict = strict)
-    }
-
-    ## compute stage-wise stopping probabilities
-    pH1 <- intstages(intregions = intregions$H1, mean = mean, sigma = sigma,
-                     ...)
-    pH0 <- intstages(intregions = intregions$H0, mean = mean, sigma = sigma,
-                     ...)
-
-    ## compute cumulate stopping probabilities
-    cumpH1 <- cumsum(pH1)
-    cumpH0 <- cumsum(pH0)
-    cumpInc <- 1 - cumpH1 - cumpH0 # inconclusive evidence
-
-    ## compute expected sample size and variance of sample size
-    if (!is.null(n)) {
-    EN <- sum((pH1 + pH0)*n) + # stopping evidence for H0/H1 in stage n
-        (1 - sum(pH1 + pH0))*max(n) # no evidence until last stage
-    EN2 <- sum((pH1 + pH0)*n^2) +
-        (1 - sum(pH1 + pH0))*max(n^2)
-    VarN <- EN2 - EN^2
-    } else {
-        EN <- NA
-        VarN <- NA
-    }
-
-    ## put everything together
-    out <- structure(list("k1" = k1, "k0" = k0, "se" = se, "n" = n, "pm" = pm,
-                          "psd" = psd, "dpm" = dpm, "dpsd" = dpsd,
-                          "type" = type, "strict" = strict, "test" = "z",
-                          "zk1" = zk1, "zk0" = zk0, "EN" = EN, "VarN" = VarN,
-                          "cumpH1" = cumpH1, "cumpH0" = cumpH0,
-                          "cumpInc" = cumpInc),
-                     class = "bfseqdesign")
-    return(out)
+    .bfseq_build_z_design(k1 = k1, k0 = k0, se = se, n = n, null = null,
+                          pm = pm, psd = psd, dpm = dpm, dpsd = dpsd,
+                          type = type, strict = strict, dots = list(...))
 }
 
 ## ## compare to simulation-based probabilities
@@ -282,7 +254,7 @@ pbf01seq <- function(k1, k0 = 1/k1, se, n = NULL, pm = NULL, psd, dpm = pm,
 #' @return Prints text summary in the console and invisibly returns the
 #'     \code{"bfseqdesign"} object
 #'
-#' @author Samuel Pawel
+#' @author Samuel Pawel, František Bartoš
 #'
 #' @seealso \link{pbf01seq}
 #'
@@ -319,17 +291,21 @@ print.bfseqdesign <- function(x, digits = max(3L, getOption("digits") - 3L), ...
 
     } else {
         par <- parlong <- "parameter"
+        znull <- if (is.null(x$null)) 0 else x$null
         if (x$type %in% c("normal", "moment")) {
             null <- " ="
             alt <- "!="
         }
         if (x$type == "directional") {
-            null <- " <"
+            null <- " <="
             alt <- " >"
         }
     }
-    cat(paste0("H0:               ", parlong,  " ", null, " 0\n"))
-    cat(paste0("H1:               ", parlong, " ", alt, " 0\n"))
+    nullValue <- if (x$test == "t") 0 else znull
+    cat(paste0("H0:               ", parlong,  " ", null, " ",
+               round(nullValue, digits = digits), "\n"))
+    cat(paste0("H1:               ", parlong, " ", alt, " ",
+               round(nullValue, digits = digits), "\n"))
 
     ## Analysis prior
     if (x$test == "t") {
@@ -357,7 +333,8 @@ print.bfseqdesign <- function(x, digits = max(3L, getOption("digits") - 3L), ...
                              ", sd = ", round(x$psd, digits = digits), ")")
         }
     } else {
-        aprior <- paste0("parameter|H1 ~ NM(location = 0, scale = ",
+        aprior <- paste0("parameter|H1 ~ NM(location = ",
+                         round(znull, digits = digits), ", scale = ",
                          round(x$psd, digits = digits), ")")
     }
     cat(paste0("Analysis prior:   ", aprior, "\n"))
@@ -462,7 +439,7 @@ print.bfseqdesign <- function(x, digits = max(3L, getOption("digits") - 3L), ...
 #' @return Plots stopping curves (if specified) and invisibly returns a list of
 #'     data frames containing the data underlying the stopping curves
 #'
-#' @author Samuel Pawel
+#' @author Samuel Pawel, František Bartoš
 #'
 #' @seealso \link{pbf01seq}
 #'
@@ -533,15 +510,26 @@ plot.bfseqdesign <- function(x, plot = TRUE, nullplot = TRUE, zplot = FALSE,
                              pH1 = x$cumpH1, pInc = x$cumpInc)
         if (nullplot == TRUE) {
             if (x$test == "t") {
-                x0 <- ptbf01seq(k1 = x$k1, k0 = x$k0, n1 = x$n1, n2 = x$n2,
+                tail.eps <- if (is.null(x$tail.eps)) 1e-3 else x$tail.eps
+                tail.nquad <- if (is.null(x$tail.nquad)) {
+                    .tbf01_tail_nquad_default
+                } else {
+                    x$tail.nquad
+                }
+                x0 <- do.call(ptbf01seq, c(list(
+                                k1 = x$k1, k0 = x$k0, n1 = x$n1, n2 = x$n2,
                                 plocation = x$plocation, pscale = x$pscale,
                                 pdf = x$pdf, dpm = 0, dpsd = 0, type = x$type,
                                 alternative = x$alternative, trange = x$trange,
-                                strict = x$strict)
+                                strict = x$strict, tail.eps = tail.eps,
+                                tail.nquad = tail.nquad), x$integration))
             } else {
-                x0 <- pbf01seq(k1 = x$k1, k0 = x$k0, se = x$se, pm = x$pm,
-                               psd = x$psd, dpm = 0, dpsd = 0, type = x$type,
-                               strict = x$strict)
+                znull <- if (is.null(x$null)) 0 else x$null
+                x0 <- do.call(pbf01seq, c(list(
+                               k1 = x$k1, k0 = x$k0, se = x$se, pm = x$pm,
+                               psd = x$psd, null = znull, dpm = znull,
+                               dpsd = 0, type = x$type, strict = x$strict),
+                               x$integration))
             }
             plotDF0 <- data.frame(stage = stages, n = x$n, pH0 = x0$cumpH0,
                                   pH1 = x0$cumpH1, pInc = x0$cumpInc)
@@ -577,12 +565,14 @@ plot.bfseqdesign <- function(x, plot = TRUE, nullplot = TRUE, zplot = FALSE,
             graphics::par(mar = c(5.1, 4.1, 4.1, 2.1))
             plot(xvar, zvals[,1], type = "n", xlab = xlab,
                  ylab = bquote("Critical" ~ italic(z) * "-value"),
-                 ylim = c(min(c(zvals, 0), na.rm = TRUE), max(c(zvals, 0), na.rm = TRUE)),
+                 ylim = range(c(0, zvals[is.finite(zvals)])),
                  las = 1,
                  panel.first = graphics::grid(lty = 3, col = "#0000001A"))
-            graphics::matlines(xvar, zvals, type = "b", pch = 20, lwd = 1.5,
-                               lty = 1, cex = 1.5,
-                               col = c(rep(4, ncol(zvals)/2), rep(2, ncol(zvals)/2)))
+            if (any(is.finite(zvals))) {
+                graphics::matlines(xvar, zvals, type = "b", pch = 20, lwd = 1.5,
+                                   lty = 1, cex = 1.5,
+                                   col = c(rep(4, ncol(zvals)/2), rep(2, ncol(zvals)/2)))
+            }
         } else {
 
 
@@ -632,10 +622,16 @@ plot.bfseqdesign <- function(x, plot = TRUE, nullplot = TRUE, zplot = FALSE,
                            labels = paste0(seq(0, 100, 20), "%"), las = 1)
 
             if (nullplot == TRUE) {
+                nullTitle <- if (x$test != "t" && !is.null(x$null)) {
+                    x$null
+                } else {
+                    0
+                }
                 plot(xvar, x0$cumpH1, type = "n", xlab = xlab, ylab = "Probability",
                      ylim = c(0, 100), yaxt = "n",
                      panel.first = graphics::grid(lty = 3, col = "#0000001A"),
-                     main = paste0(parameter, " = 0"))
+                     main = paste0(parameter, " = ",
+                                   round(nullTitle, digits = digits)))
                 graphics::matlines(xvar, cbind(x0$cumpH1, x0$cumpInc, x0$cumpH0)*100,
                                    type = "b", pch = 20, col = c(4, 1, 2), lwd = 1.5,
                                    lty = 1, cex = 1.5)

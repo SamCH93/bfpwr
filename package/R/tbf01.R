@@ -1,5 +1,19 @@
-## Route clearly wrong-tail one-sided statistics through the stable integral.
-.tbf01_exact_tail_cutoff <- 4
+## Route clearly wrong-tail one-sided statistics through stable quadrature.
+.tbf01_tail_quadrature_cutoff <- 4
+.tbf01_tail_nquad_default <- 128
+
+.tbf01_valid_tail_nquad <- function(tail.nquad) {
+    length(tail.nquad) == 1 && is.numeric(tail.nquad) &&
+        is.finite(tail.nquad) && tail.nquad >= 2 &&
+        tail.nquad == floor(tail.nquad)
+}
+
+.tbf01_valid_drange <- function(drange) {
+    (is.numeric(drange) && length(drange) == 2 && all(is.finite(drange)) &&
+     drange[2] > drange[1]) || (is.character(drange) &&
+                                length(drange) == 1 && !is.na(drange) &&
+                                drange == "adaptive")
+}
 
 .tbf01_pars <- function(n1, n2, type) {
     ## Effective sample size for the noncentrality parameter sqrt(neff)*d.
@@ -72,90 +86,83 @@
     log_f0 - (log(f1) + log_center)
 }
 
-.tbf01_log_exact <- function(t, df, neff, plocation, pscale, pdf, region, ...) {
-    ## Wrong-tail one-sided tests can underflow in the noncentral-t integral.
-    ## Integrating over the t-statistic scale mixture (v) and the t-prior
-    ## scale mixture (s) keeps the truncation mass on a stable normal scale.
+.tbf01_log_tail_quadrature <- function(t, df, neff, plocation, pscale, pdf,
+                                       region, tail.nquad) {
+    ## Wrong-tail one-sided calls can underflow in the noncentral-t density used
+    ## by the direct integral. Conditional on the observed statistic under H0,
+    ## its chi-square mixing variable has the gamma distribution below. The
+    ## alternative-to-null density ratio is then averaged over this posterior
+    ## and directly over the (possibly truncated) t prior. Integrating the
+    ## truncated prior on probability scale avoids dividing a poorly resolved
+    ## tail integral by a very small prior mass.
     if (!is.finite(region$log_norm_const)) {
         return(NaN)
     }
 
+    nquad <- as.integer(tail.nquad)
     eta <- sqrt(neff)
-    shape_v <- (df + 1)/2
-    rate_v <- (1 + t^2/df)/2
-    shape_s <- pdf/2
-    rate_s <- pdf/2
+    shapeV <- (df + 1)/2
+    rateV <- (1 + t^2/df)/2
 
-    log_conditional <- function(v, s) {
-        if (!is.finite(v) || !is.finite(s) || v <= 0 || s <= 0) {
-            return(-Inf)
-        }
-
-        y <- t*sqrt(v/df)
-        prior_var <- pscale^2/s
-        if (!is.finite(prior_var) || prior_var <= 0) {
-            return(-Inf)
-        }
-
-        pred_var <- 1 + eta^2*prior_var
-        log_ratio <- stats::dnorm(x = y, mean = eta*plocation,
-                                  sd = sqrt(pred_var), log = TRUE) -
-            stats::dnorm(x = y, mean = 0, sd = 1, log = TRUE)
-
-        post_var <- 1/(1/prior_var + eta^2)
-        post_mean <- post_var*(plocation/prior_var + eta*y)
-        log_mass <- .bfpwr_lpnorm_interval(lower = region$lower,
-                                           upper = region$upper,
-                                           mean = post_mean,
-                                           sd = sqrt(post_var))
-        ans <- log_ratio + log_mass
-        if (is.finite(ans)) ans else -Inf
+    quadrature <- .bfpwr_gauss_legendre(nquad)
+    u <- quadrature$x
+    w <- quadrature$w
+    v <- stats::qgamma(p = u, shape = shapeV, rate = rateV)
+    ## In the wrong tail the likelihood is concentrated close to the truncation
+    ## point d = 0. A power-transformed probability scale places
+    ## substantially more nodes there while leaving the integral exact after
+    ## its Jacobian is included. This matters for narrow shifted priors, where
+    ## the relevant prior probability can be far below the smallest ordinary
+    ## Gauss-Legendre node.
+    boundaryPower <- 16
+    priorU <- u
+    priorLogJacobian <- rep(0, nquad)
+    if (is.finite(region$lower)) {
+        priorU <- u^boundaryPower
+        priorLogJacobian <- log(boundaryPower) +
+            (boundaryPower - 1)*log(u)
+    } else if (is.finite(region$upper)) {
+        priorU <- 1 - (1 - u)^boundaryPower
+        priorLogJacobian <- log(boundaryPower) +
+            (boundaryPower - 1)*log1p(-u)
     }
+    priorQuantiles <- if (is.infinite(region$lower)) {
+        if (is.infinite(region$upper)) {
+            stats::qt(p = priorU, df = pdf)
+        } else {
+            ## Compute log(priorU) without forming 1 - a tiny number.
+            logPriorU <- log1p(-(1 - u)^boundaryPower)
+            stats::qt(p = logPriorU + region$log_norm_const, df = pdf,
+                      lower.tail = TRUE, log.p = TRUE)
+        }
+    } else {
+        stats::qt(p = log1p(-priorU) + region$log_norm_const, df = pdf,
+                  lower.tail = FALSE, log.p = TRUE)
+    }
+    d <- plocation + pscale*priorQuantiles
 
-    grid <- c(0.001, 0.01, 0.05, 0.1, 0.25, 0.5, 0.75, 0.9, 0.95,
-              0.99, 0.999)
-    ## Center the nested integral near its largest contribution.
-    v_grid <- stats::qgamma(p = grid, shape = shape_v, rate = rate_v)
-    s_grid <- stats::qgamma(p = grid, shape = shape_s, rate = rate_s)
-    log_grid <- as.vector(outer(v_grid, s_grid,
-                                Vectorize(function(v, s) log_conditional(v, s))))
-    log_center <- max(log_grid, na.rm = TRUE)
-    if (!is.finite(log_center)) {
+    vv <- rep(v, each = nquad)
+    dd <- rep(d, times = nquad)
+    ok <- is.finite(vv) & vv > 0 & is.finite(dd)
+    if (!any(ok)) {
+        return(NaN)
+    }
+    vv <- vv[ok]
+    dd <- dd[ok]
+    logWeights <- rep(log(w), each = nquad) +
+        rep(log(w) + priorLogJacobian, times = nquad)
+    logWeights <- logWeights[ok]
+
+    y <- t*sqrt(vv/df)
+    noncentrality <- eta*dd
+    logRatio <- noncentrality*y - noncentrality^2/2
+    logTerms <- logWeights + logRatio
+    logTerms <- logTerms[is.finite(logTerms)]
+    if (length(logTerms) == 0) {
         return(NaN)
     }
 
-    inner <- function(v) {
-        intfun_s <- function(u) {
-            out <- numeric(length(u))
-            ok <- u > 0 & u < 1
-            if (any(ok)) {
-                s <- stats::qgamma(p = u[ok], shape = shape_s, rate = rate_s)
-                z <- vapply(s, function(si) log_conditional(v, si),
-                            numeric(1)) - log_center
-                z[!is.finite(z)] <- -Inf
-                out[ok] <- exp(z)
-            }
-            out
-        }
-        stats::integrate(f = intfun_s, lower = 0, upper = 1, ...)$value
-    }
-
-    intfun_v <- function(u) {
-        out <- numeric(length(u))
-        ok <- u > 0 & u < 1
-        if (any(ok)) {
-            v <- stats::qgamma(p = u[ok], shape = shape_v, rate = rate_v)
-            out[ok] <- vapply(v, inner, numeric(1))
-        }
-        out
-    }
-    ratio <- try(stats::integrate(f = intfun_v, lower = 0, upper = 1,
-                                  ...)$value, silent = TRUE)
-    if (inherits(ratio, "try-error") || !is.finite(ratio) || ratio <= 0) {
-        return(NaN)
-    }
-
-    -(log_center + log(ratio) - region$log_norm_const)
+    -.bfpwr_logspace_sum(logTerms)
 }
 
 .tbf01_needs_exact_path <- function(t, alternative, log_bf) {
@@ -165,10 +172,10 @@
     if (!is.finite(log_bf)) {
         return(TRUE)
     }
-    if (alternative == "greater" && t <= -.tbf01_exact_tail_cutoff) {
+    if (alternative == "greater" && t <= -.tbf01_tail_quadrature_cutoff) {
         return(TRUE)
     }
-    if (alternative == "less" && t >= .tbf01_exact_tail_cutoff) {
+    if (alternative == "less" && t >= .tbf01_tail_quadrature_cutoff) {
         return(TRUE)
     }
     FALSE
@@ -177,6 +184,7 @@
 tbf01. <- function(t, n, n1 = n, n2 = n, plocation = 0, pscale = 1/sqrt(2),
                    pdf = 1, type = c("two.sample", "one.sample",  "paired"),
                    alternative = c("two.sided", "less", "greater"), log = FALSE,
+                   tail.nquad = 128,
                    ...) {
     ## input checks
     stopifnot(
@@ -210,7 +218,9 @@ tbf01. <- function(t, n, n1 = n, n2 = n, plocation = 0, pscale = 1/sqrt(2),
 
         length(log) == 1,
         is.logical(log),
-        !is.na(log)
+        !is.na(log),
+
+        .tbf01_valid_tail_nquad(tail.nquad)
     )
     type <- match.arg(type)
     alternative <- match.arg(alternative)
@@ -231,9 +241,11 @@ tbf01. <- function(t, n, n1 = n, n2 = n, plocation = 0, pscale = 1/sqrt(2),
     ## Fall back after trying the direct integral so ordinary calls stay cheap.
     if (.tbf01_needs_exact_path(t = t, alternative = alternative,
                                 log_bf = log_bf)) {
-        log_bf <- .tbf01_log_exact(t = t, df = pars$df, neff = pars$neff,
-                                   plocation = plocation, pscale = pscale,
-                                   pdf = pdf, region = region, ...)
+        log_bf <- .tbf01_log_tail_quadrature(
+            t = t, df = pars$df, neff = pars$neff, plocation = plocation,
+            pscale = pscale, pdf = pdf, region = region,
+            tail.nquad = tail.nquad
+        )
     }
 
     if (log) return(log_bf)
@@ -268,7 +280,9 @@ tbf01. <- function(t, n, n1 = n, n2 = n, plocation = 0, pscale = 1/sqrt(2),
 #'
 #' @details The Bayes factor is implemented as in equation (5) in Gronau et al.
 #'     (2020), and using suitable truncation in case of one-sided alternatives.
-#'     Integration is performed numerically with \code{stats::integrate}.
+#'     Most calculations use \code{stats::integrate}. Extreme wrong-tail
+#'     one-sided calculations use fixed Gauss-Legendre quadrature to avoid
+#'     noncentral-\eqn{t} underflow.
 #'
 #' @param t \eqn{t}-statistic
 #' @param n Sample size (per group)
@@ -287,11 +301,15 @@ tbf01. <- function(t, n, n1 = n, n2 = n, plocation = 0, pscale = 1/sqrt(2),
 #'     the analysis prior to negative and positive effects, respectively.
 #' @param log Logical indicating whether the natural logarithm of the Bayes
 #'     factor should be returned. Defaults to \code{FALSE}
-#' @param ... Additional arguments passed to \code{stats::integrate}
+#' @param tail.nquad Number of Gauss-Legendre quadrature nodes used for stable
+#'     wrong-tail one-sided calculations. Larger values are more accurate but
+#'     slower. Defaults to \code{128}.
+#' @param ... Additional arguments passed to \code{stats::integrate} for the
+#'     direct one-dimensional Bayes factor integral.
 #'
 #' @inherit bf01 return
 #'
-#' @author Samuel Pawel
+#' @author Samuel Pawel, František Bartoš
 #'
 #' @references Rouder, J. N., Speckman, P. L., Sun, D., Morey, R. D., Iverson,
 #'     G. (2009). Bayesian \eqn{t} tests for accepting and rejecting the null

@@ -88,5 +88,5 @@ pbf01(k = 1/10, n = nevents, usd = 2, null = 0, pm = 0, psd = sqrt(0.5))
 \link{nbf01}, \link{powerbf01}, \link{bf01}
 }
 \author{
-Samuel Pawel
+Samuel Pawel, František Bartoš
 }

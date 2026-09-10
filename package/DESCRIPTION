@@ -26,3 +26,4 @@ NeedsCompilation: no
 URL: https://github.com/SamCH93/bfpwr
 BugReports: https://github.com/SamCH93/bfpwr/issues
 Config/roxygen2/version: 8.0.0
+RoxygenNote: 7.3.3

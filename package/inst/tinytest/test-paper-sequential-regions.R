@@ -103,12 +103,17 @@ expect_numeric_equal(
 ## observation per group at each interim look. This is now fast enough to keep
 ## as an extended reference check.
 jzs_n <- seq(40, 100, 1)
-jzs_h1 <- ptbf01seq(k1 = 1/30, k0 = 6, n = jzs_n, plocation = 0,
-                    pscale = 1/sqrt(2), pdf = 1, dpm = 0.5, dpsd = 0.1,
-                    type = "two.sample", alternative = "greater")
-jzs_h0 <- ptbf01seq(k1 = 1/30, k0 = 6, n = jzs_n, plocation = 0,
-                    pscale = 1/sqrt(2), pdf = 1, dpm = 0, dpsd = 0,
-                    type = "two.sample", alternative = "greater")
+jzs_h1 <- suppressWarnings(
+    ptbf01seq(k1 = 1/30, k0 = 6, n = jzs_n, plocation = 0,
+              pscale = 1/sqrt(2), pdf = 1, dpm = 0.5, dpsd = 0.1,
+              type = "two.sample", alternative = "greater")
+)
+jzs_h0 <- suppressWarnings(
+    ptbf01seq(k1 = 1/30, k0 = 6, n = jzs_n, plocation = 0,
+              pscale = 1/sqrt(2), pdf = 1, dpm = 0, dpsd = 0,
+              type = "two.sample", alternative = "greater",
+              tail.eps = 1e-8)
+)
 
 expect_equal(length(jzs_n), 61)
 expect_numeric_equal(

@@ -25,3 +25,16 @@ expect_equal(
     1.162618e-42, tolerance = 1e-6,
     info = "pbf01 should compute very small upper-tail probabilities directly"
 )
+
+expect_equal(
+    pbf01(k = 1, n = 25, usd = 1, null = 0, pm = 0, psd = 0,
+          dpm = 0.5, dpsd = 0),
+    1,
+    info = "pbf01 should include BF01 = 1 when the point alternative equals H0"
+)
+expect_equal(
+    pbf01(k = 1, n = 25, usd = 1, null = 0, pm = 0, psd = 0,
+          dpm = 0.5, dpsd = 0, lower.tail = FALSE),
+    0,
+    info = "pbf01 complementary tail should exclude BF01 = 1"
+)

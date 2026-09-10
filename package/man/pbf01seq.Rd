@@ -9,6 +9,7 @@ pbf01seq(
   k0 = 1/k1,
   se,
   n = NULL,
+  null = 0,
   pm = NULL,
   psd,
   dpm = pm,
@@ -25,17 +26,20 @@ evidence for \eqn{H_1})}
 
 \item{k0}{Bayes factor threshold in favor of \eqn{H_0}{H0} (i.e.,
 \eqn{\text{BF}_{01} \geq \code{k0} > 1}{BF01 > \code{k0} > 1} implies
-evidence for \eqn{H_1})}
+evidence for \eqn{H_0})}
 
 \item{se}{Numeric vector of standard errors for each sequential stage}
 
 \item{n}{Optional numeric vector of sample sizes corresponding to \code{se}.
 If supplied, the expected sample size is computed}
 
+\item{null}{Parameter value under the point null hypothesis. Defaults to
+\code{0}}
+
 \item{pm}{Analysis prior mean. Not taken into account for \code{type =
 "moment"}}
 
-\item{psd}{Analysis prior standard deviation (\code{type = "moment"} and
+\item{psd}{Analysis prior standard deviation (\code{type = "normal"} and
 \code{type = "directional"}) or scale (\code{type = "moment"})}
 
 \item{dpm}{Mean of the normal design prior}
@@ -47,19 +51,25 @@ If supplied, the expected sample size is computed}
 \item \code{"normal"}
     (default): point null vs. normal alternative (set \code{psd = 0} to
     obtain a point alternative) \item \code{"directional"}: directional null
-    vs. directional alternative with a marginal normal prior \item
+    \eqn{\theta \leq \code{null}}{theta <= null} vs. directional alternative
+    \eqn{\theta > \code{null}}{theta > null} with a marginal normal prior \item
     \code{"moment"}: point null vs. normal moment alternative which is
-    centered around 0
+    centered around \code{null}
 }}
 
 \item{strict}{Logical. If \code{TRUE} and there are more than two critical
-values per stage, integrate over all possible region combinations (slow
-but exact). If \code{FALSE}, only integrates over the main regions where
+values per stage, enumerate all possible region combinations. If
+\code{FALSE}, only integrate over the main regions where
 the sign of the z-statistics does not change across stages (faster,
 recommended when many interim analyses, e.g., more than 10, are
-performed). Defaults to \code{TRUE}}
+performed). Region probabilities are numerically integrated under both
+settings. Defaults to \code{TRUE}}
 
-\item{...}{Additional arguments passed to \code{mvtnorm::lpmvnorm}}
+\item{...}{Numerical integration controls. Use \code{ngrid} to set the
+number of deterministic Halton grid points used by
+\code{mvtnorm::lpmvnorm} (default \code{1000}). Alternatively, set
+\code{method = "pmvnorm"} and pass controls for
+\code{mvtnorm::pmvnorm}.}
 }
 \value{
 An object of class \code{"bfseqdesign"}, which is a list containing
@@ -81,7 +91,11 @@ The function constructs per-stage integration regions for cumulative
     \code{k0}, then computes the probability of these regions under a
     predictive distribution defined by \code{se} and the normal design prior
     with \code{dpm} and \code{dpsd}. Integration is performed via
-    \code{mvtnorm::lpmvnorm}.
+    \code{mvtnorm::lpmvnorm}. This is deterministic numerical integration;
+    increasing \code{ngrid} can be used to check convergence. The null value
+    and the analysis and design prior means are all specified on the
+    original parameter scale, matching
+    the fixed-sample z-test functions.
 }
 \examples{
 n <- seq(50, 200, 50) # sample size per stage
@@ -96,5 +110,5 @@ res$EN # expected sample size
 
 }
 \author{
-Samuel Pawel
+Samuel Pawel, František Bartoš
 }

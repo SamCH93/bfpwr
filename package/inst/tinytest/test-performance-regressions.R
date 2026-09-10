@@ -106,6 +106,41 @@ p_t <- bfpwr_expect_elapsed_under(
 )
 expect_probability(p_t, "ptbf01")
 
+## Common two-sided calls should not pay for a bounded BF maximization. The
+## expensive maximum remains a correctness fallback for shifted priors whose
+## approximate split does not enclose both roots.
+local({
+    optionName <- "bfpwr.test.two_sided_maximum_calls"
+    oldValue <- getOption(optionName)
+    options(structure(list(0L), names = optionName))
+    suppressMessages(trace(
+        ".bfpwr_two_sided_maximum",
+        tracer = quote(options(structure(
+            list(getOption("bfpwr.test.two_sided_maximum_calls") + 1L),
+            names = "bfpwr.test.two_sided_maximum_calls"))),
+        print = FALSE,
+        where = asNamespace("bfpwr")
+    ))
+    on.exit({
+        suppressMessages(untrace(".bfpwr_two_sided_maximum",
+                                 where = asNamespace("bfpwr")))
+        options(structure(list(oldValue), names = optionName))
+    })
+
+    centered <- ptbf01(k = 1/10, n = 80, plocation = 0,
+                       alternative = "two.sided")
+    shifted <- ptbf01(k = 1/10, n = 80, plocation = 0.15,
+                      alternative = "two.sided")
+    expect_probability(c(centered, shifted), "two-sided ptbf01 fast path")
+    expect_equal(
+        getOption(optionName),
+        0L,
+        info = paste(
+            "ordinary two-sided roots avoid bounded BF maximization"
+        )
+    )
+})
+
 p_t_impossible <- bfpwr_expect_elapsed_under(
     "ptbf01 low-n impossible H0 boundary",
     seconds = 3,

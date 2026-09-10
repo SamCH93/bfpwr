@@ -32,5 +32,5 @@ res
 \link{pbf01seq}
 }
 \author{
-Samuel Pawel
+Samuel Pawel, František Bartoš
 }

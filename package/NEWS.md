@@ -1,12 +1,24 @@
 # bfpwr 0.3
 
-- bug fixes for numerical search of t-test critical values
+- add sequential Bayes factor designs for z-tests and t-tests via `pbf01seq()`
+  and `ptbf01seq()`, with stopping probabilities, expected sample sizes,
+  summaries, and plots
+- add sequential power and sample-size calculations via `nbf01seq()`,
+  `ntbf01seq()`, `powerbf01seq()`, and `powertbf01seq()`
+- add `dirbf01()` to compute directional z-test Bayes factors
+- improve numerical accuracy of small probabilities in `pbf01()` and
+  `pnmbf01()`; fix `pbf01()` for very narrow normal priors and point
+  alternatives identical to the null hypothesis
+- improve numerical stability of one-sided `tbf01()` when observations strongly
+  oppose the alternative hypothesis
+- fix two-sided `ptbf01()` power and critical-value searches for shifted
+  informed priors, including heavy-tailed priors
+- add `tail.eps` to control the tail-probability cutoff in one-sided adaptive
+  t critical-value searches, and `tail.nquad` to control the accuracy/speed
+  tradeoff in one-sided t Bayes factor calculations
+- correct `pbinbf01()` power calculations for discrete binomial outcomes,
+  including equality at the Bayes factor threshold
 - new contributor František Bartoš (<https://orcid.org/0000-0002-0018-5573>)
-
-# bfpwr 0.2
-
-- add function `pbf01seq` to compute characteristics of sequential Bayes factor
-  designs
 
 # bfpwr 0.1.6
 
