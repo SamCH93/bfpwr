@@ -1830,6 +1830,8 @@ if (!corpus_available) {
 
     status <- search_validation_status_table()
     if (nrow(status) > 0) {
+        status$Details <- paste0("\\parbox[t]{0.55\\textwidth}{",
+                                 status$Details, "}")
         latex_table(status,
                     caption = "Sample-size search notes.")
     } else {
