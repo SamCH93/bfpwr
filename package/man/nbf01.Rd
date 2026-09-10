@@ -17,6 +17,7 @@ nbf01(
   lower.tail = TRUE,
   integer = TRUE,
   analytical = TRUE,
+  alternative = c("two.sided", "less", "greater"),
   ...
 )
 }
@@ -58,6 +59,16 @@ the next larger integer. Defaults to \code{TRUE}}
 
 \item{analytical}{Logical indicating whether analytical (if available) or
 numerical method should be used. Defaults to \code{TRUE}}
+
+\item{alternative}{Direction of the alternative hypothesis, one of
+\code{"two.sided"} (default), \code{"less"}, or \code{"greater"}.
+For a one-sided alternative, the normal analysis prior is restricted to
+values below \code{null} (\code{"less"}) or above \code{null}
+(\code{"greater"}) and renormalized. \code{pm} and \code{psd} describe
+the normal distribution before truncation. A point prior
+(\code{psd = 0}) must lie strictly on the specified side of \code{null}.
+In power and sample-size calculations, the normal design prior is
+not truncated.}
 
 \item{...}{Other arguments passed to \code{stats::uniroot}}
 }

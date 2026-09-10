@@ -1,6 +1,7 @@
 nbf01. <- function(k, power, usd, null = 0, pm, psd, dpm = pm, dpsd = psd,
                    nrange = c(1, 10^5), lower.tail = TRUE, integer = TRUE,
-                   analytical = TRUE, ...) {
+                   analytical = TRUE,
+                   alternative = c("two.sided", "less", "greater"), ...) {
     ## input checks
     stopifnot(
         length(k) == 1,
@@ -58,6 +59,9 @@ nbf01. <- function(k, power, usd, null = 0, pm, psd, dpm = pm, dpsd = psd,
         !is.na(analytical)
     )
 
+    alternative <- match.arg(alternative)
+    .bf01_check_alternative(alternative, pm = pm, psd = psd, null = null)
+
     ## use analytical solution if specified and available
     if (analytical == TRUE) {
         available <- TRUE # is analytical solution available?
@@ -103,7 +107,8 @@ nbf01. <- function(k, power, usd, null = 0, pm, psd, dpm = pm, dpsd = psd,
         ## define function for numerical root-finding
         rootFun <- function(n) {
             pbf01(k = k, n = n, usd = usd, null = null, pm = pm, psd = psd, dpm = dpm,
-                  dpsd = dpsd, lower.tail = lower.tail) - power
+                  dpsd = dpsd, lower.tail = lower.tail,
+                  alternative = alternative) - power
         }
 
         n <- searchN(rootFun = rootFun, nrange = nrange, ...)
@@ -161,7 +166,8 @@ nbf01. <- function(k, power, usd, null = 0, pm, psd, dpm = pm, dpsd = psd,
 #' @export
 nbf01 <- Vectorize(FUN = nbf01.,
                    vectorize.args = c("k", "power", "usd", "null", "pm", "psd",
-                                      "dpm", "dpsd", "integer", "analytical"))
+                                      "dpm", "dpsd", "integer", "analytical",
+                                      "alternative"))
 
 
 

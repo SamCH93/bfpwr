@@ -4,7 +4,15 @@
 \alias{bf01}
 \title{Point null z-test Bayes factor}
 \usage{
-bf01(estimate, se, null = 0, pm, psd, log = FALSE)
+bf01(
+  estimate,
+  se,
+  null = 0,
+  pm,
+  psd,
+  log = FALSE,
+  alternative = c("two.sided", "less", "greater")
+)
 }
 \arguments{
 \item{estimate}{Parameter estimate}
@@ -23,6 +31,16 @@ prior mean}
 
 \item{log}{Logical indicating whether the natural logarithm of the Bayes
 factor should be returned. Defaults to \code{FALSE}}
+
+\item{alternative}{Direction of the alternative hypothesis, one of
+\code{"two.sided"} (default), \code{"less"}, or \code{"greater"}.
+For a one-sided alternative, the normal analysis prior is restricted to
+values below \code{null} (\code{"less"}) or above \code{null}
+(\code{"greater"}) and renormalized. \code{pm} and \code{psd} describe
+the normal distribution before truncation. A point prior
+(\code{psd = 0}) must lie strictly on the specified side of \code{null}.
+In power and sample-size calculations, the normal design prior is
+not truncated.}
 }
 \value{
 Bayes factor in favor of the null hypothesis over the alternative
@@ -39,6 +57,7 @@ This function computes the Bayes factor that quantifies the
 }
 \examples{
 bf01(estimate = 0.2, se = 0.05, null = 0, pm = 0, psd = 2)
+bf01(estimate = 0.2, se = 0.05, pm = 0, psd = 2, alternative = "greater")
 
 }
 \author{
