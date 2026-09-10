@@ -1,51 +1,24 @@
 # bfpwr 0.3
 
-- preserve the H0 and H1 stopping sides when sequential t boundary searches
-  reach a predictive tail cutoff
-- stabilize normal-prior critical values near the point-alternative limit and
-  avoid cancellation in sequential stopping-sample-size variances
-- share numerical integration setup between H0 and H1 events and preserve
-  custom integration controls when plotting sequential null curves
-- add sequential sample-size search helpers `nbf01seq()`, `ntbf01seq()`,
-  `powerbf01seq()`, and `powertbf01seq()`
-- add sequential t-test stopping probabilities via `ptbf01seq()`
-- add `tail.eps` control for one-sided adaptive t critical-value searches;
-  the old fixed `|t| <= 256` stopping cap is replaced by a predictive-tail
-  probability cutoff
-- fix extreme wrong-tail one-sided `tbf01()` underflow with fixed
-  Gauss-Legendre quadrature; expose the accuracy/speed tradeoff via
-  `tail.nquad`, defaulting to 128 nodes
-- make one-sided adaptive t searches scan only the mathematically expected
-  direction and report unresolved finite searches with clearer diagnostics
-- fix two-sided `ptbf01()` power for shifted informed priors where BF01 is
-  maximized away from the null
-- fix two-sided informed t critical-value searches for shifted, heavy-tailed
-  priors whose two roots lie on the same side of the old heuristic split
-- stabilize extreme one-sided informed t Bayes factors by integrating the
-  exact latent-chi-square likelihood ratio over truncated prior quantiles
-- make `pbinbf01()` locate inclusive critical counts on the integer data grid
-  instead of rounding continuous numerical roots
-- handle the identical point alternative in `pbf01()` and enforce strictly
-  separated sequential thresholds (`k1 < 1 < k0`)
-- make sequential sample-size search preserve typed numerical invalidity,
-  propagate structural evaluator errors, and give `search = "exhaustive"`
-  full-range semantics
-- respect both integer endpoints of sequential `nrange`, retain alternating
-  feasible rounded schedules, and scan past transient t-boundary failures in
-  exhaustive searches
-- expose the deterministic `lpmvnorm` grid size as `ngrid` and record the
-  integration settings in sequential design objects
-- reject direct sequential schedules with non-increasing information or sample
-  sizes
-- make fixed-`n` sequential wrapper schedules round-trip searched increment
-  schedules by respecting `nrange[1]` as the default first look when `minN` is
-  missing
+- add sequential Bayes factor designs for z-tests and t-tests via `pbf01seq()`
+  and `ptbf01seq()`, with stopping probabilities, expected sample sizes,
+  summaries, and plots
+- add sequential power and sample-size calculations via `nbf01seq()`,
+  `ntbf01seq()`, `powerbf01seq()`, and `powertbf01seq()`
+- add `dirbf01()` to compute directional z-test Bayes factors
+- improve numerical accuracy of small probabilities in `pbf01()` and
+  `pnmbf01()`; fix `pbf01()` for very narrow normal priors and point
+  alternatives identical to the null hypothesis
+- improve numerical stability of one-sided `tbf01()` when observations strongly
+  oppose the alternative hypothesis
+- fix two-sided `ptbf01()` power and critical-value searches for shifted
+  informed priors, including heavy-tailed priors
+- add `tail.eps` to control the tail-probability cutoff in one-sided adaptive
+  t critical-value searches, and `tail.nquad` to control the accuracy/speed
+  tradeoff in one-sided t Bayes factor calculations
+- correct `pbinbf01()` power calculations for discrete binomial outcomes,
+  including equality at the Bayes factor threshold
 - new contributor František Bartoš (<https://orcid.org/0000-0002-0018-5573>)
-
-# bfpwr 0.2
-
-- add function `pbf01seq` to compute characteristics of sequential Bayes factor
-  designs
 
 # bfpwr 0.1.6
 
