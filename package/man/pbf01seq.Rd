@@ -16,6 +16,7 @@ pbf01seq(
   dpsd = psd,
   type = c("normal", "directional", "moment"),
   strict = TRUE,
+  alternative = c("two.sided", "less", "greater"),
   ...
 )
 }
@@ -55,7 +56,10 @@ If supplied, the expected sample size is computed}
     \eqn{\theta > \code{null}}{theta > null} with a marginal normal prior \item
     \code{"moment"}: point null vs. normal moment alternative which is
     centered around \code{null}
-}}
+}
+    One-sided \code{alternative} values are supported for
+    \code{type = "normal"} only; \code{type = "directional"} compares
+    two composite hypotheses and retains its existing meaning.}
 
 \item{strict}{Logical. If \code{TRUE} and there are more than two critical
 values per stage, enumerate all possible region combinations. If
@@ -64,6 +68,16 @@ the sign of the z-statistics does not change across stages (faster,
 recommended when many interim analyses, e.g., more than 10, are
 performed). Region probabilities are numerically integrated under both
 settings. Defaults to \code{TRUE}}
+
+\item{alternative}{Direction of the alternative hypothesis, one of
+\code{"two.sided"} (default), \code{"less"}, or \code{"greater"}.
+For a one-sided alternative, the normal analysis prior is restricted to
+values below \code{null} (\code{"less"}) or above \code{null}
+(\code{"greater"}) and renormalized. \code{pm} and \code{psd} describe
+the normal distribution before truncation. A point prior
+(\code{psd = 0}) must lie strictly on the specified side of \code{null}.
+In power and sample-size calculations, the normal design prior is
+not truncated.}
 
 \item{...}{Numerical integration controls. Use \code{ngrid} to set the
 number of deterministic Halton grid points used by
@@ -96,6 +110,9 @@ The function constructs per-stage integration regions for cumulative
     and the analysis and design prior means are all specified on the
     original parameter scale, matching
     the fixed-sample z-test functions.
+    The normal design prior is not truncated, including for one-sided
+    analysis priors. One-sided normal Bayes factor boundaries are found
+    numerically using the same calculation as \code{\link{pbf01}}.
 }
 \examples{
 n <- seq(50, 200, 50) # sample size per stage

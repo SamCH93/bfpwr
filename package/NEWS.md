@@ -1,5 +1,8 @@
 # bfpwr 0.3
 
+- add point-null one-sided z-tests with truncated normal analysis priors via
+  `alternative = "less"` or `"greater"`, including fixed and sequential
+  power and sample-size calculations
 - add sequential Bayes factor designs for z-tests and t-tests via `pbf01seq()`
   and `ptbf01seq()`, with stopping probabilities, expected sample sizes,
   summaries, and plots

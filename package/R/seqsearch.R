@@ -855,8 +855,14 @@
 ## N. Boundary and stage caches are shared across candidate evaluations.
 .bfseq_z_schedule_evaluator <- function(k1, k0, usd, null, pm, psd, dpm,
                                          dpsd, type, target, schedule,
-                                         strict, dots) {
-    oneCritical <- (type == "normal" && psd == 0) || type == "directional"
+                                         strict, dots, alternative = "two.sided") {
+    oneCritical <- (type == "normal" &&
+                    (psd == 0 || alternative != "two.sided")) || type == "directional"
+    regionDirection <- if (alternative == "greater") {
+        "positive"
+    } else if (alternative == "less") {
+        "negative"
+    } else NULL
     boundaryCache <- new.env(parent = emptyenv())
     stageCache <- new.env(parent = emptyenv())
 
@@ -870,9 +876,9 @@
             n = n,
             se = se,
             zk0 = zcrit(k = k0, se = se, null = null, mu = pm, tau = psd,
-                        type = type),
+                        type = type, alternative = alternative),
             zk1 = zcrit(k = k1, se = se, null = null, mu = pm, tau = psd,
-                        type = type)
+                        type = type, alternative = alternative)
         )
         assign(key, out, envir = boundaryCache)
         out
@@ -891,7 +897,7 @@
         }
         out <- .bfseq_stage_probabilities_from_bounds(
             bounds = bounds, oneCritical = oneCritical, strict = strict,
-            direction = NULL, null = null, dpm = dpm, dpsd = dpsd,
+            direction = regionDirection, null = null, dpm = dpm, dpsd = dpsd,
             dots = dots
         )
         assign(key, out, envir = stageCache)
@@ -903,7 +909,7 @@
         design <- .bfseq_build_z_design(
             k1 = k1, k0 = k0, se = usd/sqrt(n), n = n, null = null,
             pm = pm, psd = psd, dpm = dpm, dpsd = dpsd, type = type,
-            strict = strict, dots = dots,
+            strict = strict, dots = dots, alternative = alternative,
             getBoundary = function(i) getBoundary(n[[i]]),
             evalStage = function(i, bounds) evalStage(n[seq_len(i)], bounds)
         )
