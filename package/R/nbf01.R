@@ -133,7 +133,8 @@ nbf01. <- function(k, power, usd, null = 0, pm, psd, dpm = pm, dpsd = psd,
 #'     the next larger integer. Defaults to \code{TRUE}
 #' @param analytical Logical indicating whether analytical (if available) or
 #'     numerical method should be used. Defaults to \code{TRUE}
-#' @param ... Other arguments passed to \code{stats::uniroot}
+#' @param ... Other arguments passed to \code{stats::uniroot}. The sample-size
+#'     root tolerance defaults to \code{tol = 1e-8} and can be overridden.
 #'
 #' @inherit pbf01 details
 #'

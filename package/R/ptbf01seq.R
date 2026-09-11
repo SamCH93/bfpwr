@@ -23,9 +23,12 @@
 #'     with \eqn{C} unresolved boundary searches, a conservative combined
 #'     bound is \code{min(1, C * tail.eps)} rather than \code{tail.eps}.
 #'     smaller values search farther at additional computational cost. Defaults
-#'     to \code{1e-3}.
+#'     to \code{1e-6}.
 #' @param ... Numerical integration controls inherited from
-#'     \code{\link{pbf01seq}}, including \code{ngrid}.
+#'     \code{\link{pbf01seq}}, including \code{ngrid}. Pass BF integration
+#'     and critical-value root controls from \code{\link{ptbf01}} in a named
+#'     list, for example \code{bf.control = list(rel.tol = 1e-9, tol = 1e-9)}.
+#'     This keeps the root tolerance separate from \code{mvtnorm}'s \code{tol}.
 #'
 #' @inherit pbf01seq return
 #'
@@ -67,8 +70,8 @@ ptbf01seq <- function(k1, k0 = 1/k1, n, n1 = n, n2 = n, plocation = 0,
                       type = c("two.sample", "one.sample", "paired"),
                       alternative = c("two.sided", "less", "greater"),
                       strict = TRUE, trange = "adaptive",
-                      tail.eps = 1e-3,
-                      tail.nquad = 128, ...) {
+                      tail.eps = .bfpwr_defaults$tail.eps,
+                      tail.nquad = .bfpwr_defaults$tail.nquad, ...) {
 
     ## input checks
     stopifnot(
@@ -160,6 +163,7 @@ ptbf01seq <- function(k1, k0 = 1/k1, n, n1 = n, n2 = n, plocation = 0,
     sigma <- pars$sigma
 
     ## get integration regions
+    bfControl <- .bfpwr_t_boundary_controls(list(...))
     adaptiveOneSided <- alternative != "two.sided" &&
         !is.numeric(trange) && trange == "adaptive"
     tSearchLimits <- if (adaptiveOneSided) {
@@ -173,20 +177,20 @@ ptbf01seq <- function(k1, k0 = 1/k1, n, n1 = n, n2 = n, plocation = 0,
         vector("list", length(n1))
     }
     zk0Results <- lapply(seq_along(n1), function(i) {
-        .bfpwr_tcrit_result(
+        do.call(.bfpwr_tcrit_result, c(list(
             k = k0, n1 = n1[i], n2 = n2[i], plocation = plocation,
             pscale = pscale, pdf = pdf, alternative = alternative,
             type = type, trange = trange, search_limit = tSearchLimits[[i]],
             tail.nquad = tail.nquad
-        )
+        ), bfControl))
     })
     zk1Results <- lapply(seq_along(n1), function(i) {
-        .bfpwr_tcrit_result(
+        do.call(.bfpwr_tcrit_result, c(list(
             k = k1, n1 = n1[i], n2 = n2[i], plocation = plocation,
             pscale = pscale, pdf = pdf, alternative = alternative,
             type = type, trange = trange, search_limit = tSearchLimits[[i]],
             tail.nquad = tail.nquad
-        )
+        ), bfControl))
     })
     .bfseq_validate_t_boundary_statuses(zk0Results, boundary = "H0")
     .bfseq_validate_t_boundary_statuses(zk1Results, boundary = "H1")

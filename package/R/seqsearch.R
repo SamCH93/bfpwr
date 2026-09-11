@@ -925,9 +925,11 @@
 .bfseq_t_schedule_evaluator <- function(k1, k0, plocation, pscale, pdf,
                                          dpm, dpsd, type, alternative, target,
                                          ratio, schedule, strict, trange,
-                                         tail.eps = 1e-3,
-                                         tail.nquad = .tbf01_tail_nquad_default,
+                                         tail.eps = .bfpwr_defaults$tail.eps,
+                                         tail.nquad = .bfpwr_defaults$tail.nquad,
                                          dots) {
+    bfControl <- .bfpwr_t_boundary_controls(dots)
+    probabilityDots <- dots[!names(dots) %in% "bf.control"]
     oneCritical <- alternative != "two.sided"
     regionDirection <- if (alternative == "greater") {
         "positive"
@@ -966,18 +968,18 @@
         } else {
             NULL
         }
-        zk0Result <- .bfpwr_tcrit_result(
+        zk0Result <- do.call(.bfpwr_tcrit_result, c(list(
             k = k0, n1 = n1, n2 = n2, plocation = plocation,
             pscale = pscale, pdf = pdf, alternative = alternative,
             type = type, trange = trange, search_limit = searchLimit,
             tail.nquad = tail.nquad
-        )
-        zk1Result <- .bfpwr_tcrit_result(
+        ), bfControl))
+        zk1Result <- do.call(.bfpwr_tcrit_result, c(list(
             k = k1, n1 = n1, n2 = n2, plocation = plocation,
             pscale = pscale, pdf = pdf, alternative = alternative,
             type = type, trange = trange, search_limit = searchLimit,
             tail.nquad = tail.nquad
-        )
+        ), bfControl))
         zk0Message <- .bfseq_t_boundary_status_message(
             list(zk0Result), boundary = "H0", looks = look
         )
@@ -1030,7 +1032,8 @@
         }
         out <- .bfseq_stage_probabilities_from_bounds(
             bounds = bounds, oneCritical = oneCritical, strict = strict,
-            direction = regionDirection, dpm = dpm, dpsd = dpsd, dots = dots
+            direction = regionDirection, dpm = dpm, dpsd = dpsd,
+            dots = probabilityDots
         )
         assign(key, out, envir = stageCache)
         out

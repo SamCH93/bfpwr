@@ -81,7 +81,7 @@ not truncated.}
 
 \item{...}{Numerical integration controls. Use \code{ngrid} to set the
 number of deterministic Halton grid points used by
-\code{mvtnorm::lpmvnorm} (default \code{1000}). Alternatively, set
+\code{mvtnorm::lpmvnorm} (default \code{10000}). Alternatively, set
 \code{method = "pmvnorm"} and pass controls for
 \code{mvtnorm::pmvnorm}.}
 }

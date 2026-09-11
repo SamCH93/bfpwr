@@ -48,7 +48,7 @@
 #'     settings. Defaults to \code{TRUE}
 #' @param ... Numerical integration controls. Use \code{ngrid} to set the
 #'     number of deterministic Halton grid points used by
-#'     \code{mvtnorm::lpmvnorm} (default \code{1000}). Alternatively, set
+#'     \code{mvtnorm::lpmvnorm} (default \code{10000}). Alternatively, set
 #'     \code{method = "pmvnorm"} and pass controls for
 #'     \code{mvtnorm::pmvnorm}.
 #'
@@ -530,9 +530,11 @@ plot.bfseqdesign <- function(x, plot = TRUE, nullplot = TRUE, zplot = FALSE,
                              pH1 = x$cumpH1, pInc = x$cumpInc)
         if (nullplot == TRUE) {
             if (x$test == "t") {
-                tail.eps <- if (is.null(x$tail.eps)) 1e-3 else x$tail.eps
+                tail.eps <- if (is.null(x$tail.eps)) {
+                    .bfpwr_defaults$tail.eps
+                } else x$tail.eps
                 tail.nquad <- if (is.null(x$tail.nquad)) {
-                    .tbf01_tail_nquad_default
+                    .bfpwr_defaults$tail.nquad
                 } else {
                     x$tail.nquad
                 }

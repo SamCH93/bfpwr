@@ -155,6 +155,7 @@
                                   evalStage = NULL) {
     oneCritical <- alternative != "two.sided"
     integration <- .bfseq_integration_settings(dots)
+    probabilityDots <- dots[!names(dots) %in% "bf.control"]
     regionDirection <- if (alternative == "greater") {
         "positive"
     } else if (alternative == "less") {
@@ -174,7 +175,7 @@
         .bfseq_stage_probabilities_from_bounds(
             bounds = bounds[seq_len(i)], oneCritical = oneCritical,
             strict = strict, direction = regionDirection, dpm = dpm,
-            dpsd = dpsd, dots = dots
+            dpsd = dpsd, dots = probabilityDots
         )
     })
     pH1 <- vapply(stages, `[[`, numeric(1), "pH1")

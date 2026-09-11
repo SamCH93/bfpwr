@@ -83,7 +83,7 @@
 
 ## Keep only integrate() controls from dots so root-search controls are not
 ## accidentally forwarded to numerical integration.
-.bfpwr_integrate_dots <- function(dots, rel.tol.default = NULL) {
+.bfpwr_integrate_dots <- function(dots, rel.tol.default = .bfpwr_defaults$rel.tol) {
     if (length(dots) == 0) {
         out <- list()
     } else {
@@ -100,21 +100,32 @@
     if (!is.null(rel.tol.default) && !("rel.tol" %in% names(out))) {
         out$rel.tol <- rel.tol.default
     }
+    if (is.null(out$abs.tol)) out$abs.tol <- out$rel.tol
+    if (is.null(out$subdivisions)) out$subdivisions <- .bfpwr_defaults$subdivisions
     out
 }
 
 ## Keep only uniroot() controls from dots for critical-value root searches.
 .bfpwr_uniroot_dots <- function(dots) {
-    if (length(dots) == 0) {
-        return(list())
-    }
-    dot_names <- names(dots)
-    if (is.null(dot_names)) {
-        return(list())
-    }
     keep_names <- c("tol", "maxiter", "trace", "check.conv")
-    keep <- nzchar(dot_names) & dot_names %in% keep_names
-    dots[keep]
+    out <- dots[names(dots) %in% keep_names]
+    if (is.null(out$tol)) out$tol <- .bfpwr_defaults$tol
+    out
+}
+
+## Sequential designs reserve top-level dots for mvtnorm, whose `tol` has a
+## different meaning. Keep BF integration and boundary-root controls together.
+.bfpwr_t_boundary_controls <- function(dots) {
+    controls <- dots$bf.control
+    if (is.null(controls)) return(list())
+    supported <- c("rel.tol", "abs.tol", "subdivisions", "stop.on.error",
+                   "keep.xy", "tol", "maxiter", "trace", "check.conv")
+    if (!is.list(controls) ||
+        length(names(controls)) != length(controls) ||
+        any(!names(controls) %in% supported) || anyDuplicated(names(controls))) {
+        stop("'bf.control' must be a named list of integrate() and uniroot() controls")
+    }
+    controls
 }
 
 ## Locate the maximum that separates the two roots of a two-sided BF. Centered
@@ -1034,12 +1045,17 @@
 #' @param search_limit Finite one-sided adaptive search limit, either as a
 #'     scalar in \eqn{t}-statistic units or as the directional object returned
 #'     by \code{.bfpwr_one_sided_tail_limits()}.
-#' @param ... Optional numerical controls. For numeric ranges and two-sided
-#'     adaptive searches, arguments are passed to \code{stats::uniroot}. In
-#'     adaptive one-sided searches, \code{subdivisions}, \code{rel.tol},
-#'     \code{abs.tol}, \code{stop.on.error}, and \code{keep.xy} are used for BF
-#'     integration, while \code{tol}, \code{maxiter}, \code{trace}, and
-#'     \code{check.conv} are passed to \code{stats::uniroot}.
+#' @param ... Optional numerical controls for all boundary searches.
+#'     \code{rel.tol} (default \code{1e-8}), \code{abs.tol} (default
+#'     \code{rel.tol}), and \code{subdivisions} (default \code{1000}),
+#'     together with \code{stop.on.error} and \code{keep.xy}, are passed to
+#'     \code{stats::integrate} for BF evaluation. Root searches use
+#'     \code{tol} (default \code{1e-8}), \code{maxiter}, \code{trace}, and
+#'     \code{check.conv} from \code{stats::uniroot}. One-sided scouting uses
+#'     a looser integral unless \code{rel.tol} is supplied; returned roots are
+#'     checked against the final integral with the requested accuracy.
+#'     These controls reduce numerical error within the normal predictive
+#'     approximation; they do not remove that approximation.
 #'
 #' @return Numeric vector of critical t-value(s)
 #'
@@ -1085,18 +1101,20 @@
 #' @keywords internal
 tcrit <- function(k, n1, n2, plocation, pscale, pdf, type, alternative,
                   trange = "adaptive", search_limit = NULL,
-                  tail.nquad = .tbf01_tail_nquad_default, ...) {
+                  tail.nquad = .bfpwr_defaults$tail.nquad, ...) {
 
     ## determine t-statistic for which BF = k
     dots <- list(...)
+    integrateDots <- .bfpwr_integrate_dots(dots = dots)
     searchDots <- .bfpwr_integrate_dots(dots = dots,
                                         rel.tol.default = 1e-2)
     rootDots <- .bfpwr_uniroot_dots(dots = dots)
     ## Final BF evaluation used to accept returned roots.
     rootFun <- function(t) {
-        tbf01(t = t, n1 = n1, n2 = n2, plocation = plocation, pscale = pscale,
+        do.call(tbf01, c(list(t = t, n1 = n1, n2 = n2,
+              plocation = plocation, pscale = pscale,
               pdf = pdf, type = type, alternative = alternative,
-              log = TRUE, tail.nquad = tail.nquad) - log(k)
+              log = TRUE, tail.nquad = tail.nquad), integrateDots)) - log(k)
     }
     ## Search evaluation with integration controls from dots.
     rootFunSearch <- function(t) {
@@ -1233,6 +1251,7 @@ tcrit <- function(k, n1, n2, plocation, pscale, pdf, type, alternative,
                     certify_fun = rootFun, search_fun = rootFunSearch,
                     scout_fun = rootFunFast, alternative = alternative,
                     origin = 0, step_scale = 1, try_opposite = FALSE,
+                    scout_tolerance = rootDots$tol,
                     search_limit = search_limit
                 ), rootDots))
                 res <- search$root
@@ -1244,9 +1263,9 @@ tcrit <- function(k, n1, n2, plocation, pscale, pdf, type, alternative,
             extend <- "no"
 
             suppressWarnings({
-                res <- try(stats::uniroot(f = rootFun, interval = searchint,
-                                          extendInt = extend, ...)$root,
-                           silent = TRUE)
+                res <- try(do.call(stats::uniroot, c(list(
+                    f = rootFun, interval = searchint, extendInt = extend
+                ), rootDots))$root, silent = TRUE)
             })
         }
         if (inherits(res, "try-error")) {

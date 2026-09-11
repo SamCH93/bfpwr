@@ -16,7 +16,8 @@ powerbf01(
   dpm = pm,
   dpsd = psd,
   nrange = c(1, 10^5),
-  alternative = c("two.sided", "less", "greater")
+  alternative = c("two.sided", "less", "greater"),
+  tol = .bfpwr_defaults$tol
 )
 }
 \arguments{
@@ -67,6 +68,9 @@ the normal distribution before truncation. A point prior
 (\code{psd = 0}) must lie strictly on the specified side of \code{null}.
 In power and sample-size calculations, the normal design prior is
 not truncated.}
+
+\item{tol}{Numerical tolerance for sample-size root searches. Defaults to
+\code{1e-8}. Ignored when the sample size has an analytical solution.}
 }
 \value{
 Object of class \code{"power.bftest"}, a list of the arguments

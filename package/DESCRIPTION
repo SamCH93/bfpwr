@@ -19,7 +19,7 @@ Title: Power and Sample Size Calculations for Bayes Factor Analysis
 Description: Implements z-test, t-test, and normal moment prior Bayes factors based on summary statistics, along with functionality to perform corresponding power and sample size calculations for fixed and sequential designs as described in Pawel and Held (2025) <doi:10.1080/00031305.2025.2467919> and Pawel and Held (2026) <doi:10.48550/ARXIV.2601.02851>.
 License: GPL-3
 Encoding: UTF-8
-Imports: lamW, mvtnorm, withr, qrng
+Imports: lamW, mvtnorm, withr, qrng, utils
 Suggests: roxygen2, tinytest, knitr, BayesFactor
 VignetteBuilder: knitr
 NeedsCompilation: no

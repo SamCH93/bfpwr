@@ -37,7 +37,7 @@
 #' @export
 powernmbf01 <- function(n = NULL, power = NULL, k = 1/10, sd = 1, null = 0, psd,
                         type = c("two.sample", "one.sample", "paired"), dpm,
-                        dpsd, nrange = c(1, 10^5)) {
+                        dpsd, nrange = c(1, 10^5), tol = .bfpwr_defaults$tol) {
     ## input checks
     if (is.null(n) && is.null(power)) {
         stop("exactly one of 'n' and 'power' must be NULL")
@@ -104,7 +104,7 @@ powernmbf01 <- function(n = NULL, power = NULL, k = 1/10, sd = 1, null = 0, psd,
     if (is.null(n)) {
         n <- nnmbf01(k = k, power = power, usd = sqrt(uv), null = null,
                      psd = psd, dpm = dpm, dpsd = dpsd, nrange = nrange,
-                     integer = FALSE)
+                     integer = FALSE, tol = tol)
     } else {
         ## determine power
         power <- pnmbf01(k = k, n = n, usd = sqrt(uv), null = null, psd = psd,
@@ -114,7 +114,7 @@ powernmbf01 <- function(n = NULL, power = NULL, k = 1/10, sd = 1, null = 0, psd,
     ## return object
     structure(list(n = n, power = power, sd = sd, null = null, psd = psd,
                    dpm = dpm, dpsd = dpsd, k = k, nrange = nrange, type = type,
-                   test = "nm"),
+                   test = "nm", tol = tol),
               class = "power.bftest")
 
 }

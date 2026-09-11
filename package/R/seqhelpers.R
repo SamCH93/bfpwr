@@ -1,8 +1,6 @@
 ## Helper functions for sequential BF design calculations
 ## -----------------------------------------------------------------------------
 
-.bfseq_ngrid_default <- 1000
-
 #' @title Predictive Distribution Parameters
 #'
 #' @description Compute mean vector and covariance matrix and covariance of
@@ -85,7 +83,7 @@ predpars <- function(se, null = 0, dpm, dpsd) {
 #' intstages(intregions = intregions, mean = mean, sigma = sigma)
 
 intstages <- function(intregions, mean, sigma, method = "lpmvnorm",
-                      ngrid = .bfseq_ngrid_default, ...) {
+                      ngrid = .bfpwr_defaults$ngrid, ...) {
     stopifnot(
         is.list(intregions),
         is.numeric(mean),
@@ -131,7 +129,7 @@ intstages <- function(intregions, mean, sigma, method = "lpmvnorm",
 ## Integrate H1 and H0 regions for one terminal stage. Both events share the
 ## same predictive covariance, so prepare the factorization and grid once.
 .bfseq_intstage <- function(regions, mean, sigma, method = "lpmvnorm",
-                            ngrid = .bfseq_ngrid_default, ...) {
+                            ngrid = .bfpwr_defaults$ngrid, ...) {
     stopifnot(
         is.list(regions),
         is.numeric(mean),
@@ -164,7 +162,7 @@ intstages <- function(intregions, mean, sigma, method = "lpmvnorm",
 .bfseq_intstage_sum <- function(stageregions, mean, sigma,
                                 method = "lpmvnorm", cholFactor = NULL,
                                 w = NULL,
-                                ngrid = .bfseq_ngrid_default, ...) {
+                                ngrid = .bfpwr_defaults$ngrid, ...) {
     stopifnot(is.list(stageregions))
     .bfseq_validate_integration(method = method, ngrid = ngrid)
 
@@ -238,7 +236,7 @@ intstages <- function(intregions, mean, sigma, method = "lpmvnorm",
     ngrid <- if ("ngrid" %in% names(dots)) {
         dots[["ngrid"]]
     } else {
-        .bfseq_ngrid_default
+        .bfpwr_defaults$ngrid
     }
     .bfseq_validate_integration(method = method, ngrid = ngrid)
     c(list(method = method, ngrid = as.integer(ngrid)),

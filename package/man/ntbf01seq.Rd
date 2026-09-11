@@ -24,8 +24,8 @@ ntbf01seq(
   ratio = 1,
   strict = TRUE,
   trange = "adaptive",
-  tail.eps = 0.001,
-  tail.nquad = 128,
+  tail.eps = .bfpwr_defaults$tail.eps,
+  tail.nquad = .bfpwr_defaults$tail.nquad,
   integer = TRUE,
   search = c("adaptive", "exhaustive"),
   details = FALSE,
@@ -113,11 +113,11 @@ event. The omitted marginal mass is bounded by \code{tail.eps};
 with \eqn{C} unresolved boundary searches, a conservative combined
 bound is \code{min(1, C * tail.eps)} rather than \code{tail.eps}.
 smaller values search farther at additional computational cost. Defaults
-to \code{1e-3}.}
+to \code{1e-6}.}
 
 \item{tail.nquad}{Number of Gauss-Legendre quadrature nodes used by
 \code{\link{tbf01}} for stable wrong-tail one-sided calculations. Larger
-values are more accurate but slower. Defaults to \code{128}.}
+values are more accurate but slower. Defaults to \code{512}.}
 
 \item{integer}{Logical indicating whether only integer-valued maximum sample
 sizes should be returned. If \code{TRUE}, the required maximum sample

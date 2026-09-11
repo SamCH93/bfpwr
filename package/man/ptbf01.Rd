@@ -19,8 +19,8 @@ ptbf01(
   alternative = c("two.sided", "less", "greater"),
   lower.tail = TRUE,
   drange = "adaptive",
-  tail.eps = 0.001,
-  tail.nquad = 128,
+  tail.eps = .bfpwr_defaults$tail.eps,
+  tail.nquad = .bfpwr_defaults$tail.nquad,
   ...
 )
 }
@@ -75,18 +75,23 @@ boundary is found before that point, the boundary-free probability
 implied by the searched side is returned and the omitted tail probability
 is bounded by \code{tail.eps}. Smaller values search farther and can
 recover extremely remote boundaries at additional computational cost.
-Defaults to \code{1e-3}}
+Defaults to \code{1e-6}}
 
 \item{tail.nquad}{Number of Gauss-Legendre quadrature nodes used by
 \code{\link{tbf01}} for stable wrong-tail one-sided calculations. Larger
-values are more accurate but slower. Defaults to \code{128}.}
+values are more accurate but slower. Defaults to \code{512}.}
 
-\item{...}{Optional numerical controls. For numeric ranges and two-sided
-adaptive searches, arguments are passed to \code{stats::uniroot}. In
-adaptive one-sided searches, \code{subdivisions}, \code{rel.tol},
-\code{abs.tol}, \code{stop.on.error}, and \code{keep.xy} are used for BF
-integration, while \code{tol}, \code{maxiter}, \code{trace}, and
-\code{check.conv} are passed to \code{stats::uniroot}.}
+\item{...}{Optional numerical controls for all boundary searches.
+\code{rel.tol} (default \code{1e-8}), \code{abs.tol} (default
+\code{rel.tol}), and \code{subdivisions} (default \code{1000}),
+together with \code{stop.on.error} and \code{keep.xy}, are passed to
+\code{stats::integrate} for BF evaluation. Root searches use
+\code{tol} (default \code{1e-8}), \code{maxiter}, \code{trace}, and
+\code{check.conv} from \code{stats::uniroot}. One-sided scouting uses
+a looser integral unless \code{rel.tol} is supplied; returned roots are
+checked against the final integral with the requested accuracy.
+These controls reduce numerical error within the normal predictive
+approximation; they do not remove that approximation.}
 }
 \value{
 The probability that the Bayes factor is less or greater (depending

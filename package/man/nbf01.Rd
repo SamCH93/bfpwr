@@ -70,7 +70,8 @@ the normal distribution before truncation. A point prior
 In power and sample-size calculations, the normal design prior is
 not truncated.}
 
-\item{...}{Other arguments passed to \code{stats::uniroot}}
+\item{...}{Other arguments passed to \code{stats::uniroot}. The sample-size
+root tolerance defaults to \code{tol = 1e-8} and can be overridden.}
 }
 \value{
 The required sample size to achieve the specified power
