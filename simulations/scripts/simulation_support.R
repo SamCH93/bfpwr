@@ -31,6 +31,19 @@ source_package_checkout <- function(root = repo_root()) {
     invisible(files)
 }
 
+bfpwr_sim_numerical_defaults <- function() {
+    defaults <- .bfpwr_defaults
+    data.frame(
+        integration_grid = defaults$ngrid,
+        sample_size_tol = defaults$tol,
+        bf_rel_tol = defaults$rel.tol,
+        bf_abs_tol = defaults$rel.tol,
+        bf_subdivisions = defaults$subdivisions,
+        t_tail_eps = defaults$tail.eps,
+        t_tail_nquad = defaults$tail.nquad
+    )
+}
+
 bfpwr_sim_package_provenance <- function(
         root = getOption("bfpwr.sim.package_checkout", repo_root())) {
     root <- normalizePath(root, winslash = "/", mustWork = TRUE)
@@ -55,6 +68,8 @@ bfpwr_sim_package_provenance <- function(
         NA_character_
     }
 
+    ## Verification calls omit numerical tuning arguments. Record the shared
+    ## package defaults alongside the source revision for every entry point.
     data.frame(
         package_git_revision = if (length(revision)) {
             revision[[1]]
@@ -69,6 +84,7 @@ bfpwr_sim_package_provenance <- function(
         package_version = version,
         package_source_root = root,
         package_recomputed_at = format(Sys.time(), "%Y-%m-%d %H:%M:%S %Z"),
+        bfpwr_sim_numerical_defaults(),
         stringsAsFactors = FALSE
     )
 }
