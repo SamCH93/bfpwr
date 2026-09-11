@@ -25,6 +25,7 @@ nbf01seq(
   integer = TRUE,
   search = c("adaptive", "exhaustive"),
   details = FALSE,
+  alternative = c("two.sided", "less", "greater"),
   ...
 )
 }
@@ -62,7 +63,10 @@ estimate at \eqn{n = 1}{n = 1}.}
     \eqn{\theta > \code{null}}{theta > null} with a marginal normal prior \item
     \code{"moment"}: point null vs. normal moment alternative which is
     centered around \code{null}
-}}
+}
+    One-sided \code{alternative} values are supported for
+    \code{type = "normal"} only; \code{type = "directional"} compares
+    two composite hypotheses and retains its existing meaning.}
 
 \item{target}{Character string. Either \code{"H1"} for the final cumulative
 probability of stopping for \eqn{H_1}{H1}, or \code{"H0"} for the final
@@ -117,6 +121,16 @@ candidates and stopping at terminal invalid candidates. Ignored when
 returned instead of only the maximum sample size. The detailed result is
 scalar; vectorized inputs require \code{details = FALSE}. Defaults to
 \code{FALSE}.}
+
+\item{alternative}{Direction of the alternative hypothesis, one of
+\code{"two.sided"} (default), \code{"less"}, or \code{"greater"}.
+For a one-sided alternative, the normal analysis prior is restricted to
+values below \code{null} (\code{"less"}) or above \code{null}
+(\code{"greater"}) and renormalized. \code{pm} and \code{psd} describe
+the normal distribution before truncation. A point prior
+(\code{psd = 0}) must lie strictly on the specified side of \code{null}.
+In power and sample-size calculations, the normal design prior is
+not truncated.}
 
 \item{...}{Additional arguments passed to \code{\link{pbf01seq}}.}
 }

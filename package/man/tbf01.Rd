@@ -15,7 +15,7 @@ tbf01(
   type = c("two.sample", "one.sample", "paired"),
   alternative = c("two.sided", "less", "greater"),
   log = FALSE,
-  tail.nquad = 128,
+  tail.nquad = .bfpwr_defaults$tail.nquad,
   ...
 )
 }
@@ -49,10 +49,13 @@ factor should be returned. Defaults to \code{FALSE}}
 
 \item{tail.nquad}{Number of Gauss-Legendre quadrature nodes used for stable
 wrong-tail one-sided calculations. Larger values are more accurate but
-slower. Defaults to \code{128}.}
+slower. Defaults to \code{512} nodes per dimension (the fallback uses
+a two-dimensional product rule).}
 
 \item{...}{Additional arguments passed to \code{stats::integrate} for the
-direct one-dimensional Bayes factor integral.}
+direct one-dimensional Bayes factor integral. Defaults are
+\code{rel.tol = 1e-8}, \code{abs.tol = rel.tol}, and
+\code{subdivisions = 1000}.}
 }
 \value{
 Bayes factor in favor of the null hypothesis over the alternative

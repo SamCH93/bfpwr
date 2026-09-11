@@ -25,6 +25,10 @@
 #'     Candidate group-2 sample sizes are \code{ceiling(n1 * ratio)}. Ignored
 #'     for one-sample and paired designs.
 #'
+#' @param ... Numerical controls inherited from \code{\link{ptbf01}}, also
+#'     used by \code{\link{ntbf01}} when finding a sample size. Saved in the
+#'     returned object and reused when plotting power curves.
+#'
 #' @inherit powerbf01 return
 #'
 #' @author Samuel Pawel, František Bartoš
@@ -45,8 +49,8 @@ powertbf01 <- function(n = NULL, power = NULL, k = 1/10, null = 0,
                        alternative = c("two.sided", "less", "greater"),
                        dpm = plocation, dpsd = pscale, nrange = c(2, 10^4),
                        ratio = 1, drange = "adaptive",
-                       tail.eps = 1e-3,
-                       tail.nquad = 128) {
+                       tail.eps = .bfpwr_defaults$tail.eps,
+                       tail.nquad = .bfpwr_defaults$tail.nquad, ...) {
     ## input checks
     if (is.null(n) == is.null(power)) {
         stop("exactly one of 'n' and 'power' must be NULL")
@@ -116,26 +120,30 @@ powertbf01 <- function(n = NULL, power = NULL, k = 1/10, null = 0,
     )
     type <- match.arg(type)
     alternative <- match.arg(alternative)
+    numerical <- c(.bfpwr_uniroot_dots(list(...)),
+                   .bfpwr_integrate_dots(list(...)))
 
     ## determine sample size
     if (is.null(n)) {
-        n <- ntbf01(k = k, power = power, null = null, plocation = plocation,
+        n <- do.call(ntbf01, c(list(
+                    k = k, power = power, null = null, plocation = plocation,
                     pscale = pscale, pdf = pdf, type = type,
                     alternative = alternative, dpm = dpm, dpsd = dpsd,
                     integer = FALSE, nrange = nrange, ratio = ratio,
                     drange = drange, tail.eps = tail.eps,
-                    tail.nquad = tail.nquad)
+                    tail.nquad = tail.nquad), numerical))
     } else {
         ## determine power
         n2 <- if (type == "two.sample") ceiling(n*ratio) else n
         if (type == "two.sample" && n2 <= 1) {
             stop("'n' and 'ratio' imply group-2 sample size <= 1")
         }
-        power <- ptbf01(k = k, n = n, n1 = n, n2 = n2, null = null,
+        power <- do.call(ptbf01, c(list(
+                        k = k, n = n, n1 = n, n2 = n2, null = null,
                         plocation = plocation, pscale = pscale, pdf = pdf,
                         type = type, alternative = alternative, dpm = dpm,
                         dpsd = dpsd, drange = drange, tail.eps = tail.eps,
-                        tail.nquad = tail.nquad)
+                        tail.nquad = tail.nquad), numerical))
     }
 
     ## return object
@@ -144,7 +152,8 @@ powertbf01 <- function(n = NULL, power = NULL, k = 1/10, null = 0,
                    pscale = pscale, pdf = pdf, dpm = dpm, dpsd = dpsd, k = k,
                    nrange = nrange, ratio = ratio, drange = drange,
                    tail.eps = tail.eps,
-                   tail.nquad = tail.nquad, type = type, test = "t"),
+                   tail.nquad = tail.nquad, numerical = numerical,
+                   type = type, test = "t"),
               class = "power.bftest")
 
 }

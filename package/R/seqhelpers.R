@@ -1,8 +1,6 @@
 ## Helper functions for sequential BF design calculations
 ## -----------------------------------------------------------------------------
 
-.bfseq_ngrid_default <- 1000
-
 #' @title Predictive Distribution Parameters
 #'
 #' @description Compute mean vector and covariance matrix and covariance of
@@ -85,7 +83,7 @@ predpars <- function(se, null = 0, dpm, dpsd) {
 #' intstages(intregions = intregions, mean = mean, sigma = sigma)
 
 intstages <- function(intregions, mean, sigma, method = "lpmvnorm",
-                      ngrid = .bfseq_ngrid_default, ...) {
+                      ngrid = .bfpwr_defaults$ngrid, ...) {
     stopifnot(
         is.list(intregions),
         is.numeric(mean),
@@ -131,7 +129,7 @@ intstages <- function(intregions, mean, sigma, method = "lpmvnorm",
 ## Integrate H1 and H0 regions for one terminal stage. Both events share the
 ## same predictive covariance, so prepare the factorization and grid once.
 .bfseq_intstage <- function(regions, mean, sigma, method = "lpmvnorm",
-                            ngrid = .bfseq_ngrid_default, ...) {
+                            ngrid = .bfpwr_defaults$ngrid, ...) {
     stopifnot(
         is.list(regions),
         is.numeric(mean),
@@ -164,7 +162,7 @@ intstages <- function(intregions, mean, sigma, method = "lpmvnorm",
 .bfseq_intstage_sum <- function(stageregions, mean, sigma,
                                 method = "lpmvnorm", cholFactor = NULL,
                                 w = NULL,
-                                ngrid = .bfseq_ngrid_default, ...) {
+                                ngrid = .bfpwr_defaults$ngrid, ...) {
     stopifnot(is.list(stageregions))
     .bfseq_validate_integration(method = method, ngrid = ngrid)
 
@@ -238,7 +236,7 @@ intstages <- function(intregions, mean, sigma, method = "lpmvnorm",
     ngrid <- if ("ngrid" %in% names(dots)) {
         dots[["ngrid"]]
     } else {
-        .bfseq_ngrid_default
+        .bfpwr_defaults$ngrid
     }
     .bfseq_validate_integration(method = method, ngrid = ngrid)
     c(list(method = method, ngrid = as.integer(ngrid)),
@@ -602,14 +600,31 @@ genregions2 <- function(zcrit0, zcrit1, strict = FALSE) {
 #'
 #' @keywords internal
 zcrit <- function(k, se, null = 0, mu = NULL, tau,
-                  type = c("normal", "directional", "moment")) {
+                  type = c("normal", "directional", "moment"),
+                  alternative = c("two.sided", "less", "greater")) {
 
     type <- match.arg(type)
+    alternative <- match.arg(alternative)
+    .bf01_check_alternative(alternative, pm = mu, psd = tau, null = null,
+                            type = type)
     if (type != "moment") {
         mu <- mu - null
     }
 
     if (type == "normal") {
+        if (tau > 0 && alternative != "two.sided") {
+            direction <- if (alternative == "greater") 1 else -1
+            m <- direction*mu/se
+            r <- tau/se
+            logk <- log(k)
+            rootFun <- function(z) {
+                .bf01_log_one_sided(z, m = m, r = r) - logk
+            }
+            ## On the reflected scale BF01 decreases strictly from Inf to 0.
+            return(direction*stats::uniroot(rootFun, interval = c(-1, 1),
+                                            extendInt = "downX", tol = 1e-10,
+                                            maxiter = 1000)$root)
+        }
         if (tau == 0) {
             ## point prior under the alternative
             zcrit <- (mu^2/se^2 - 2*log(k))/(2*mu/se)

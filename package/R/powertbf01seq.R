@@ -44,8 +44,8 @@ powertbf01seq <- function(n = NULL, power = NULL, k1 = 1/10, k0 = 1/k1,
                           target = c("H1", "H0"), nrange = c(2, 10^4),
                           looks = 1, timing = NULL, minN = NULL, by = NULL,
                           ratio = 1, strict = TRUE, trange = "adaptive",
-                          tail.eps = 1e-3,
-                          tail.nquad = 128,
+                          tail.eps = .bfpwr_defaults$tail.eps,
+                          tail.nquad = .bfpwr_defaults$tail.nquad,
                           search = c("adaptive", "exhaustive"), ...) {
     progressInfo <- .bfseq_extract_progress(list(...))
     progress <- progressInfo$progress

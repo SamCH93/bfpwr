@@ -4,7 +4,18 @@
 \alias{pbf01}
 \title{Cumulative distribution function of the z-test Bayes factor}
 \usage{
-pbf01(k, n, usd, null = 0, pm, psd, dpm = pm, dpsd = psd, lower.tail = TRUE)
+pbf01(
+  k,
+  n,
+  usd,
+  null = 0,
+  pm,
+  psd,
+  dpm = pm,
+  dpsd = psd,
+  lower.tail = TRUE,
+  alternative = c("two.sided", "less", "greater")
+)
 }
 \arguments{
 \item{k}{Bayes factor threshold}
@@ -34,6 +45,16 @@ parameter. Defaults to the same value as the analysis prior \code{psd}}
 \eqn{\leq}{<=} \code{k}) (\code{TRUE}) or Pr(\eqn{\mathrm{BF}_{01}}{BF01}
 \eqn{>} \code{k}) (\code{FALSE}) should be computed. Defaults to
 \code{TRUE}}
+
+\item{alternative}{Direction of the alternative hypothesis, one of
+\code{"two.sided"} (default), \code{"less"}, or \code{"greater"}.
+For a one-sided alternative, the normal analysis prior is restricted to
+values below \code{null} (\code{"less"}) or above \code{null}
+(\code{"greater"}) and renormalized. \code{pm} and \code{psd} describe
+the normal distribution before truncation. A point prior
+(\code{psd = 0}) must lie strictly on the specified side of \code{null}.
+In power and sample-size calculations, the normal design prior is
+not truncated.}
 }
 \value{
 The probability that the Bayes factor is less or greater (depending

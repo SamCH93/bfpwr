@@ -1,5 +1,6 @@
 pbf01. <- function(k, n, usd, null = 0, pm, psd, dpm = pm, dpsd = psd,
-                   lower.tail = TRUE) {
+                   lower.tail = TRUE,
+                   alternative = c("two.sided", "less", "greater")) {
     ## input checks
     stopifnot(
         length(k) == 1,
@@ -44,6 +45,9 @@ pbf01. <- function(k, n, usd, null = 0, pm, psd, dpm = pm, dpsd = psd,
         !is.na(lower.tail)
     )
 
+    alternative <- match.arg(alternative)
+    .bf01_check_alternative(alternative, pm = pm, psd = psd, null = null)
+
     ## variance of the data based on the design prior
     v <- usd^2/n + dpsd^2
 
@@ -72,8 +76,13 @@ pbf01. <- function(k, n, usd, null = 0, pm, psd, dpm = pm, dpsd = psd,
         ## Share the stable BF boundary calculation with sequential designs.
         se <- usd/sqrt(n)
         critical <- zcrit(k = k, se = se, null = null, mu = pm, tau = psd,
-                          type = "normal")
-        if (any(is.nan(critical))) {
+                          type = "normal", alternative = alternative)
+        if (alternative != "two.sided") {
+            Z <- (null - dpm + se*critical)/sqrt(v)
+            tail <- alternative == "less"
+            logpow <- stats::pnorm(Z, lower.tail = tail, log.p = TRUE)
+            logcomp <- stats::pnorm(Z, lower.tail = !tail, log.p = TRUE)
+        } else if (any(is.nan(critical))) {
             logpow <- 0
             logcomp <- -Inf
         } else {
@@ -101,6 +110,7 @@ pbf01. <- function(k, n, usd, null = 0, pm, psd, dpm = pm, dpsd = psd,
 #'     factor (\link{bf01}) more extreme than a threshold \code{k} with a
 #'     specified sample size.
 #'
+#' @inheritParams bf01
 #' @param k Bayes factor threshold
 #' @param n Sample size
 #' @param usd Unit standard deviation, the (approximate) standard error of the

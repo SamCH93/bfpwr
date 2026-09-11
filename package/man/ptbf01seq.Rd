@@ -19,8 +19,8 @@ ptbf01seq(
   alternative = c("two.sided", "less", "greater"),
   strict = TRUE,
   trange = "adaptive",
-  tail.eps = 0.001,
-  tail.nquad = 128,
+  tail.eps = .bfpwr_defaults$tail.eps,
+  tail.nquad = .bfpwr_defaults$tail.nquad,
   ...
 )
 }
@@ -86,14 +86,17 @@ event. The omitted marginal mass is bounded by \code{tail.eps};
 with \eqn{C} unresolved boundary searches, a conservative combined
 bound is \code{min(1, C * tail.eps)} rather than \code{tail.eps}.
 smaller values search farther at additional computational cost. Defaults
-to \code{1e-3}.}
+to \code{1e-6}.}
 
 \item{tail.nquad}{Number of Gauss-Legendre quadrature nodes used by
 \code{\link{tbf01}} for stable wrong-tail one-sided calculations. Larger
-values are more accurate but slower. Defaults to \code{128}.}
+values are more accurate but slower. Defaults to \code{512}.}
 
 \item{...}{Numerical integration controls inherited from
-\code{\link{pbf01seq}}, including \code{ngrid}.}
+\code{\link{pbf01seq}}, including \code{ngrid}. Pass BF integration
+and critical-value root controls from \code{\link{ptbf01}} in a named
+list, for example \code{bf.control = list(rel.tol = 1e-9, tol = 1e-9)}.
+This keeps the root tolerance separate from \code{mvtnorm}'s \code{tol}.}
 }
 \value{
 An object of class \code{"bfseqdesign"}, which is a list containing

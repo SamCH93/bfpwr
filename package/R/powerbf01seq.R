@@ -26,6 +26,7 @@
 #'     \code{"two.sample"}.
 #' @param bftype Type of z-test Bayes factor. One of \code{"normal"},
 #'     \code{"directional"}, or \code{"moment"}. Defaults to \code{"normal"}.
+#'     One-sided \code{alternative} values require \code{bftype = "normal"}.
 #' @param pm Analysis prior mean. Not taken into account for \code{bftype =
 #'     "moment"}.
 #' @param psd Analysis prior standard deviation (\code{bftype = "normal"} and
@@ -48,6 +49,10 @@
 #' powerbf01seq(power = 0.8, k1 = 1/5, k0 = 5, pm = 0, psd = 1,
 #'              dpm = 0.5, dpsd = 0, looks = 3, nrange = c(2, 200))
 #'
+#' ## point null versus a positive half-normal alternative
+#' powerbf01seq(power = 0.8, pm = 0, psd = 1, dpm = 0.5, dpsd = 0,
+#'              alternative = "greater", looks = 3, nrange = c(2, 200))
+#'
 #' @export
 powerbf01seq <- function(n = NULL, power = NULL, k1 = 1/10, k0 = 1/k1,
                          sd = 1, null = 0, pm, psd,
@@ -56,7 +61,8 @@ powerbf01seq <- function(n = NULL, power = NULL, k1 = 1/10, k0 = 1/k1,
                          dpm = pm, dpsd = psd, target = c("H1", "H0"),
                          nrange = c(2, 10^5), looks = 1, timing = NULL,
                          minN = NULL, by = NULL, strict = TRUE,
-                         search = c("adaptive", "exhaustive"), ...) {
+                         search = c("adaptive", "exhaustive"),
+                         alternative = c("two.sided", "less", "greater"), ...) {
     pmMissing <- missing(pm)
     dpmMissing <- missing(dpm)
     progressInfo <- .bfseq_extract_progress(list(...))
@@ -78,6 +84,7 @@ powerbf01seq <- function(n = NULL, power = NULL, k1 = 1/10, k0 = 1/k1,
     )
     type <- match.arg(type)
     bftype <- match.arg(bftype)
+    alternative <- match.arg(alternative)
     target <- match.arg(target)
     search <- match.arg(search)
     stopifnot(
@@ -112,7 +119,7 @@ powerbf01seq <- function(n = NULL, power = NULL, k1 = 1/10, k0 = 1/k1,
             target = target, nrange = nrange, looks = looks,
             timing = timing, minN = minN, by = by, strict = strict,
             integer = TRUE, search = search, details = TRUE,
-            progress = progress
+            progress = progress, alternative = alternative
         ), dots))
         design <- solver$result
         if (is.null(design)) {
@@ -137,7 +144,7 @@ powerbf01seq <- function(n = NULL, power = NULL, k1 = 1/10, k0 = 1/k1,
         design <- do.call(pbf01seq, c(list(
             k1 = k1, k0 = k0, se = usd/sqrt(nseq), n = nseq,
             null = null, pm = pm, psd = psd, dpm = dpm, dpsd = dpsd,
-            type = bftype, strict = strict
+            type = bftype, strict = strict, alternative = alternative
         ), dots))
         solver <- .bfseq_fixed_solver(n = n, target = target, design = design,
                                       schedule = schedule)

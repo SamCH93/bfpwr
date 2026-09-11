@@ -95,12 +95,12 @@ expect_true(all(missing_h0$cumpH0 < 1e-12),
 expect_true(grepl("Adaptive t critical-value search reached", limit_warning,
                   fixed = TRUE),
             info = "ptbf01seq should warn when adaptive tcrit search reaches its limit")
-expect_true(grepl("marginal tail probability <= 0.001", limit_warning,
+expect_true(grepl("marginal tail probability <= 1e-06", limit_warning,
                   fixed = TRUE),
             info = "ptbf01seq adaptive-limit warning should report the per-boundary tail-eps cutoff")
-expect_equal(missing_h0$tail.eps, 1e-3,
+expect_equal(missing_h0$tail.eps, 1e-6,
              info = "ptbf01seq should store the sequential tail.eps control")
-expect_equal(missing_h0$tail.nquad, 128,
+expect_equal(missing_h0$tail.nquad, 512,
              info = "ptbf01seq should store the default sequential tail.nquad control")
 
 missing_h1_continuation <- bfpwr:::genregions1(
@@ -227,7 +227,7 @@ expect_true(is.finite(explicit_trange$cumpH1) &&
             info = "ptbf01seq should accept explicit t-statistic trange")
 expect_equal(explicit_trange$trange, c(-2, 6),
              info = "ptbf01seq should store the explicit t-statistic trange")
-expect_equal(explicit_trange$tail.eps, 1e-3,
+expect_equal(explicit_trange$tail.eps, 1e-6,
              info = "ptbf01seq should store tail.eps even when explicit trange is used")
 
 narrow_trange <- try(

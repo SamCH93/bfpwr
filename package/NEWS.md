@@ -1,8 +1,12 @@
 # bfpwr 0.3
 
+- add point-null one-sided z-tests with truncated normal analysis priors via
+  `alternative = "less"` or `"greater"`, including fixed and sequential
+  power and sample-size calculations
 - add sequential Bayes factor designs for z-tests and t-tests via `pbf01seq()`
   and `ptbf01seq()`, with stopping probabilities, expected sample sizes,
-  summaries, and plots
+  summaries, and plots; sequential calculations use 10,000 integration points
+  by default, with accuracy adjustable through `ngrid`
 - add sequential power and sample-size calculations via `nbf01seq()`,
   `ntbf01seq()`, `powerbf01seq()`, and `powertbf01seq()`
 - add `dirbf01()` to compute directional z-test Bayes factors
@@ -11,13 +15,18 @@
   alternatives identical to the null hypothesis
 - improve numerical stability of one-sided `tbf01()` when observations strongly
   oppose the alternative hypothesis
+- tighten numerical integration and root-search defaults for fixed designs;
+  allow overriding sample-size `tol` in all fixed-design power wrappers and
+  t-test integration controls through `powertbf01()`, retaining them in plots;
+  sequential t-test boundary controls can be set with `bf.control`
 - fix two-sided `ptbf01()` power and critical-value searches for shifted
   informed priors, including heavy-tailed priors
 - add `tail.eps` to control the tail-probability cutoff in one-sided adaptive
   t critical-value searches, and `tail.nquad` to control the accuracy/speed
-  tradeoff in one-sided t Bayes factor calculations
+  tradeoff in one-sided t Bayes factor calculations (defaults: `1e-6` and 512)
 - correct `pbinbf01()` power calculations for discrete binomial outcomes,
   including equality at the Bayes factor threshold
+- fix default test-type handling in binomial sample-size calculations
 - new contributor František Bartoš (<https://orcid.org/0000-0002-0018-5573>)
 
 # bfpwr 0.1.6

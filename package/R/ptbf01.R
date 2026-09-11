@@ -3,8 +3,8 @@ ptbf01. <- function(k, n, n1 = n, n2 = n, null = 0, plocation = 0,
                     type = c("two.sample", "one.sample", "paired"),
                     alternative = c("two.sided", "less", "greater"),
                     lower.tail = TRUE, drange = "adaptive",
-                    tail.eps = 1e-3,
-                    tail.nquad = 128, ...) {
+                    tail.eps = .bfpwr_defaults$tail.eps,
+                    tail.nquad = .bfpwr_defaults$tail.nquad, ...) {
     ## input checks
     stopifnot(
         length(k) == 1,
@@ -84,6 +84,7 @@ ptbf01. <- function(k, n, n1 = n, n2 = n, null = 0, plocation = 0,
 
     ## determine effect estimate region where BF < k for specified sample size
     dots <- list(...)
+    integrateDots <- .bfpwr_integrate_dots(dots = dots)
     searchDots <- .bfpwr_integrate_dots(dots = dots,
                                         rel.tol.default = 1e-2)
     rootDots <- .bfpwr_uniroot_dots(dots = dots)
@@ -91,10 +92,10 @@ ptbf01. <- function(k, n, n1 = n, n2 = n, null = 0, plocation = 0,
     estsd <- sqrt(se^2 + dpsd^2) # standard deviation of SMD under design prior
     rootFun <- function(est) {
         ## tbf01() tests against zero, so shift the analysis prior by null.
-        tbf01(t = (est - null)/se, n1 = n1, n2 = n2,
+        do.call(tbf01, c(list(t = (est - null)/se, n1 = n1, n2 = n2,
               plocation = plocation - null, pscale = pscale, pdf = pdf,
               type = type, alternative = alternative, log = TRUE,
-              tail.nquad = tail.nquad) - log(k)
+              tail.nquad = tail.nquad), integrateDots)) - log(k)
     }
     rootFunSearch <- function(est) {
         do.call(tbf01, c(list(
@@ -245,6 +246,7 @@ ptbf01. <- function(k, n, n1 = n, n2 = n, null = 0, plocation = 0,
                     scout_fun = rootFunFast, alternative = alternative,
                     origin = null,
                     step_scale = se, try_opposite = FALSE,
+                    scout_tolerance = rootDots$tol,
                     search_limit = tailLimits
                 ), rootDots))
                 crit <- search$root
@@ -278,10 +280,9 @@ ptbf01. <- function(k, n, n1 = n, n2 = n, null = 0, plocation = 0,
                 crit <- structure("non-finite root start", class = "try-error")
             }
         } else {
-            crit <- try(stats::uniroot(f = rootFun,
-                                       interval = drange,
-                                       extendInt = "no", ...)$root,
-                        silent = TRUE)
+            crit <- try(do.call(stats::uniroot, c(list(
+                f = rootFun, interval = drange, extendInt = "no"
+            ), rootDots))$root, silent = TRUE)
         }
         if (inherits(crit, "try-error")) {
             if (!is.numeric(drange) && drange == "adaptive" &&
@@ -391,16 +392,21 @@ ptbf01. <- function(k, n, n1 = n, n2 = n, null = 0, plocation = 0,
 #'     implied by the searched side is returned and the omitted tail probability
 #'     is bounded by \code{tail.eps}. Smaller values search farther and can
 #'     recover extremely remote boundaries at additional computational cost.
-#'     Defaults to \code{1e-3}
+#'     Defaults to \code{1e-6}
 #' @param tail.nquad Number of Gauss-Legendre quadrature nodes used by
 #'     \code{\link{tbf01}} for stable wrong-tail one-sided calculations. Larger
-#'     values are more accurate but slower. Defaults to \code{128}.
-#' @param ... Optional numerical controls. For numeric ranges and two-sided
-#'     adaptive searches, arguments are passed to \code{stats::uniroot}. In
-#'     adaptive one-sided searches, \code{subdivisions}, \code{rel.tol},
-#'     \code{abs.tol}, \code{stop.on.error}, and \code{keep.xy} are used for BF
-#'     integration, while \code{tol}, \code{maxiter}, \code{trace}, and
-#'     \code{check.conv} are passed to \code{stats::uniroot}.
+#'     values are more accurate but slower. Defaults to \code{512}.
+#' @param ... Optional numerical controls for all boundary searches.
+#'     \code{rel.tol} (default \code{1e-8}), \code{abs.tol} (default
+#'     \code{rel.tol}), and \code{subdivisions} (default \code{1000}),
+#'     together with \code{stop.on.error} and \code{keep.xy}, are passed to
+#'     \code{stats::integrate} for BF evaluation. Root searches use
+#'     \code{tol} (default \code{1e-8}), \code{maxiter}, \code{trace}, and
+#'     \code{check.conv} from \code{stats::uniroot}. One-sided scouting uses
+#'     a looser integral unless \code{rel.tol} is supplied; returned roots are
+#'     checked against the final integral with the requested accuracy.
+#'     These controls reduce numerical error within the normal predictive
+#'     approximation; they do not remove that approximation.
 #'
 #' @inherit pbf01 return
 #'

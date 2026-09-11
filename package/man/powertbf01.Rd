@@ -19,8 +19,9 @@ powertbf01(
   nrange = c(2, 10^4),
   ratio = 1,
   drange = "adaptive",
-  tail.eps = 0.001,
-  tail.nquad = 128
+  tail.eps = .bfpwr_defaults$tail.eps,
+  tail.nquad = .bfpwr_defaults$tail.nquad,
+  ...
 )
 }
 \arguments{
@@ -78,11 +79,15 @@ boundary is found before that point, the boundary-free probability
 implied by the searched side is returned and the omitted tail probability
 is bounded by \code{tail.eps}. Smaller values search farther and can
 recover extremely remote boundaries at additional computational cost.
-Defaults to \code{1e-3}}
+Defaults to \code{1e-6}}
 
 \item{tail.nquad}{Number of Gauss-Legendre quadrature nodes used by
 \code{\link{tbf01}} for stable wrong-tail one-sided calculations. Larger
-values are more accurate but slower. Defaults to \code{128}.}
+values are more accurate but slower. Defaults to \code{512}.}
+
+\item{...}{Numerical controls inherited from \code{\link{ptbf01}}, also
+used by \code{\link{ntbf01}} when finding a sample size. Saved in the
+returned object and reused when plotting power curves.}
 }
 \value{
 Object of class \code{"power.bftest"}, a list of the arguments

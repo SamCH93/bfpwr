@@ -43,7 +43,8 @@
 #' @export
 powerbinbf01 <- function(n = NULL, power = NULL, k = 1/10, p0 = 0.5,
                          type = c("point", "direction"), a = 1, b = 1, dp = NA,
-                         da = a, db = b, dl = 0, du = 1, nrange = c(1, 10^4)) {
+                         da = a, db = b, dl = 0, du = 1, nrange = c(1, 10^4),
+                         tol = .bfpwr_defaults$tol) {
     ## input checks
     if (is.null(n) && is.null(power)) {
         stop("exactly one of 'n' and 'power' must be NULL")
@@ -63,11 +64,13 @@ powerbinbf01 <- function(n = NULL, power = NULL, k = 1/10, p0 = 0.5,
             0 < n
         )
     }
+    type <- match.arg(type)
+
     ## determine sample size
     if (is.null(n)) {
         n <- nbinbf01(k = k, power = power, p0 = p0, type = type, a = a, b = b,
                       dp = dp, da = da, db = db, dl = dl, du = du,
-                      nrange = nrange)
+                      nrange = nrange, tol = tol)
     } else {
         ## determine power
         power <- pbinbf01(k = k, n = n, p0 = p0, type = type, a = a, b = b,
@@ -78,7 +81,7 @@ powerbinbf01 <- function(n = NULL, power = NULL, k = 1/10, p0 = 0.5,
     ## return object
     structure(list(n = n, power = power, p0 = p0, type = type, a = a, b = b,
                    dp = dp, da = da, db = db, dl = dl, du = du, k = k,
-                   nrange = nrange, type = type, test = "binomial"),
+                   nrange = nrange, type = type, test = "binomial", tol = tol),
               class = "power.bftest")
 
 }

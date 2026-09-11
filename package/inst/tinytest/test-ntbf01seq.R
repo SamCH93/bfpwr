@@ -19,9 +19,9 @@ expect_true(inherits(search$result, "bfseqdesign"),
             info = "sequential t search details should include design object")
 expect_equal(search$result$solver$n, search$n,
              info = "sequential t design should carry solver metadata")
-expect_equal(search$result$tail.eps, 1e-3,
+expect_equal(search$result$tail.eps, 1e-6,
              info = "ntbf01seq search result should store default tail.eps")
-expect_equal(search$result$tail.nquad, 128,
+expect_equal(search$result$tail.nquad, 512,
              info = "ntbf01seq search result should store default tail.nquad")
 
 tailSearch <- suppressWarnings(
