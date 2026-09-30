@@ -108,6 +108,9 @@ reference_contract <- function(fixture_set_id, role, validation_dir) {
             safe_sum(ref$severe_interval_failures)
         } else 0L
         explicit <- if ("failures" %in% names(ref)) safe_sum(ref$failures) else 0L
+        if ("invalid_probabilities" %in% names(ref)) {
+            failures <- failures + safe_sum(ref$invalid_probabilities)
+        }
         total <- severe + explicit
         if (identical(role, "diagnostic_approximation")) {
             diagnostics <- diagnostics + total
@@ -181,7 +184,8 @@ validate_fixture <- function(fixture_dir, output_dir) {
     }
 
     ref <- reference_contract(fixture_set_id, role, output_dir)
-    if (identical(role, "package_reference") && ref$rows_checked == 0) {
+    if (role %in% c("package_reference", "diagnostic_approximation") &&
+        ref$rows_checked == 0) {
         failures <- add_failure(
             failures, "error", "reference:missing_reference_summary", 1,
             "package-reference fixtures must have materialized reference summaries"
@@ -210,8 +214,8 @@ validate_fixture <- function(fixture_dir, output_dir) {
             "reference:known_approximation_gap",
             ref$diagnostic_issues,
             paste0(
-                "known fixed-t exact-t simulation gap; ptbf01() verifies the ",
-                "documented normal-effect approximation, so this is not a ",
+                "exact-t simulation gap; fixed and sequential t probabilities use the ",
+                "documented normal approximation, so this is not a ",
                 "package-reference failure"
             )
         )

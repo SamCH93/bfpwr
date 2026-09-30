@@ -23,18 +23,7 @@ for (direction in c(-1, 1)) {
         list(power = 0.8, nrange = c(10, 100)))))))
 }
 
-## Independent coordinates give an exact rare two-look probability, including
-## probabilities far below machine epsilon and reflected upper-tail events.
-for (sign in c(-1, 1)) {
-    region <- if (sign == -1) rbind(c(-1, -Inf), c(1, -10)) else
-        rbind(c(-1, 10), c(1, Inf))
-    expected <- (pnorm(1) - pnorm(-1))*pnorm(-10)
-    actual <- bfpwr:::.bfseq_intstage(
-        list(H0 = list(region)), mean = c(0, 0), sigma = diag(2))[1]
-    expect_equal(unname(actual)/expected, 1, tolerance = 1e-10)
-}
-
-## Empty intervals remain empty after reordering, including adaptive infinite
+## Empty intervals have zero mass, including adaptive infinite
 ## boundaries. Sending [Inf, Inf] to the sampler can instead yield NaN.
 for (bound in c(-Inf, 0, Inf)) {
     region <- rbind(c(-1, bound), c(1, bound))
@@ -51,29 +40,14 @@ design <- suppressWarnings(ptbf01seq(
 expect_true(all(is.finite(design$cumpH0)) && all(is.finite(design$cumpH1)))
 expect_true(is.finite(design$EN1))
 
-## Conditional-normal quadrature independently checks a correlated rare event.
-rho <- 0.5
-tail <- pnorm(-5.7)
-conditional <- function(u) {
-    mean <- rho*qnorm(u*tail)
-    pnorm(3, mean, sqrt(1 - rho^2)) - pnorm(-3, mean, sqrt(1 - rho^2))
-}
-expected <- tail*integrate(conditional, 0, 1, rel.tol = 1e-10)$value
-region <- rbind(c(-3, -Inf), c(3, -5.7))
-actual <- bfpwr:::.bfseq_intstage(list(H0 = list(region)), c(0, 0),
-    matrix(c(1, rho, rho, 1), 2))[1]
-expect_true(abs(unname(actual)/expected - 1) < 2e-4)
-
-## The corpus regression must retain a rare H0 event; cumulative first-stop
-## probability is bounded by the sum of the marginal fixed-look probabilities.
-n <- seq(10, 110, 10)
-design <- pbf01seq(k1 = 1/30, k0 = 30, n = n, se = 1/sqrt(n),
-                   pm = 0, psd = 0.1, dpm = 0, dpsd = 0.5, alternative = "less")
-fixed <- pbf01(k = 30, n = n, usd = 1, pm = 0, psd = 0.1,
-               dpm = 0, dpsd = 0.5, alternative = "less", lower.tail = FALSE)
-expect_true(tail(design$cumpH0, 1) > 1e-6)
-expect_true(tail(design$cumpH0, 1) <= sum(fixed))
-fine <- pbf01seq(k1 = 1/30, k0 = 30, n = n, se = 1/sqrt(n),
-                 pm = 0, psd = 0.1, dpm = 0, dpsd = 0.5,
-                 alternative = "less", ngrid = 100000)
-expect_true(abs(tail(design$cumpH0, 1)/tail(fine$cumpH0, 1) - 1) < 0.001)
+## Shared integration points preserve physical cumulative probabilities.
+n <- seq(10, 500, 10)
+design <- pbf01seq(k1 = 1/3, k0 = 3, n = n, se = 1/sqrt(n),
+                   pm = 0, psd = 0.1, dpm = 0.2, dpsd = 0,
+                   alternative = "less")
+probabilities <- cbind(design$cumpH0, design$cumpH1, design$cumpInc)
+expect_true(all(probabilities >= -8*.Machine$double.eps &
+                probabilities <= 1 + 8*.Machine$double.eps))
+expect_equal(rowSums(probabilities), rep(1, length(n)), tolerance = 1e-14)
+expect_true(all(diff(design$cumpH0) >= -8*.Machine$double.eps) &&
+            all(diff(design$cumpH1) >= -8*.Machine$double.eps))

@@ -2181,12 +2181,15 @@ bfpwr_sim_mc_reference_diagnostics <- function(rows,
     ## Include these boundary cases in the checks instead of silently dropping
     ## them; retain the original package predictions in the reference results.
     rows$reference_prob <- bfpwr_sim_probability_roundoff(rows$reference_prob)
+    invalid <- sum(!is.finite(rows$reference_prob) |
+                   rows$reference_prob < 0 | rows$reference_prob > 1)
     rows <- rows[is.finite(rows$reference_prob) &
                      rows$reference_prob >= 0 &
                      rows$reference_prob <= 1, , drop = FALSE]
     if (nrow(rows) == 0) {
         return(list(
             summary = data.frame(label = label, rows_checked = 0L,
+                                 invalid_probabilities = invalid,
                                  rows_with_z = 0L,
                                  unsupported_rows = NA_integer_,
                                  exact_p_min = NA_real_,
@@ -2261,6 +2264,7 @@ bfpwr_sim_mc_reference_diagnostics <- function(rows,
     summary <- data.frame(
         label = label,
         rows_checked = nrow(rows),
+        invalid_probabilities = invalid,
         rows_with_z = m,
         unsupported_rows = NA_integer_,
         exact_p_min = min(rows$exact_p, na.rm = TRUE),

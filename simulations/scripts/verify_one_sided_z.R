@@ -47,7 +47,7 @@ probabilities <- combine("probabilities")
 moments <- combine("moments")
 cat("Checking sample-size searches\n")
 searches <- bfpwr_sim_one_sided_z_search(cases, probabilities)
-diagnostics <- bfpwr_sim_one_sided_z_diagnostics(probabilities, moments)
+diagnostics <- bfpwr_sim_one_sided_z_diagnostics(probabilities, moments, cases)
 cat("Checking integration convergence on selected cases\n")
 convergence <- bfpwr_sim_one_sided_z_convergence(cases, probabilities)
 bundle <- c(list(cases = cases, provenance = provenance,
@@ -57,7 +57,8 @@ bundle <- c(list(cases = cases, provenance = provenance,
             diagnostics)
 saveRDS(bundle, file.path(output, "verification.rds"))
 for (name in c("provenance", "probabilities", "searches", "moments",
-               "timings", "bf_checks", "probability_summary", "convergence")) {
+               "timings", "bf_checks", "probability_summary", "convergence",
+               "rare_event_diagnostics")) {
     utils::write.csv(bundle[[name]], file.path(output, paste0(name, ".csv")),
                      row.names = FALSE)
 }
@@ -66,6 +67,7 @@ utils::write.csv(diagnostic_rows[diagnostic_rows$holm_p < 0.01, ],
                  file.path(output, "probability_failures.csv"), row.names = FALSE)
 print(bundle$probability_summary)
 print(bundle$mc_diagnostics$summary)
+print(bundle$required_mc_diagnostics$summary)
 cat("Searches:", nrow(searches), "; invalid:", sum(!searches$search_valid), "\n")
 cat("Moment checks outside tolerance:",
     sum(!bundle$moments$EN_ok), "EN;", sum(!bundle$moments$VarN_ok), "variance\n")

@@ -65,7 +65,9 @@
 #'     predictive distribution defined by \code{se} and the normal design prior
 #'     with \code{dpm} and \code{dpsd}. Integration is performed via
 #'     \code{mvtnorm::lpmvnorm}. This is deterministic numerical integration;
-#'     increasing \code{ngrid} can be used to check convergence. The null value
+#'     increasing \code{ngrid} can be used to check convergence. Very small
+#'     stopping probabilities can be missed by the integration grid; increasing
+#'     its size does not guarantee relative accuracy for rare events. The null value
 #'     and the analysis and design prior means are all specified on the
 #'     original parameter scale, matching
 #'     the fixed-sample z-test functions.

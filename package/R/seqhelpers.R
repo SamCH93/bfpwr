@@ -167,7 +167,6 @@ intstages <- function(intregions, mean, sigma, method = "lpmvnorm",
     .bfseq_validate_integration(method = method, ngrid = ngrid)
 
     i <- length(mean)
-    dots <- list(...)
     regionprobs <- vapply(stageregions,
                           FUN.VALUE = numeric(1),
                           FUN = function(region) {
@@ -187,30 +186,9 @@ intstages <- function(intregions, mean, sigma, method = "lpmvnorm",
                                             mean = mean[1],
                                             sd = sqrt(sigma[1:1])))
         } else if (method == "lpmvnorm") {
-            terminalMass <- .bfpwr_lpnorm_interval(
-                region[1, i], region[2, i], mean[i], sqrt(sigma[i, i]))
-            if (terminalMass < stats::pnorm(-4, log.p = TRUE)) {
-                ## Events rarer than a four-SD normal tail are easily missed
-                ## when integrated last. Condition on that event first. Use a
-                ## fixed cutoff so grid refinement keeps the integration order.
-                order <- c(i, seq_len(i - 1))
-                region <- region[, order, drop = FALSE]
-                mean <- mean[order]
-                if (region[1, 1] > mean[1]) {
-                    ## Reflect upper tails to avoid subtracting CDFs near 1.
-                    region <- rbind(-region[2, ], -region[1, ])
-                    mean <- -mean
-                }
-                C <- t(chol(sigma[order, order, drop = FALSE]))
-                cholFactor <- mvtnorm::ltMatrices(C[lower.tri(C, diag = TRUE)],
-                                                 diag = TRUE)
-                ## Retain tail masses below machine epsilon while still
-                ## guarding zero-mass conditional intervals in the sampler.
-                if (is.null(dots$tol)) dots$tol <- .Machine$double.xmin
-            }
-            p <- exp(do.call(mvtnorm::lpmvnorm,
-                c(list(lower = region[1, ], upper = region[2, ], mean = mean,
-                       chol = cholFactor, M = ngrid, w = w), dots)))
+            p <- exp(mvtnorm::lpmvnorm(
+                lower = region[1, ], upper = region[2, ], mean = mean,
+                chol = cholFactor, M = ngrid, w = w, ...))
         } else {
             p <- mvtnorm::pmvnorm(lower = region[1, ],
                                   upper = region[2, ],

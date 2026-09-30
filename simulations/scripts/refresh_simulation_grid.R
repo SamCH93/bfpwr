@@ -204,18 +204,20 @@ provenance$source_archive_sha256 <- original$provenance$source_archive_sha256
 bundle <- c(list(cases = cases, provenance = provenance,
                  probabilities = probabilities, searches = combine("searches"),
                  timings = combine("timings"), bf_checks = combine("bf_checks")),
-            bfpwr_sim_one_sided_z_diagnostics(probabilities, combine("moments")))
+            bfpwr_sim_one_sided_z_diagnostics(probabilities, combine("moments"), cases))
 cat("Checking integration convergence on selected cases\n")
 bundle$convergence <- bfpwr_sim_one_sided_z_convergence(cases, probabilities)
 saveRDS(bundle, file.path(output, "verification.rds"))
 for (name in c("cases", "provenance", "probabilities", "searches", "moments",
-               "timings", "bf_checks", "probability_summary", "convergence")) {
+               "timings", "bf_checks", "probability_summary", "convergence",
+               "rare_event_diagnostics")) {
     write_csv(bundle[[name]], file.path(output, paste0(name, ".csv")))
 }
 failures <- bundle$mc_diagnostics$diagnostic_rows
 write_csv(failures[failures$holm_p < 0.01, ], file.path(output, "probability_failures.csv"))
 print(bundle$probability_summary)
 print(bundle$mc_diagnostics$summary)
+print(bundle$required_mc_diagnostics$summary)
 cat("Moment failures:", sum(!bundle$moments$EN_ok), "means;",
     sum(!bundle$moments$VarN_ok), "variances\n")
 

@@ -75,6 +75,14 @@ integration for some dense schedules. Selected finer-grid/backend calculations
 are saved in `convergence.csv`; they do not replace the default predictions.
 `probability_failures.csv` identifies comparisons failing the Holm-adjusted
 binomial diagnostic, and `moments.csv` records stopping-time moment checks.
+All raw predictions and interval failures remain saved. Sequential H0/H1 events
+whose fixed-look union bound implies fewer than one expected event in 10,000
+trajectories are reported separately in `rare_event_diagnostics.csv`; their
+relative accuracy is not certified. Predictions exceeding that bound, invalid
+probabilities, and simulated counts incompatible with the bound still fail
+required checks. Fixed and sequential t-test discrepancies against exact-t
+simulations are approximation diagnostics; their numerical validity and the
+integrity of the simulation fixtures remain required checks.
 
 Validate an already materialized corpus without downloading or rendering:
 

@@ -119,7 +119,10 @@ bfpwr_sim_one_sided_z_failures <- function(bundle) {
             bfpwr_sim_probability_roundoff(bundle$probabilities$reference_prob) > 1)) {
         errors <- c(errors, "invalid one-sided probabilities")
     }
-    if (nrow(bundle$mc_diagnostics$failures)) errors <- c(errors,
+    required <- if (is.null(bundle$required_mc_diagnostics)) {
+        bundle$mc_diagnostics
+    } else bundle$required_mc_diagnostics
+    if (nrow(required$failures)) errors <- c(errors,
         "one-sided probabilities outside severe prediction intervals")
     if (anyNA(bundle$searches$search_valid) || any(!bundle$searches$search_valid)) {
         errors <- c(errors, "invalid one-sided sample-size searches")
@@ -318,9 +321,51 @@ bfpwr_sim_one_sided_z_search <- function(cases, probabilities) {
     do.call(rbind, rows)
 }
 
-bfpwr_sim_one_sided_z_diagnostics <- function(probabilities, moments) {
+## A union bound from fixed-look probabilities independently identifies events
+## that the 10,000 trajectories cannot resolve. Keep their original interval
+## failures visible as accuracy diagnostics. Never exempt an invalid prediction,
+## a prediction above the bound, or a simulated count incompatible with it.
+bfpwr_sim_one_sided_z_rare_events <- function(probabilities, cases) {
+    selected <- which(probabilities$mode == "sequential" &
+                      probabilities$outcome %in% c("H0", "H1"))
+    rows <- probabilities[selected, , drop = FALSE]
+    rows$probability_upper_bound <- NA_real_
+    groups <- split(seq_len(nrow(rows)), do.call(paste,
+        c(rows[c("case_id", "schedule", "pair", "outcome")], sep = "\r")))
+    thresholds <- bfpwr_sim_one_sided_z_thresholds()
+    for (indices in groups) {
+        indices <- indices[order(rows$n[indices])]
+        x <- rows[indices[1], ]
+        case <- cases[cases$case_id == x$case_id, ]
+        pair <- thresholds[thresholds$pair == x$pair, ]
+        stopifnot(nrow(case) == 1, nrow(pair) == 1)
+        fixed <- pbf01(k = if (x$outcome == "H1") pair$k1 else pair$k0,
+            n = rows$n[indices], usd = 1, pm = case$pm, psd = case$psd,
+            dpm = case$dpm, dpsd = case$dpsd, alternative = case$alternative,
+            lower.tail = x$outcome == "H1")
+        rows$probability_upper_bound[indices] <- pmin(1, cumsum(fixed))
+    }
+    bound <- rows$probability_upper_bound
+    raw <- rows$reference_prob
+    rare <- is.finite(bound) & bound >= 0 & rows$nsim*bound < 1 &
+        is.finite(raw) & raw >= -8*.Machine$double.eps &
+        raw <= bound + 8*.Machine$double.eps &
+        rows$n_event <= stats::qbinom(1 - 1e-8/2, rows$nsim, bound)
+    rows <- rows[which(rare), , drop = FALSE]
+    rows$expected_events_upper_bound <- rows$nsim*rows$probability_upper_bound
+    rows
+}
+
+bfpwr_sim_one_sided_z_diagnostics <- function(probabilities, moments, cases = NULL) {
     diagnostics <- bfpwr_sim_mc_reference_diagnostics(
         probabilities, label = "one-sided normal z", group_cols = c("mode", "outcome"))
+    rare <- if (is.null(cases)) probabilities[FALSE, ] else
+        bfpwr_sim_one_sided_z_rare_events(probabilities, cases)
+    key <- function(x) do.call(paste,
+        c(x[c("case_id", "mode", "schedule", "pair", "n", "outcome")], sep = "\r"))
+    required <- bfpwr_sim_mc_reference_diagnostics(
+        probabilities[!key(probabilities) %in% key(rare), ],
+        label = "one-sided normal z: resolved events", group_cols = c("mode", "outcome"))
     summaries <- lapply(split(probabilities, probabilities$mode), function(x) {
         diagnostic_prob <- bfpwr_sim_probability_roundoff(x$reference_prob)
         data.frame(mode = x$mode[1], comparisons = nrow(x),
@@ -337,7 +382,8 @@ bfpwr_sim_one_sided_z_diagnostics <- function(probabilities, moments) {
     moments$VarN_ok <- abs(moments$VarN_error) <=
         pmax(5*moments$mcse_VarN, 0.002*moments$n^2)
     list(probability_summary = do.call(rbind, summaries),
-         mc_diagnostics = diagnostics, moments = moments)
+         mc_diagnostics = diagnostics, required_mc_diagnostics = required,
+         rare_event_diagnostics = rare, moments = moments)
 }
 
 ## Follow up representative discrepancies without changing the default results
