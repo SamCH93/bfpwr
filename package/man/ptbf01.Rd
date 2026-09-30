@@ -19,8 +19,8 @@ ptbf01(
   alternative = c("two.sided", "less", "greater"),
   lower.tail = TRUE,
   drange = "adaptive",
-  tail.eps = .bfpwr_defaults$tail.eps,
-  tail.nquad = .bfpwr_defaults$tail.nquad,
+  tail.eps = getOption("bfpwr.tail.eps", 1e-06),
+  tail.nquad = getOption("bfpwr.tail.nquad", 512),
   ...
 )
 }
@@ -90,6 +90,7 @@ together with \code{stop.on.error} and \code{keep.xy}, are passed to
 \code{check.conv} from \code{stats::uniroot}. One-sided scouting uses
 a looser integral unless \code{rel.tol} is supplied; returned roots are
 checked against the final integral with the requested accuracy.
+Session defaults can be changed with \link{bfpwrOptions}.
 These controls reduce numerical error within the normal predictive
 approximation; they do not remove that approximation.}
 }

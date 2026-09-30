@@ -3,8 +3,8 @@ ptbf01. <- function(k, n, n1 = n, n2 = n, null = 0, plocation = 0,
                     type = c("two.sample", "one.sample", "paired"),
                     alternative = c("two.sided", "less", "greater"),
                     lower.tail = TRUE, drange = "adaptive",
-                    tail.eps = .bfpwr_defaults$tail.eps,
-                    tail.nquad = .bfpwr_defaults$tail.nquad, ...) {
+                    tail.eps = getOption("bfpwr.tail.eps", 1e-6),
+                    tail.nquad = getOption("bfpwr.tail.nquad", 512), ...) {
     ## input checks
     stopifnot(
         length(k) == 1,
@@ -84,6 +84,7 @@ ptbf01. <- function(k, n, n1 = n, n2 = n, null = 0, plocation = 0,
 
     ## determine effect estimate region where BF < k for specified sample size
     dots <- list(...)
+    .bfpwr_validate_controls(dots)
     integrateDots <- .bfpwr_integrate_dots(dots = dots)
     searchDots <- .bfpwr_integrate_dots(dots = dots,
                                         rel.tol.default = 1e-2)
@@ -405,6 +406,7 @@ ptbf01. <- function(k, n, n1 = n, n2 = n, null = 0, plocation = 0,
 #'     \code{check.conv} from \code{stats::uniroot}. One-sided scouting uses
 #'     a looser integral unless \code{rel.tol} is supplied; returned roots are
 #'     checked against the final integral with the requested accuracy.
+#'     Session defaults can be changed with \link{bfpwrOptions}.
 #'     These controls reduce numerical error within the normal predictive
 #'     approximation; they do not remove that approximation.
 #'

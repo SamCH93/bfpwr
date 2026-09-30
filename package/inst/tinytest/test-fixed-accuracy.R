@@ -59,14 +59,14 @@ seqargs <- list(k1 = 0.1, k0 = 3, dpm = 0.5, dpsd = 0,
                 alternative = "greater", type = "one.sample",
                 bf.control = controls, ngrid = 1000)
 seq <- do.call(ptbf01seq, c(seqargs, list(n = c(30, 60))))
-expect_equal(seq$integration$bf.control, controls)
+expect_equal(seq$integration$bf.control[names(controls)], controls)
 expect_equal(seq$cumpH1[1], do.call(ptbf01,
     c(targs[names(targs) != "n"], controls, list(n = 30, type = "one.sample"))),
     tolerance = 1e-8)
 search <- do.call(ntbf01seq, c(seqargs, list(power = tail(seq$cumpH1, 1),
     nrange = c(30, 60), minN = 30, by = 30, details = TRUE)))
 expect_equal(search$result$zk1, seq$zk1, tolerance = 1e-10)
-expect_equal(search$result$integration$bf.control, controls)
+expect_equal(search$result$integration$bf.control[names(controls)], controls)
 expect_error(ptbf01seq(n = c(30, 60), bf.control = list(ngrid = 1000)))
 
 ## The stable fallback also converges with its separate node control.

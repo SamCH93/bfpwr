@@ -11,7 +11,8 @@
 #'     directly compute the sample size for a fixed power) and \link{pbf01} (to
 #'     directly compute the power for a fixed sample size) may also be useful
 #'     because they can be used for other data and parameter types.
-#'     The normal design prior is not truncated for one-sided alternatives.
+#'     The sample-size tolerance \code{tol} is used only when a numerical
+#'     search is required; an analytical solution does not use it.
 #'
 #' @inherit nbf01 note
 #' @inheritParams bf01
@@ -45,7 +46,7 @@
 #'     Defaults to \code{c(1, 10^5)}
 #'
 #' @param tol Numerical tolerance for sample-size root searches. Defaults to
-#'     \code{1e-8}. Ignored when the sample size has an analytical solution.
+#'     \code{getOption("bfpwr.tol", 1e-8)}.
 #'
 #' @return Object of class \code{"power.bftest"}, a list of the arguments
 #'     (including the computed one) augmented with \code{method} and \code{note}
@@ -71,7 +72,7 @@ powerbf01 <- function(n = NULL, power = NULL, k = 1/10, sd = 1, null = 0, pm,
                       psd, type = c("two.sample", "one.sample", "paired"),
                       dpm = pm, dpsd = psd, nrange = c(1, 10^5),
                       alternative = c("two.sided", "less", "greater"),
-                      tol = .bfpwr_defaults$tol) {
+                      tol = getOption("bfpwr.tol", 1e-8)) {
     ## input checks
     if (is.null(n) && is.null(power)) {
         stop("exactly one of 'n' and 'power' must be NULL")
@@ -246,7 +247,7 @@ print.power.bftest <- function(x, digits = getOption("digits"), ...) {
         if (!is.null(x$alternative) && x$alternative != "two.sided") {
             printx$alternative <- x$alternative
             if (x$psd > 0) {
-                note <- paste(note, "analysis prior mean and sd are before truncation at null",
+                note <- paste(note, "prior parameters are before truncation",
                               sep = "\n      ")
             }
         }
@@ -346,7 +347,7 @@ plot.power.bftest <- function(x, nlim = c(2, 500), ngrid = 100, type = "l",
         !is.na(nullplot)
     )
 
-    tol <- if (is.null(x$tol)) .bfpwr_defaults$tol else x$tol
+    tol <- if (is.null(x$tol)) getOption("bfpwr.tol", 1e-8) else x$tol
 
     if (x$test == "z") {
         ## determine unit standard deviation
@@ -390,10 +391,10 @@ plot.power.bftest <- function(x, nlim = c(2, 500), ngrid = 100, type = "l",
                        lower.tail = FALSE, nrange = x$nrange, tol = tol)
     } else if (x$test == "t") {
         tail.eps <- if (is.null(x$tail.eps)) {
-            .bfpwr_defaults$tail.eps
+            getOption("bfpwr.tail.eps", 1e-6)
         } else x$tail.eps
         tail.nquad <- if (is.null(x$tail.nquad)) {
-            .bfpwr_defaults$tail.nquad
+            getOption("bfpwr.tail.nquad", 512)
         } else {
             x$tail.nquad
         }

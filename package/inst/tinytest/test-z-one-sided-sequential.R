@@ -71,8 +71,20 @@ for (alternative in c("greater", "less")) {
     expect_equal(design$alternative, alternative)
     expect_equal(length(design$zk1), length(n))
     printed <- capture.output(print(design))
-    expect_true(any(grepl(paste0("parameter ", if (direction == 1) ">" else "<"),
+    expect_true(any(grepl(paste0("^H1: +parameter +",
+                                if (direction == 1) ">" else "<"), printed)))
+    expect_true(any(grepl(if (direction == 1) "_+" else "_-",
                          printed, fixed = TRUE)))
+}
+
+## The compact suffix retains an explicit cutoff for a nonzero null.
+for (alternative in c("greater", "less")) {
+    design <- pbf01seq(k1 = 0.1, n = 30, se = 1/sqrt(30), null = 2,
+                       pm = 2, psd = 1, dpm = 2, dpsd = 0,
+                       alternative = alternative)
+    prior <- grep("^Analysis prior:", capture.output(print(design)), value = TRUE)
+    expect_true(grepl(if (alternative == "greater") "_+; > 2" else "_-; < 2",
+                     prior, fixed = TRUE))
 }
 
 ## Both cached search paths must use one-sided boundaries and return a design

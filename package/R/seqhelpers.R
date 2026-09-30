@@ -83,7 +83,7 @@ predpars <- function(se, null = 0, dpm, dpsd) {
 #' intstages(intregions = intregions, mean = mean, sigma = sigma)
 
 intstages <- function(intregions, mean, sigma, method = "lpmvnorm",
-                      ngrid = .bfpwr_defaults$ngrid, ...) {
+                      ngrid = getOption("bfpwr.ngrid", 10000), ...) {
     stopifnot(
         is.list(intregions),
         is.numeric(mean),
@@ -129,7 +129,7 @@ intstages <- function(intregions, mean, sigma, method = "lpmvnorm",
 ## Integrate H1 and H0 regions for one terminal stage. Both events share the
 ## same predictive covariance, so prepare the factorization and grid once.
 .bfseq_intstage <- function(regions, mean, sigma, method = "lpmvnorm",
-                            ngrid = .bfpwr_defaults$ngrid, ...) {
+                            ngrid = getOption("bfpwr.ngrid", 10000), ...) {
     stopifnot(
         is.list(regions),
         is.numeric(mean),
@@ -162,7 +162,7 @@ intstages <- function(intregions, mean, sigma, method = "lpmvnorm",
 .bfseq_intstage_sum <- function(stageregions, mean, sigma,
                                 method = "lpmvnorm", cholFactor = NULL,
                                 w = NULL,
-                                ngrid = .bfpwr_defaults$ngrid, ...) {
+                                ngrid = getOption("bfpwr.ngrid", 10000), ...) {
     stopifnot(is.list(stageregions))
     .bfseq_validate_integration(method = method, ngrid = ngrid)
 
@@ -236,7 +236,7 @@ intstages <- function(intregions, mean, sigma, method = "lpmvnorm",
     ngrid <- if ("ngrid" %in% names(dots)) {
         dots[["ngrid"]]
     } else {
-        .bfpwr_defaults$ngrid
+        getOption("bfpwr.ngrid", 10000)
     }
     .bfseq_validate_integration(method = method, ngrid = ngrid)
     c(list(method = method, ngrid = as.integer(ngrid)),
@@ -622,7 +622,7 @@ zcrit <- function(k, se, null = 0, mu = NULL, tau,
             }
             ## On the reflected scale BF01 decreases strictly from Inf to 0.
             return(direction*stats::uniroot(rootFun, interval = c(-1, 1),
-                                            extendInt = "downX", tol = 1e-10,
+                                            extendInt = "downX", tol = .bf01_boundary_tol,
                                             maxiter = 1000)$root)
         }
         if (tau == 0) {

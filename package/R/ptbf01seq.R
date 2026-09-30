@@ -70,8 +70,8 @@ ptbf01seq <- function(k1, k0 = 1/k1, n, n1 = n, n2 = n, plocation = 0,
                       type = c("two.sample", "one.sample", "paired"),
                       alternative = c("two.sided", "less", "greater"),
                       strict = TRUE, trange = "adaptive",
-                      tail.eps = .bfpwr_defaults$tail.eps,
-                      tail.nquad = .bfpwr_defaults$tail.nquad, ...) {
+                      tail.eps = getOption("bfpwr.tail.eps", 1e-6),
+                      tail.nquad = getOption("bfpwr.tail.nquad", 512), ...) {
 
     ## input checks
     stopifnot(

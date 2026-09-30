@@ -16,7 +16,7 @@ powernmbf01(
   dpm,
   dpsd,
   nrange = c(1, 10^5),
-  tol = .bfpwr_defaults$tol
+  tol = getOption("bfpwr.tol", 1e-08)
 )
 }
 \arguments{
@@ -54,7 +54,7 @@ performed (only taken into account when \code{n} is \code{NULL}).
 Defaults to \code{c(1, 10^5)}}
 
 \item{tol}{Numerical tolerance for sample-size root searches. Defaults to
-\code{1e-8}. Ignored when the sample size has an analytical solution.}
+\code{getOption("bfpwr.tol", 1e-8)}.}
 }
 \value{
 Object of class \code{"power.bftest"}, a list of the arguments

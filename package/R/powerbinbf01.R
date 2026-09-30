@@ -44,7 +44,7 @@
 powerbinbf01 <- function(n = NULL, power = NULL, k = 1/10, p0 = 0.5,
                          type = c("point", "direction"), a = 1, b = 1, dp = NA,
                          da = a, db = b, dl = 0, du = 1, nrange = c(1, 10^4),
-                         tol = .bfpwr_defaults$tol) {
+                         tol = getOption("bfpwr.tol", 1e-8)) {
     ## input checks
     if (is.null(n) && is.null(power)) {
         stop("exactly one of 'n' and 'power' must be NULL")
@@ -81,7 +81,7 @@ powerbinbf01 <- function(n = NULL, power = NULL, k = 1/10, p0 = 0.5,
     ## return object
     structure(list(n = n, power = power, p0 = p0, type = type, a = a, b = b,
                    dp = dp, da = da, db = db, dl = dl, du = du, k = k,
-                   nrange = nrange, type = type, test = "binomial", tol = tol),
+                   nrange = nrange, test = "binomial", tol = tol),
               class = "power.bftest")
 
 }

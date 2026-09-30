@@ -18,7 +18,7 @@
 #'
 #' @keywords internal
 
-searchN <- function(rootFun, nrange, tol = .bfpwr_defaults$tol, ...) {
+searchN <- function(rootFun, nrange, tol = getOption("bfpwr.tol", 1e-8), ...) {
     ## check boundaries of sample size search range
     lower <- rootFun(nrange[1])
     upper <- rootFun(nrange[2])

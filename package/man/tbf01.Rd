@@ -15,7 +15,7 @@ tbf01(
   type = c("two.sample", "one.sample", "paired"),
   alternative = c("two.sided", "less", "greater"),
   log = FALSE,
-  tail.nquad = .bfpwr_defaults$tail.nquad,
+  tail.nquad = getOption("bfpwr.tail.nquad", 512),
   ...
 )
 }
@@ -55,7 +55,8 @@ a two-dimensional product rule).}
 \item{...}{Additional arguments passed to \code{stats::integrate} for the
 direct one-dimensional Bayes factor integral. Defaults are
 \code{rel.tol = 1e-8}, \code{abs.tol = rel.tol}, and
-\code{subdivisions = 1000}.}
+\code{subdivisions = 1000}.
+Session defaults can be changed with \link{bfpwrOptions}.}
 }
 \value{
 Bayes factor in favor of the null hypothesis over the alternative

@@ -18,7 +18,7 @@ powerbinbf01(
   dl = 0,
   du = 1,
   nrange = c(1, 10^4),
-  tol = .bfpwr_defaults$tol
+  tol = getOption("bfpwr.tol", 1e-08)
 )
 }
 \arguments{
@@ -68,7 +68,7 @@ performed (only taken into account when \code{n} is \code{NULL}).
 Defaults to \code{c(1, 10^3)}}
 
 \item{tol}{Numerical tolerance for sample-size root searches. Defaults to
-\code{1e-8}. Ignored when the sample size has an analytical solution.}
+\code{getOption("bfpwr.tol", 1e-8)}.}
 }
 \value{
 Object of class \code{"power.bftest"}, a list of the arguments

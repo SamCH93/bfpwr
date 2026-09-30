@@ -81,27 +81,42 @@
         silent = TRUE)
 }
 
+## Check user controls before routing the supported union to each algorithm.
+.bfpwr_validate_controls <- function(controls, root = TRUE) {
+    supported <- c("rel.tol", "abs.tol", "subdivisions", "stop.on.error", "keep.xy")
+    if (root) supported <- c(supported, "tol", "maxiter", "trace", "check.conv")
+    if (!is.list(controls) || length(names(controls)) != length(controls) ||
+        any(!names(controls) %in% supported) || anyDuplicated(names(controls))) {
+        stop("numerical controls must have unique, supported names: ",
+             paste(supported, collapse = ", "))
+    }
+    for (name in names(controls)) {
+        value <- controls[[name]]
+        valid <- if (name %in% c("stop.on.error", "keep.xy", "check.conv")) {
+            length(value) == 1 && is.logical(value) && !is.na(value)
+        } else {
+            length(value) == 1 && is.numeric(value) && is.finite(value) &&
+                value >= 0
+        }
+        if (valid && name %in% c("subdivisions", "maxiter", "trace")) {
+            valid <- value == floor(value) &&
+                value >= (if (name == "trace") 0 else 1)
+        }
+        if (!valid) stop("invalid numerical control: ", name)
+    }
+    invisible(controls)
+}
+
 ## Keep only integrate() controls from dots so root-search controls are not
 ## accidentally forwarded to numerical integration.
-.bfpwr_integrate_dots <- function(dots, rel.tol.default = .bfpwr_defaults$rel.tol) {
-    if (length(dots) == 0) {
-        out <- list()
-    } else {
-        dot_names <- names(dots)
-        if (is.null(dot_names)) {
-            out <- list()
-        } else {
-            integrate_names <- c("subdivisions", "rel.tol", "abs.tol",
-                                 "stop.on.error", "keep.xy")
-            keep <- nzchar(dot_names) & dot_names %in% integrate_names
-            out <- dots[keep]
-        }
-    }
+.bfpwr_integrate_dots <- function(dots, rel.tol.default = getOption("bfpwr.rel.tol", 1e-8)) {
+    out <- dots[names(dots) %in% c("subdivisions", "rel.tol", "abs.tol",
+                                  "stop.on.error", "keep.xy")]
     if (!is.null(rel.tol.default) && !("rel.tol" %in% names(out))) {
         out$rel.tol <- rel.tol.default
     }
     if (is.null(out$abs.tol)) out$abs.tol <- out$rel.tol
-    if (is.null(out$subdivisions)) out$subdivisions <- .bfpwr_defaults$subdivisions
+    if (is.null(out$subdivisions)) out$subdivisions <- getOption("bfpwr.subdivisions", 1000)
     out
 }
 
@@ -109,7 +124,7 @@
 .bfpwr_uniroot_dots <- function(dots) {
     keep_names <- c("tol", "maxiter", "trace", "check.conv")
     out <- dots[names(dots) %in% keep_names]
-    if (is.null(out$tol)) out$tol <- .bfpwr_defaults$tol
+    if (is.null(out$tol)) out$tol <- getOption("bfpwr.tol", 1e-8)
     out
 }
 
@@ -117,15 +132,9 @@
 ## different meaning. Keep BF integration and boundary-root controls together.
 .bfpwr_t_boundary_controls <- function(dots) {
     controls <- dots$bf.control
-    if (is.null(controls)) return(list())
-    supported <- c("rel.tol", "abs.tol", "subdivisions", "stop.on.error",
-                   "keep.xy", "tol", "maxiter", "trace", "check.conv")
-    if (!is.list(controls) ||
-        length(names(controls)) != length(controls) ||
-        any(!names(controls) %in% supported) || anyDuplicated(names(controls))) {
-        stop("'bf.control' must be a named list of integrate() and uniroot() controls")
-    }
-    controls
+    if (is.null(controls)) controls <- list()
+    .bfpwr_validate_controls(controls)
+    c(.bfpwr_uniroot_dots(controls), .bfpwr_integrate_dots(controls))
 }
 
 ## Locate the maximum that separates the two roots of a two-sided BF. Centered
@@ -1101,7 +1110,7 @@
 #' @keywords internal
 tcrit <- function(k, n1, n2, plocation, pscale, pdf, type, alternative,
                   trange = "adaptive", search_limit = NULL,
-                  tail.nquad = .bfpwr_defaults$tail.nquad, ...) {
+                  tail.nquad = getOption("bfpwr.tail.nquad", 512), ...) {
 
     ## determine t-statistic for which BF = k
     dots <- list(...)

@@ -1,5 +1,7 @@
 # bfpwr 0.3
 
+- add `bfpwrOptions()` to inspect and change session numerical settings;
+  explicit arguments take precedence and saved designs retain their controls
 - add point-null one-sided z-tests with truncated normal analysis priors via
   `alternative = "less"` or `"greater"`, including fixed and sequential
   power and sample-size calculations

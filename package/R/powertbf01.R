@@ -49,8 +49,8 @@ powertbf01 <- function(n = NULL, power = NULL, k = 1/10, null = 0,
                        alternative = c("two.sided", "less", "greater"),
                        dpm = plocation, dpsd = pscale, nrange = c(2, 10^4),
                        ratio = 1, drange = "adaptive",
-                       tail.eps = .bfpwr_defaults$tail.eps,
-                       tail.nquad = .bfpwr_defaults$tail.nquad, ...) {
+                       tail.eps = getOption("bfpwr.tail.eps", 1e-6),
+                       tail.nquad = getOption("bfpwr.tail.nquad", 512), ...) {
     ## input checks
     if (is.null(n) == is.null(power)) {
         stop("exactly one of 'n' and 'power' must be NULL")

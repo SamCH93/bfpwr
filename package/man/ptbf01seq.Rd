@@ -19,8 +19,8 @@ ptbf01seq(
   alternative = c("two.sided", "less", "greater"),
   strict = TRUE,
   trange = "adaptive",
-  tail.eps = .bfpwr_defaults$tail.eps,
-  tail.nquad = .bfpwr_defaults$tail.nquad,
+  tail.eps = getOption("bfpwr.tail.eps", 1e-06),
+  tail.nquad = getOption("bfpwr.tail.nquad", 512),
   ...
 )
 }

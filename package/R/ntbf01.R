@@ -4,8 +4,8 @@ ntbf01. <- function(k, power, null = 0, plocation = 0, pscale = 1/sqrt(2),
                     dpm = plocation, dpsd = pscale, lower.tail = TRUE,
                     integer = TRUE, nrange = c(2, 10^4),
                     ratio = 1, drange = "adaptive",
-                    tail.eps = .bfpwr_defaults$tail.eps,
-                    tail.nquad = .bfpwr_defaults$tail.nquad, ...) {
+                    tail.eps = getOption("bfpwr.tail.eps", 1e-6),
+                    tail.nquad = getOption("bfpwr.tail.nquad", 512), ...) {
     ## input checks
     stopifnot(
         length(k) == 1,

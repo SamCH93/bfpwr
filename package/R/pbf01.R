@@ -141,6 +141,9 @@ pbf01. <- function(k, n, usd, null = 0, pm, psd, dpm = pm, dpsd = psd,
 #'     \code{sd}\sqrt{2}}{usd = sd*sqrt(2)}. See the vignette for more
 #'     information.
 #'
+#' @note For a one-sided alternative, the normal design prior remains
+#'     untruncated; truncation applies only to the analysis prior.
+#'
 #' @return The probability that the Bayes factor is less or greater (depending
 #'     on the specified \code{lower.tail}) than the specified threshold \code{k}
 #'

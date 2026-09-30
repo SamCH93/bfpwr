@@ -75,15 +75,14 @@ For a one-sided alternative, the normal analysis prior is restricted to
 values below \code{null} (\code{"less"}) or above \code{null}
 (\code{"greater"}) and renormalized. \code{pm} and \code{psd} describe
 the normal distribution before truncation. A point prior
-(\code{psd = 0}) must lie strictly on the specified side of \code{null}.
-In power and sample-size calculations, the normal design prior is
-not truncated.}
+(\code{psd = 0}) must lie strictly on the specified side of \code{null}.}
 
 \item{...}{Numerical integration controls. Use \code{ngrid} to set the
 number of deterministic Halton grid points used by
 \code{mvtnorm::lpmvnorm} (default \code{10000}). Alternatively, set
 \code{method = "pmvnorm"} and pass controls for
-\code{mvtnorm::pmvnorm}.}
+\code{mvtnorm::pmvnorm}. Session defaults can be changed with
+\link{bfpwrOptions}; explicit controls take precedence.}
 }
 \value{
 An object of class \code{"bfseqdesign"}, which is a list containing

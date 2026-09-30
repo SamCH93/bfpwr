@@ -37,7 +37,7 @@
 #' @export
 powernmbf01 <- function(n = NULL, power = NULL, k = 1/10, sd = 1, null = 0, psd,
                         type = c("two.sample", "one.sample", "paired"), dpm,
-                        dpsd, nrange = c(1, 10^5), tol = .bfpwr_defaults$tol) {
+                        dpsd, nrange = c(1, 10^5), tol = getOption("bfpwr.tol", 1e-8)) {
     ## input checks
     if (is.null(n) && is.null(power)) {
         stop("exactly one of 'n' and 'power' must be NULL")

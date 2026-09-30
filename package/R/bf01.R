@@ -59,6 +59,10 @@ bf01. <- function(estimate, se, null = 0, pm, psd, log = FALSE,
 }
 
 
+## Separate from sample-size tol: resolving a z boundary near a point prior
+## needs this accuracy even when the outer sample-size search is coarser.
+.bf01_boundary_tol <- 1e-10
+
 ## log(Phi(x)) + x^2/2, using the normal-tail expansion to avoid subtracting
 ## nearly equal large numbers when x is far into the negative tail.
 .bf01_log_scaled_pnorm <- function(x) {
@@ -85,16 +89,15 @@ bf01. <- function(estimate, se, null = 0, pm, psd, log = FALSE,
         priorQ <- 1/priorZ^2
         posteriorQ <- 1/posteriorZ^2
         deltaQ <- priorQ*(2*shift + shift^2 - r2)/(1 + shift)^2
-        coefficients <- c(-1, 3, -15, 105, -945, 10395)
-        posteriorSeries <- difference <- 0
-        powerSum <- 1
-        for (i in seq_along(coefficients)) {
-            posteriorSeries <- posteriorSeries + coefficients[i]*posteriorQ^i
-            ## (a^i - b^i)/(a - b) = a^(i-1) + ... + b^(i-1).
-            difference <- difference + coefficients[i]*powerSum
-            powerSum <- posteriorQ*powerSum + priorQ^i
+        ## Horner's rule evaluates P(posteriorQ) and the divided difference
+        ## (P(priorQ) - P(posteriorQ))/(priorQ - posteriorQ) together.
+        ## No subtraction of almost equal polynomial values is needed.
+        posteriorPoly <- difference <- 0
+        for (coefficient in c(10395, -945, 105, -15, 3, -1, 1)) {
+            difference <- posteriorPoly + priorQ*difference
+            posteriorPoly <- coefficient + posteriorQ*posteriorPoly
         }
-        return(log1p(shift) + log1p(deltaQ*difference/(1 + posteriorSeries)))
+        return(log1p(shift) + log1p(deltaQ*difference/posteriorPoly))
     }
     if (priorZ >= 0 && posteriorZ >= 0) {
         ## Expanded normal BF avoids cancellation for narrow shifted priors.
@@ -133,8 +136,6 @@ bf01. <- function(estimate, se, null = 0, pm, psd, log = FALSE,
 #'     (\code{"greater"}) and renormalized. \code{pm} and \code{psd} describe
 #'     the normal distribution before truncation. A point prior
 #'     (\code{psd = 0}) must lie strictly on the specified side of \code{null}.
-#'     In power and sample-size calculations, the normal design prior is
-#'     not truncated.
 #'
 #' @return Bayes factor in favor of the null hypothesis over the alternative
 #'     (\eqn{\text{BF}_{01}}{BF01} > 1 indicates evidence for the null

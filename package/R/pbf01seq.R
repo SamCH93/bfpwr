@@ -50,7 +50,8 @@
 #'     number of deterministic Halton grid points used by
 #'     \code{mvtnorm::lpmvnorm} (default \code{10000}). Alternatively, set
 #'     \code{method = "pmvnorm"} and pass controls for
-#'     \code{mvtnorm::pmvnorm}.
+#'     \code{mvtnorm::pmvnorm}. Session defaults can be changed with
+#'     \link{bfpwrOptions}; explicit controls take precedence.
 #'
 #' @return An object of class \code{"bfseqdesign"}, which is a list containing
 #'     the input arguments, the critical z-values, the expected sample size, the
@@ -346,10 +347,16 @@ print.bfseqdesign <- function(x, digits = max(3L, getOption("digits") - 3L), ...
                              " ~ N(mean = ", round(x$pm, digits = digits),
                              ", sd = ", round(x$psd, digits = digits), ")")
             if (identical(x$alternative, "greater")) {
-                aprior <- paste0(aprior, " restricted to parameter > ", round(znull, digits))
+                aprior <- paste0(aprior, "_+")
             }
             if (identical(x$alternative, "less")) {
-                aprior <- paste0(aprior, " restricted to parameter < ", round(znull, digits))
+                aprior <- paste0(aprior, "_-")
+            }
+            if (znull != 0 && (identical(x$alternative, "greater") ||
+                               identical(x$alternative, "less"))) {
+                aprior <- paste0(aprior, "; ",
+                    if (x$alternative == "greater") "> " else "< ",
+                    round(znull, digits))
             }
         }
     } else {
@@ -531,10 +538,10 @@ plot.bfseqdesign <- function(x, plot = TRUE, nullplot = TRUE, zplot = FALSE,
         if (nullplot == TRUE) {
             if (x$test == "t") {
                 tail.eps <- if (is.null(x$tail.eps)) {
-                    .bfpwr_defaults$tail.eps
+                    getOption("bfpwr.tail.eps", 1e-6)
                 } else x$tail.eps
                 tail.nquad <- if (is.null(x$tail.nquad)) {
-                    .bfpwr_defaults$tail.nquad
+                    getOption("bfpwr.tail.nquad", 512)
                 } else {
                     x$tail.nquad
                 }

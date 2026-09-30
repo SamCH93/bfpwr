@@ -1,6 +1,15 @@
 ## Shared builders for sequential BF design objects
 ## -----------------------------------------------------------------------------
 
+.bfseq_region_direction <- function(alternative) {
+    switch(alternative, greater = "positive", less = "negative", NULL)
+}
+
+.bfseq_z_one_critical <- function(type, psd, alternative) {
+    type == "directional" ||
+        (type == "normal" && (psd == 0 || alternative != "two.sided"))
+}
+
 ## Collect per-look standard errors and BF critical values in the shape needed
 ## by the region generators.
 .bfseq_boundary_data <- function(bounds, oneCritical) {
@@ -87,13 +96,8 @@
                                   dpm, dpsd, type, strict, dots,
                                   getBoundary = NULL, evalStage = NULL,
                                   alternative = "two.sided") {
-    oneCritical <- (type == "normal" &&
-                    (psd == 0 || alternative != "two.sided")) || type == "directional"
-    regionDirection <- if (alternative == "greater") {
-        "positive"
-    } else if (alternative == "less") {
-        "negative"
-    } else NULL
+    oneCritical <- .bfseq_z_one_critical(type, psd, alternative)
+    regionDirection <- .bfseq_region_direction(alternative)
     integration <- .bfseq_integration_settings(dots)
 
     if (is.null(getBoundary)) {
@@ -155,14 +159,9 @@
                                   evalStage = NULL) {
     oneCritical <- alternative != "two.sided"
     integration <- .bfseq_integration_settings(dots)
+    integration$bf.control <- .bfpwr_t_boundary_controls(dots)
     probabilityDots <- dots[!names(dots) %in% "bf.control"]
-    regionDirection <- if (alternative == "greater") {
-        "positive"
-    } else if (alternative == "less") {
-        "negative"
-    } else {
-        NULL
-    }
+    regionDirection <- .bfseq_region_direction(alternative)
 
     boundaries <- .bfseq_boundary_data(bounds = bounds,
                                        oneCritical = oneCritical)

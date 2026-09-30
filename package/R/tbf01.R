@@ -40,8 +40,8 @@
 }
 
 .tbf01_log_fast <- function(t, df, neff, plocation, pscale, pdf, region,
-                            rel.tol = .bfpwr_defaults$rel.tol, abs.tol = rel.tol,
-                            subdivisions = .bfpwr_defaults$subdivisions, ...) {
+                            rel.tol = getOption("bfpwr.rel.tol", 1e-8), abs.tol = rel.tol,
+                            subdivisions = getOption("bfpwr.subdivisions", 1000), ...) {
     ## Original one-dimensional integral, evaluated on a centered log scale.
     if (!is.finite(region$log_norm_const)) {
         return(NaN)
@@ -168,13 +168,10 @@
     -.bfpwr_logspace_sum(logTerms)
 }
 
-.tbf01_needs_exact_path <- function(t, alternative, log_bf) {
+.tbf01_wrong_tail <- function(t, alternative) {
     ## Use the slower path only where the direct integral is unreliable. The
     ## cutoff is empirical: it catches the observed wrong-tail underflow cases
     ## without slowing down ordinary one-sided calculations.
-    if (!is.finite(log_bf)) {
-        return(TRUE)
-    }
     if (alternative == "greater" && t <= -.tbf01_tail_quadrature_cutoff) {
         return(TRUE)
     }
@@ -187,7 +184,7 @@
 tbf01. <- function(t, n, n1 = n, n2 = n, plocation = 0, pscale = 1/sqrt(2),
                    pdf = 1, type = c("two.sample", "one.sample",  "paired"),
                    alternative = c("two.sided", "less", "greater"), log = FALSE,
-                   tail.nquad = .bfpwr_defaults$tail.nquad,
+                   tail.nquad = getOption("bfpwr.tail.nquad", 512),
                    ...) {
     ## input checks
     stopifnot(
@@ -227,6 +224,7 @@ tbf01. <- function(t, n, n1 = n, n2 = n, plocation = 0, pscale = 1/sqrt(2),
     )
     type <- match.arg(type)
     alternative <- match.arg(alternative)
+    .bfpwr_validate_controls(list(...), root = FALSE)
     if (type != "two.sample") {
         if (n1 != n2) {
             warning(paste0('different n1 and n2 supplied but type set to "', type,
@@ -241,13 +239,12 @@ tbf01. <- function(t, n, n1 = n, n2 = n, plocation = 0, pscale = 1/sqrt(2),
     ## Skip the direct integral where it is known to be unreliable, rather
     ## than spending its integration budget before using stable quadrature.
     log_bf <- NaN
-    if (!.tbf01_needs_exact_path(t, alternative, log_bf = 0)) {
+    if (!.tbf01_wrong_tail(t, alternative)) {
         log_bf <- .tbf01_log_fast(t = t, df = pars$df, neff = pars$neff,
                                   plocation = plocation, pscale = pscale,
                                   pdf = pdf, region = region, ...)
     }
-    if (.tbf01_needs_exact_path(t = t, alternative = alternative,
-                                log_bf = log_bf)) {
+    if (!is.finite(log_bf)) {
         log_bf <- .tbf01_log_tail_quadrature(
             t = t, df = pars$df, neff = pars$neff, plocation = plocation,
             pscale = pscale, pdf = pdf, region = region,
@@ -316,6 +313,7 @@ tbf01. <- function(t, n, n1 = n, n2 = n, plocation = 0, pscale = 1/sqrt(2),
 #'     direct one-dimensional Bayes factor integral. Defaults are
 #'     \code{rel.tol = 1e-8}, \code{abs.tol = rel.tol}, and
 #'     \code{subdivisions = 1000}.
+#'     Session defaults can be changed with \link{bfpwrOptions}.
 #'
 #' @inherit bf01 return
 #'

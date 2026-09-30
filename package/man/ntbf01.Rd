@@ -20,8 +20,8 @@ ntbf01(
   nrange = c(2, 10^4),
   ratio = 1,
   drange = "adaptive",
-  tail.eps = .bfpwr_defaults$tail.eps,
-  tail.nquad = .bfpwr_defaults$tail.nquad,
+  tail.eps = getOption("bfpwr.tail.eps", 1e-06),
+  tail.nquad = getOption("bfpwr.tail.nquad", 512),
   ...
 )
 }

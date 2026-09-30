@@ -856,13 +856,8 @@
 .bfseq_z_schedule_evaluator <- function(k1, k0, usd, null, pm, psd, dpm,
                                          dpsd, type, target, schedule,
                                          strict, dots, alternative = "two.sided") {
-    oneCritical <- (type == "normal" &&
-                    (psd == 0 || alternative != "two.sided")) || type == "directional"
-    regionDirection <- if (alternative == "greater") {
-        "positive"
-    } else if (alternative == "less") {
-        "negative"
-    } else NULL
+    oneCritical <- .bfseq_z_one_critical(type, psd, alternative)
+    regionDirection <- .bfseq_region_direction(alternative)
     boundaryCache <- new.env(parent = emptyenv())
     stageCache <- new.env(parent = emptyenv())
 
@@ -925,19 +920,13 @@
 .bfseq_t_schedule_evaluator <- function(k1, k0, plocation, pscale, pdf,
                                          dpm, dpsd, type, alternative, target,
                                          ratio, schedule, strict, trange,
-                                         tail.eps = .bfpwr_defaults$tail.eps,
-                                         tail.nquad = .bfpwr_defaults$tail.nquad,
+                                         tail.eps = getOption("bfpwr.tail.eps", 1e-6),
+                                         tail.nquad = getOption("bfpwr.tail.nquad", 512),
                                          dots) {
     bfControl <- .bfpwr_t_boundary_controls(dots)
     probabilityDots <- dots[!names(dots) %in% "bf.control"]
     oneCritical <- alternative != "two.sided"
-    regionDirection <- if (alternative == "greater") {
-        "positive"
-    } else if (alternative == "less") {
-        "negative"
-    } else {
-        NULL
-    }
+    regionDirection <- .bfseq_region_direction(alternative)
     adaptiveOneSided <- oneCritical && !is.numeric(trange) &&
         trange == "adaptive"
     boundaryCache <- new.env(parent = emptyenv())

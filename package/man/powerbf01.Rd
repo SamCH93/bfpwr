@@ -17,7 +17,7 @@ powerbf01(
   dpsd = psd,
   nrange = c(1, 10^5),
   alternative = c("two.sided", "less", "greater"),
-  tol = .bfpwr_defaults$tol
+  tol = getOption("bfpwr.tol", 1e-08)
 )
 }
 \arguments{
@@ -65,12 +65,10 @@ For a one-sided alternative, the normal analysis prior is restricted to
 values below \code{null} (\code{"less"}) or above \code{null}
 (\code{"greater"}) and renormalized. \code{pm} and \code{psd} describe
 the normal distribution before truncation. A point prior
-(\code{psd = 0}) must lie strictly on the specified side of \code{null}.
-In power and sample-size calculations, the normal design prior is
-not truncated.}
+(\code{psd = 0}) must lie strictly on the specified side of \code{null}.}
 
 \item{tol}{Numerical tolerance for sample-size root searches. Defaults to
-\code{1e-8}. Ignored when the sample size has an analytical solution.}
+\code{getOption("bfpwr.tol", 1e-8)}.}
 }
 \value{
 Object of class \code{"power.bftest"}, a list of the arguments
@@ -90,11 +88,13 @@ This function provides a similar interface as
     directly compute the sample size for a fixed power) and \link{pbf01} (to
     directly compute the power for a fixed sample size) may also be useful
     because they can be used for other data and parameter types.
-    The normal design prior is not truncated for one-sided alternatives.
+    The sample-size tolerance \code{tol} is used only when a numerical
+    search is required; an analytical solution does not use it.
 }
 \note{
 A warning message will be displayed in case that the specified target
     power is not achievable under the specified analysis and design priors.
+    The normal design prior remains untruncated for one-sided alternatives.
 }
 \examples{
 ## determine power

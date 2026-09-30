@@ -66,9 +66,7 @@ For a one-sided alternative, the normal analysis prior is restricted to
 values below \code{null} (\code{"less"}) or above \code{null}
 (\code{"greater"}) and renormalized. \code{pm} and \code{psd} describe
 the normal distribution before truncation. A point prior
-(\code{psd = 0}) must lie strictly on the specified side of \code{null}.
-In power and sample-size calculations, the normal design prior is
-not truncated.}
+(\code{psd = 0}) must lie strictly on the specified side of \code{null}.}
 
 \item{...}{Other arguments passed to \code{stats::uniroot}. The sample-size
 root tolerance defaults to \code{tol = 1e-8} and can be overridden.}
@@ -95,6 +93,7 @@ It is assumed that the standard error of the future parameter
 \note{
 A warning message will be displayed in case that the specified target
     power is not achievable under the specified analysis and design priors.
+    The normal design prior remains untruncated for one-sided alternatives.
 }
 \examples{
 ## point alternative (analytical and numerical solution available)

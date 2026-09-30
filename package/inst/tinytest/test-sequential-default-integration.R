@@ -23,8 +23,12 @@ for (call in calls) {
         if (!is.null(grid)) args$ngrid <- grid
         result <- do.call(call$fun, args)
         design <- if ("result" %in% names(result)) result$result else result
-        expect_equal(design$integration,
+        expect_equal(design$integration[c("method", "ngrid")],
             list(method = "lpmvnorm", ngrid = if (is.null(grid)) 10000L else grid))
+        if (design$test == "t") {
+            expect_equal(design$integration$bf.control,
+                list(tol = 1e-8, rel.tol = 1e-8, abs.tol = 1e-8, subdivisions = 1000))
+        }
         if (is.null(grid)) default <- design
         if (identical(grid, 10000L)) {
             expect_equal(design$cumpH1, default$cumpH1)
