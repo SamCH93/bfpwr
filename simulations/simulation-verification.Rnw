@@ -189,6 +189,11 @@ fmt_value <- function(x) {
     as.character(x)
 }
 
+fmt_scientific <- function(x) {
+    parts <- strsplit(format(x, scientific = TRUE, digits = 3), "e", fixed = TRUE)[[1]]
+    paste0(parts[1], "\\times10^{", as.integer(parts[2]), "}")
+}
+
 format_named_list <- function(x) {
     value_strings <- vapply(x, function(value) {
         paste(fmt_value(value), collapse = ", ")
@@ -1710,9 +1715,9 @@ if (registry_available) for (family in names(family_labels)) {
                          rare$n == 110 & rare$outcome == "H0", ]
             if (nrow(rare) == 1) {
                 cat("\\noindent For example, the Normal$_{-}$(0,0.1) analysis prior and Normal(0,0.5) design prior with $(k_1,k_0)=(1/30,30)$ give an H0 stopping prediction of $",
-                    format(rare$reference_prob, scientific = TRUE, digits = 3),
+                    fmt_scientific(rare$reference_prob),
                     "$ by $n=110$, whereas the fixed-look union bound is $",
-                    format(rare$probability_upper_bound, scientific = TRUE, digits = 3),
+                    fmt_scientific(rare$probability_upper_bound),
                     "$. The simulation contains ", rare$n_event,
                     " such event in 10,000 trajectories.\\par\n", sep = "")
             }
