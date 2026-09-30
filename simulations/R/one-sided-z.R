@@ -347,9 +347,11 @@ bfpwr_sim_one_sided_z_convergence <- function(cases, probabilities) {
         case_id = c("narrow--greater--z-dpoint-0-usd1-short",
                     "negative--greater--z-dpoint-0p2-usd1-short",
                     "narrow--less--z-dnorm-0-s0p5-usd1-short",
-                    "standard--less--z-dnorm-0-s0p5-usd1-short"),
-        n = c(310, 500, 260, 330), pair = c("10", "30", "H1-10-H0-3", "30"),
-        outcome = c("H0", "H1", "Inc", "Inc"))
+                    "standard--less--z-dnorm-0-s0p5-usd1-short",
+                    "narrow--less--z-dnorm-0-s0p5-usd1-short"),
+        n = c(310, 500, 260, 330, 110),
+        pair = c("10", "30", "H1-10-H0-3", "30", "30"),
+        outcome = c("H0", "H1", "Inc", "Inc", "H0"))
     settings <- data.frame(method = c("lpmvnorm", "lpmvnorm", "pmvnorm"),
                             ngrid = .bfseq_integration_settings(list())$ngrid*c(1L, 10L, 1L))
     rows <- list()

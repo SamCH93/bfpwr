@@ -98,7 +98,7 @@ if (!assemble_only) {
             write_reference_result(reference,
                 file.path(results_root, "fixture-validation", job$id))
             saveRDS(bfpwr_sim_cache_identity(), file.path(results_root,
-                "fixture-validation", job$id, "cache-identity.rds"))
+                "fixture-validation", paste0(job$id, "-cache-identity.rds")))
         } else if (job$kind == "sequential") {
             selected <- reference_cases[
                 reference_cases$package_verification_case_id == job$id, ]
@@ -169,7 +169,7 @@ write_csv(status, file.path(results_root, "fixture-validation",
 
 for (id in specs$fixture_set_id[specs$mode == "fixed"]) {
     bfpwr_sim_check_cache(readRDS(file.path(results_root, "fixture-validation",
-        id, "cache-identity.rds")), identity, id)
+        paste0(id, "-cache-identity.rds"))), identity, id)
 }
 results <- bfpwr_sim_one_sided_z_results(output, cases, identity)
 search_metadata <- readRDS(file.path(results_root, "search-validation",
@@ -205,9 +205,11 @@ bundle <- c(list(cases = cases, provenance = provenance,
                  probabilities = probabilities, searches = combine("searches"),
                  timings = combine("timings"), bf_checks = combine("bf_checks")),
             bfpwr_sim_one_sided_z_diagnostics(probabilities, combine("moments")))
+cat("Checking integration convergence on selected cases\n")
+bundle$convergence <- bfpwr_sim_one_sided_z_convergence(cases, probabilities)
 saveRDS(bundle, file.path(output, "verification.rds"))
 for (name in c("cases", "provenance", "probabilities", "searches", "moments",
-               "timings", "bf_checks", "probability_summary")) {
+               "timings", "bf_checks", "probability_summary", "convergence")) {
     write_csv(bundle[[name]], file.path(output, paste0(name, ".csv")))
 }
 failures <- bundle$mc_diagnostics$diagnostic_rows

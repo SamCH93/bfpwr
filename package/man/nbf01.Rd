@@ -94,6 +94,10 @@ It is assumed that the standard error of the future parameter
 A warning message will be displayed in case that the specified target
     power is not achievable under the specified analysis and design priors.
     The normal design prior remains untruncated for one-sided alternatives.
+    One-sided H0 power with a continuous normal design prior can rise and
+    then fall as sample size increases. If both endpoints are below the
+    target, the numerical search checks the interior maximum and returns
+    the crossing on its rising side when attainable.
 }
 \examples{
 ## point alternative (analytical and numerical solution available)

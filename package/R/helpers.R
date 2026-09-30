@@ -7,6 +7,9 @@
 #'     the sample size n
 #' @param nrange Sample size search range over which numerical search is
 #'     performed
+#' @param peak Logical indicating whether to check for an interior power
+#'     maximum if both endpoints fall below the target. Used for one-sided
+#'     normal-prior H0 power, which can rise and then fall.
 #' @param ... Other arguments passed to \code{stats::uniroot}. The sample-size
 #'     root tolerance defaults to \code{tol = 1e-8} and can be overridden.
 #'
@@ -18,10 +21,23 @@
 #'
 #' @keywords internal
 
-searchN <- function(rootFun, nrange, tol = getOption("bfpwr.tol", 1e-8), ...) {
+searchN <- function(rootFun, nrange, tol = getOption("bfpwr.tol", 1e-8),
+                    peak = FALSE, ...) {
     ## check boundaries of sample size search range
     lower <- rootFun(nrange[1])
     upper <- rootFun(nrange[2])
+    if (peak && is.finite(lower) && lower <= 0 &&
+        is.finite(upper) && upper < 0) {
+        ## H0 power need not be increasing in N. Locate its interior peak
+        ## on log(N), then bracket the rising crossing against the lower end.
+        maximum <- stats::optimize(function(logn) rootFun(exp(logn)),
+                                    interval = log(nrange), maximum = TRUE,
+                                    tol = tol)
+        if (maximum$objective >= 0) {
+            nrange[2] <- exp(maximum$maximum)
+            upper <- maximum$objective
+        }
+    }
     if (is.nan(lower)) {
         warning("lower bound of sample size search range ('nrange') leads to Power = NaN")
         n <- NaN

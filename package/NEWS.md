@@ -2,6 +2,9 @@
 
 - add `bfpwrOptions()` to inspect and change session numerical settings;
   explicit arguments take precedence and saved designs retain their controls
+- retain rare sequential stopping probabilities by conditioning on the final
+  tail event first; find attainable one-sided H0 sample sizes when power peaks
+  inside the search range
 - add point-null one-sided z-tests with truncated normal analysis priors via
   `alternative = "less"` or `"greater"`, including fixed and sequential
   power and sample-size calculations
