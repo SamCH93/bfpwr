@@ -34,6 +34,23 @@ for (sign in c(-1, 1)) {
     expect_equal(unname(actual)/expected, 1, tolerance = 1e-10)
 }
 
+## Empty intervals remain empty after reordering, including adaptive infinite
+## boundaries. Sending [Inf, Inf] to the sampler can instead yield NaN.
+for (bound in c(-Inf, 0, Inf)) {
+    region <- rbind(c(-1, bound), c(1, bound))
+    actual <- bfpwr:::.bfseq_intstage(
+        list(H0 = list(region)), mean = c(0, 0), sigma = diag(2))[1]
+    expect_equal(unname(actual), 0)
+}
+
+## The full corpus case has empty H1 events during adaptive boundary searches.
+design <- suppressWarnings(ptbf01seq(
+    k1 = 1/30, k0 = 30, n = seq(20, 110, 10),
+    plocation = 0.5 - 0.2, pscale = 0.35, pdf = 30,
+    dpm = 0 - 0.2, dpsd = 0, alternative = 'greater', type = 'one.sample'))
+expect_true(all(is.finite(design$cumpH0)) && all(is.finite(design$cumpH1)))
+expect_true(is.finite(design$EN1))
+
 ## Conditional-normal quadrature independently checks a correlated rare event.
 rho <- 0.5
 tail <- pnorm(-5.7)

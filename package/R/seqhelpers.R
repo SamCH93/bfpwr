@@ -177,6 +177,10 @@ intstages <- function(intregions, mean, sigma, method = "lpmvnorm",
         } else if (any(is.na(region))) {
             stop("Sequential integration received NA bounds for a non-empty region",
                  call. = FALSE)
+        } else if (any(region[1, ] == region[2, ])) {
+            ## An adaptive boundary at infinity can produce a zero-width
+            ## interval. Its probability is zero, including [Inf, Inf].
+            p <- 0
         } else if (i == 1) {
             p <- exp(.bfpwr_lpnorm_interval(lower = region[1,],
                                             upper = region[2,],
