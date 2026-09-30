@@ -114,13 +114,14 @@ one_sided <- if (corpus_available && file.exists(one_sided_file)) {
     readRDS(one_sided_file)
 } else NULL
 if (!is.null(one_sided)) {
-    settings <- names(bfpwr_sim_numerical_defaults())
+    settings <- c("package_git_revision", "package_source_md5",
+                  "verification_source_md5", names(bfpwr_sim_numerical_defaults()))
     if (!all(settings %in% names(reference_provenance)) ||
         !all(settings %in% names(one_sided$provenance)) ||
         !isTRUE(all.equal(reference_provenance[settings],
                           one_sided$provenance[settings],
-                          check.attributes = FALSE))) {
-        stop("report inputs use different or unrecorded accuracy settings; run refresh_simulation_grid.R")
+                          tolerance = 0, check.attributes = FALSE))) {
+        stop("report inputs use different or unrecorded settings or source; run refresh_simulation_grid.R")
     }
 }
 

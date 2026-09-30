@@ -71,6 +71,70 @@ bfpwr_sim_one_sided_z_logbf <- function(estimate, se, pm, psd, alternative) {
         stats::pnorm(direction*post_mean/post_sd, log.p = TRUE)
 }
 
+## Shared serial/parallel evaluation. The reference BF remains independent of
+## package mathematics; the selected values are checked against the package.
+bfpwr_sim_one_sided_z_evaluate <- function(corpus_root, case, data = NULL,
+                                           cached = NULL, search = FALSE) {
+    if (is.null(data)) data <- bfpwr_sim_one_sided_z_read(corpus_root, case)
+    se <- rep(1/sqrt(data$n), each = nrow(data$estimate))
+    estimate <- as.vector(data$estimate)
+    logbf <- bfpwr_sim_one_sided_z_logbf(estimate, se, case$pm, case$psd,
+                                       case$alternative)
+    stopifnot(all(is.finite(logbf)))
+    selected <- unique(round(seq(1, length(logbf), length.out = 250)))
+    package_bf <- bf01(estimate[selected], se[selected], pm = case$pm,
+        psd = case$psd, alternative = case$alternative, log = TRUE)
+    error <- max(abs(logbf[selected] - package_bf))
+    bf <- list(case = case, n = data$n, replicate_id = data$replicate_id,
+               true_effect = data$true_effect,
+               log_bf01 = matrix(logbf, nrow = nrow(data$estimate)))
+    if (!is.null(cached)) {
+        stopifnot(identical(bf$n, cached$n),
+                  identical(bf$replicate_id, cached$replicate_id),
+                  identical(bf$true_effect, cached$true_effect),
+                  isTRUE(all.equal(bf$log_bf01, cached$log_bf01, tolerance = 1e-12)))
+    }
+    result <- bfpwr_sim_one_sided_z_compare(case, bf$log_bf01, bf$n)
+    if (search) result$searches <- bfpwr_sim_one_sided_z_search(case, result$probabilities)
+    result$bf_checks <- data.frame(case_id = case$case_id,
+                                   checked = length(selected), max_logbf_error = error)
+    result$cache_identity <- bfpwr_sim_cache_identity()
+    list(bayes_factors = bf, result = result)
+}
+
+bfpwr_sim_one_sided_z_results <- function(output, cases, identity) {
+    lapply(cases$case_id, function(id) {
+        result <- readRDS(file.path(output, "case-results", paste0(id, ".rds")))
+        bfpwr_sim_check_cache(result$cache_identity, identity, id)
+        result
+    })
+}
+
+## Required comparisons follow the existing severe binomial-interval policy.
+## Holm outliers and exploratory convergence remain separately reported.
+bfpwr_sim_one_sided_z_failures <- function(bundle) {
+    errors <- character()
+    if (any(!is.finite(bundle$probabilities$reference_prob)) ||
+        any(bfpwr_sim_probability_roundoff(bundle$probabilities$reference_prob) < 0 |
+            bfpwr_sim_probability_roundoff(bundle$probabilities$reference_prob) > 1)) {
+        errors <- c(errors, "invalid one-sided probabilities")
+    }
+    if (nrow(bundle$mc_diagnostics$failures)) errors <- c(errors,
+        "one-sided probabilities outside severe prediction intervals")
+    if (anyNA(bundle$searches$search_valid) || any(!bundle$searches$search_valid)) {
+        errors <- c(errors, "invalid one-sided sample-size searches")
+    }
+    if (anyNA(bundle$moments[c("EN_ok", "VarN_ok")]) ||
+        any(!bundle$moments$EN_ok | !bundle$moments$VarN_ok)) {
+        errors <- c(errors, "one-sided stopping moments outside tolerance")
+    }
+    if (any(!is.finite(bundle$bf_checks$max_logbf_error)) ||
+        any(bundle$bf_checks$max_logbf_error >= 1e-8)) {
+        errors <- c(errors, "one-sided Bayes factor spot checks failed")
+    }
+    errors
+}
+
 ## Record first stopping times directly from simulated BFs. Sampling continues
 ## in the stored data, but a stopped replicate cannot contribute another event.
 bfpwr_sim_one_sided_z_stopping <- function(logbf, n, k1, k0) {
@@ -95,9 +159,7 @@ bfpwr_sim_one_sided_z_stopping <- function(logbf, n, k1, k0) {
 
 bfpwr_sim_one_sided_z_probability_rows <- function(case, mode, schedule, pair,
                                                    n, counts, prediction) {
-    stopifnot(all(is.finite(prediction)), all(prediction >= -1e-10),
-              all(prediction <= 1 + 1e-10), all(rowSums(counts) == 10000))
-    prediction <- pmin(1, pmax(0, prediction))
+    stopifnot(all(rowSums(counts) == 10000))
     rows <- data.frame(case_id = case$case_id, mode = mode, schedule = schedule,
                        pair = pair$pair, n = rep(n, 3),
                        outcome = rep(c("H1", "H0", "Inc"), each = length(n)),
@@ -260,11 +322,12 @@ bfpwr_sim_one_sided_z_diagnostics <- function(probabilities, moments) {
     diagnostics <- bfpwr_sim_mc_reference_diagnostics(
         probabilities, label = "one-sided normal z", group_cols = c("mode", "outcome"))
     summaries <- lapply(split(probabilities, probabilities$mode), function(x) {
+        diagnostic_prob <- bfpwr_sim_probability_roundoff(x$reference_prob)
         data.frame(mode = x$mode[1], comparisons = nrow(x),
                    median_abs_error = stats::median(abs(x$error)),
                    max_abs_error = max(abs(x$error)),
                    within_mc_tolerance = sum(bfpwr_sim_mc_close(
-                       x$prob, x$reference_prob, x$nsim)))
+                       x$prob, diagnostic_prob, x$nsim)))
     })
     moments$EN_error <- moments$predicted_EN - moments$EN
     moments$VarN_error <- moments$predicted_VarN - moments$VarN

@@ -13,7 +13,7 @@ if (!is.null(args$ngrid)) {
     stop("verification uses package defaults; --ngrid is no longer supported")
 }
 ngrid <- as.numeric(.bfseq_integration_settings(list())$ngrid)
-numerical_defaults <- .bfpwr_defaults
+numerical_defaults <- bfpwrOptions()
 workers <- as.numeric(arg_value(args, "workers", 6))
 stopifnot(length(ngrid) == 1L, is.finite(ngrid), ngrid >= 1, ngrid == floor(ngrid),
           length(workers) == 1L, is.finite(workers), workers >= 1,
@@ -38,18 +38,16 @@ provenance_file <- file.path(results_root, "fixture-validation",
                              "package-reference-provenance.csv")
 if (assemble_only) {
     provenance <- utils::read.csv(provenance_file, stringsAsFactors = FALSE)
-    settings <- bfpwr_sim_numerical_defaults()
-    if (!all(names(settings) %in% names(provenance)) ||
-        !isTRUE(all.equal(provenance[names(settings)], settings,
-                          check.attributes = FALSE))) {
-        stop("saved accuracy settings differ from package defaults; rerun without --assemble-only")
-    }
+    bfpwr_sim_check_cache(bfpwr_sim_cache_identity(provenance),
+        bfpwr_sim_cache_identity(), "parent provenance")
 } else {
     provenance <- bfpwr_sim_package_provenance()
     provenance$integration_rng_kind <- "Mersenne-Twister/Inversion/Rejection"
     provenance$prediction_workers <- workers
     write_csv(provenance, provenance_file)
 }
+
+identity <- bfpwr_sim_cache_identity(provenance)
 
 if (!assemble_only) {
     cluster <- parallel::makePSOCKcluster(workers,
@@ -63,7 +61,8 @@ if (!assemble_only) {
     invisible(parallel::clusterEvalQ(cluster, {
         source(file.path(root, "simulations", "scripts", "recompute_package_references.R"))
         source(file.path(root, "simulations", "R", "one-sided-z.R"))
-        stopifnot(identical(.bfpwr_defaults, numerical_defaults))
+        bfpwrOptions(numerical_defaults)
+        stopifnot(identical(bfpwrOptions(), numerical_defaults))
         ## The package's fixed integration seed also depends on RNGkind().
         RNGkind("Mersenne-Twister", "Inversion", "Rejection")
         designs <- bfpwr_sim_design_case_set("production")
@@ -98,6 +97,8 @@ if (!assemble_only) {
                 designs, bf_priors, manifest_cases = selected)
             write_reference_result(reference,
                 file.path(results_root, "fixture-validation", job$id))
+            saveRDS(bfpwr_sim_cache_identity(), file.path(results_root,
+                "fixture-validation", job$id, "cache-identity.rds"))
         } else if (job$kind == "sequential") {
             selected <- reference_cases[
                 reference_cases$package_verification_case_id == job$id, ]
@@ -110,6 +111,7 @@ if (!assemble_only) {
             stopifnot(nrow(reference$reference_rows) == 3L*selected$n_looks,
                       nrow(reference$en_rows) == 1L,
                       all(is.finite(reference$reference_rows$reference_prob)))
+            reference$cache_identity <- bfpwr_sim_cache_identity()
             saveRDS(reference, file.path(results_root, "reference-results",
                                         paste0(job$id, ".rds")))
         } else if (job$kind == "search") {
@@ -119,31 +121,16 @@ if (!assemble_only) {
             path <- file.path(results_root, "search-validation",
                                "search-validation-comparison.rds")
             bundle <- readRDS(path)
+            bundle$metadata$cache_identity <- bfpwr_sim_cache_identity()
             bundle$metadata$integration_grid <- ngrid
             bundle$metadata$integration_rng_kind <- paste(RNGkind(), collapse = "/")
             saveRDS(bundle, path, compress = "xz")
         } else {
             cached <- readRDS(file.path(corpus_root, "one-sided-z", "bayes-factors",
                                         paste0(job$id, ".rds")))
-            data <- bfpwr_sim_one_sided_z_read(corpus_root, cached$case)
-            se <- rep(1/sqrt(data$n), each = 10000)
-            logbf <- bfpwr_sim_one_sided_z_logbf(as.vector(data$estimate), se,
-                cached$case$pm, cached$case$psd, cached$case$alternative)
-            selected <- unique(round(seq(1, length(logbf), length.out = 250)))
-            package_bf <- bf01(as.vector(data$estimate)[selected], se[selected],
-                pm = cached$case$pm, psd = cached$case$psd,
-                alternative = cached$case$alternative, log = TRUE)
-            error <- max(abs(logbf[selected] - package_bf))
-            logbf <- matrix(logbf, nrow = 10000)
-            stopifnot(error < 1e-8, identical(data$n, cached$n),
-                      isTRUE(all.equal(logbf, cached$log_bf01, tolerance = 1e-12)))
-            result <- bfpwr_sim_one_sided_z_compare(
-                cached$case, logbf, data$n)
-            result$searches <- bfpwr_sim_one_sided_z_search(
-                cached$case, result$probabilities)
-            result$integration_grid <- ngrid
-            result$bf_checks <- data.frame(case_id = job$id,
-                checked = length(selected), max_logbf_error = error)
+            evaluated <- bfpwr_sim_one_sided_z_evaluate(corpus_root,
+                cached$case, cached = cached, search = TRUE)
+            result <- evaluated$result
             saveRDS(result, file.path(output, "case-results", paste0(job$id, ".rds")))
         }
         cat(format(Sys.time()), "Finished", job$id, "\n")
@@ -157,7 +144,9 @@ if (!assemble_only) {
 for (id in unique(reference_cases$fixture_set_id)) {
     selected <- reference_cases[reference_cases$fixture_set_id == id, ]
     references <- lapply(selected$package_verification_case_id, function(key) {
-        readRDS(file.path(results_root, "reference-results", paste0(key, ".rds")))
+        reference <- readRDS(file.path(results_root, "reference-results", paste0(key, ".rds")))
+        bfpwr_sim_check_cache(reference$cache_identity, identity, key)
+        reference
     })
     combined <- lapply(c("reference_rows", "en_rows", "timings"), function(name) {
         bfpwr_sim_bind_rows_fill(lapply(references, `[[`, name))
@@ -178,15 +167,16 @@ status$reason <- ifelse(unsupported, "sequential binomial has no package probabi
 write_csv(status, file.path(results_root, "fixture-validation",
                             "package-reference-recompute-status.csv"))
 
-results <- lapply(cases$case_id, function(id) {
-    result <- readRDS(file.path(output, "case-results", paste0(id, ".rds")))
-    stopifnot(identical(as.numeric(result$integration_grid), ngrid))
-    result
-})
+for (id in specs$fixture_set_id[specs$mode == "fixed"]) {
+    bfpwr_sim_check_cache(readRDS(file.path(results_root, "fixture-validation",
+        id, "cache-identity.rds")), identity, id)
+}
+results <- bfpwr_sim_one_sided_z_results(output, cases, identity)
 search_metadata <- readRDS(file.path(results_root, "search-validation",
                                     "search-validation-comparison.rds"))$metadata
 status <- utils::read.csv(file.path(results_root, "fixture-validation",
                                     "package-reference-recompute-status.csv"))
+bfpwr_sim_check_cache(search_metadata$cache_identity, identity, "sample-size searches")
 stopifnot(identical(as.numeric(search_metadata$integration_grid), ngrid),
           setequal(status$fixture_set_id, fixture_specs(corpus_root)$fixture_set_id))
 combine <- function(name) do.call(rbind, lapply(results, `[[`, name))
@@ -229,7 +219,7 @@ cat("Moment failures:", sum(!bundle$moments$EN_ok), "means;",
 
 ## Finish both sets of diagnostics and render their results even when a check
 ## fails. Preserve the failing exit status after producing the report.
-validation_errors <- character()
+validation_errors <- bfpwr_sim_one_sided_z_failures(bundle)
 validate <- function(script, arguments) {
     tryCatch(run_rscript(file.path(root, "simulations", "scripts", script), arguments),
         error = function(e) {

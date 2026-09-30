@@ -26,7 +26,7 @@ provenance$source_archive_sha256 <- strsplit(
     "[[:space:]]+")[[1]][1]
 utils::write.csv(cases, file.path(output, "cases.csv"), row.names = FALSE)
 
-bf_checks <- list()
+identity <- bfpwr_sim_cache_identity(provenance)
 for (design_id in unique(cases$design_id)) {
     subset <- cases[cases$design_id == design_id, ]
     cat("Reading", design_id, "\n")
@@ -34,28 +34,14 @@ for (design_id in unique(cases$design_id)) {
     for (j in seq_len(nrow(subset))) {
         case <- subset[j, ]
         cat("  Calculating", case$prior_id, case$alternative, "\n")
-        se <- rep(1/sqrt(data$n), each = 10000)
-        logbf <- bfpwr_sim_one_sided_z_logbf(
-            as.vector(data$estimate), se, case$pm, case$psd, case$alternative)
-        stopifnot(all(is.finite(logbf)))
-        selected <- unique(round(seq(1, length(logbf), length.out = 250)))
-        package_bf <- bf01(as.vector(data$estimate)[selected], se[selected],
-            pm = case$pm, psd = case$psd, alternative = case$alternative, log = TRUE)
-        error <- max(abs(logbf[selected] - package_bf))
-        stopifnot(error < 1e-8)
-        bf_checks[[length(bf_checks) + 1L]] <- data.frame(
-            case_id = case$case_id, checked = length(selected), max_logbf_error = error)
-        logbf <- matrix(logbf, nrow = 10000)
-        saveRDS(list(case = case, n = data$n, replicate_id = data$replicate_id,
-                     true_effect = data$true_effect, log_bf01 = logbf),
+        evaluated <- bfpwr_sim_one_sided_z_evaluate(corpus_root, case, data = data)
+        saveRDS(evaluated$bayes_factors,
                 file.path(output, "bayes-factors", paste0(case$case_id, ".rds")))
-        result <- bfpwr_sim_one_sided_z_compare(case, logbf, data$n)
-        saveRDS(result, file.path(output, "case-results", paste0(case$case_id, ".rds")))
+        saveRDS(evaluated$result,
+                file.path(output, "case-results", paste0(case$case_id, ".rds")))
     }
 }
-results <- lapply(cases$case_id, function(id) {
-    readRDS(file.path(output, "case-results", paste0(id, ".rds")))
-})
+results <- bfpwr_sim_one_sided_z_results(output, cases, identity)
 combine <- function(name) do.call(rbind, lapply(results, `[[`, name))
 probabilities <- combine("probabilities")
 moments <- combine("moments")
@@ -66,7 +52,7 @@ cat("Checking integration convergence on selected cases\n")
 convergence <- bfpwr_sim_one_sided_z_convergence(cases, probabilities)
 bundle <- c(list(cases = cases, provenance = provenance,
                  probabilities = probabilities, searches = searches,
-                 timings = combine("timings"), bf_checks = do.call(rbind, bf_checks),
+                 timings = combine("timings"), bf_checks = combine("bf_checks"),
                  convergence = convergence),
             diagnostics)
 saveRDS(bundle, file.path(output, "verification.rds"))
@@ -98,3 +84,7 @@ if (!arg_flag(args, "skip-report")) {
                           "render_simulation_verification_background.R"),
                 c("--corpus-root", corpus_root))
 }
+
+validation_errors <- bfpwr_sim_one_sided_z_failures(bundle)
+if (length(validation_errors)) stop(paste(validation_errors, collapse = "\n"),
+                                    call. = FALSE)

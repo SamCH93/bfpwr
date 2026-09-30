@@ -174,11 +174,13 @@ expected sample sizes, and the four 20-look cases shown in the original report.
 Exploratory search rows remain explicitly marked as unevaluated.
 
 The validation calls omit numerical tuning arguments, including `ngrid`,
-`tail.eps`, and `tail.nquad`, so they use the shared defaults in
-`package/R/numerical-defaults.R`. The current settings are 10,000 integration
+`tail.eps`, and `tail.nquad`, so they use the effective settings from
+`bfpwrOptions()`. Session settings are explicitly passed to parallel workers.
+The package defaults are 10,000 integration
 points, root tolerance `1e-8`, BF integration tolerance `1e-8` with up to 1,000
 subdivisions, predictive tail mass `1e-6`, and 512 fallback quadrature nodes.
-These values are recorded in the result provenance. The old simulation-only
+These values and source checksums are recorded in each result's provenance.
+The old simulation-only
 `bfpwr.sim.ngrid` option and `--ngrid` override no longer control verification.
 Explicit accuracy comparisons in the separate convergence diagnostic remain
 labelled with their settings and do not replace the default predictions.
@@ -186,12 +188,23 @@ labelled with their settings and do not replace the default predictions.
 Use `--results-root` for a different output directory.
 `--skip-report` runs the calculations without rendering, and
 `--assemble-only` assembles completed per-case results without recomputing them.
-Assembly requires every recorded accuracy setting to match the package defaults;
+Assembly requires every per-case accuracy setting and source identity to match
+the current calculation;
 otherwise, rerun without `--assemble-only`.
 The report reads only results directly in the selected directory, so older
 subdirectory caches cannot silently fill missing comparisons.
 Validation failures are retained in the diagnostic files and report; the refresh
 finishes reporting them before returning a failing exit status.
+Required one-sided checks include severe binomial prediction intervals,
+sample-size search validity, stopping moments, and BF spot checks. Holm outliers
+and exploratory convergence comparisons remain labelled diagnostics.
+
+`verify_one_sided_z.R` creates the independent one-sided BF comparisons and
+selected convergence diagnostics on the original trajectories.
+`refresh_simulation_grid.R` recomputes the complete package reference suite.
+Both use the same case evaluator and cache checks. The numerical cancellation
+example prepared for the PR review is in
+`simulations/examples/one-sided-tail-cancellation.R`.
 
 To render the completed results again:
 

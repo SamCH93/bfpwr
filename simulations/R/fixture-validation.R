@@ -2158,6 +2158,15 @@ bfpwr_sim_fixed_independent_residuals <- function(corpus_root,
          summary = summary)
 }
 
+## Only the diagnostic copy is clamped; callers retain raw predictions.
+bfpwr_sim_probability_roundoff <- function(probability) {
+    roundoff <- is.finite(probability) &
+        probability >= -8*.Machine$double.eps &
+        probability <= 1 + 8*.Machine$double.eps
+    probability[roundoff] <- pmin(1, pmax(0, probability[roundoff]))
+    probability
+}
+
 bfpwr_sim_mc_reference_diagnostics <- function(rows,
                                                label = "fixed_tail",
                                                family_alpha = 0.01,
@@ -2171,10 +2180,7 @@ bfpwr_sim_mc_reference_diagnostics <- function(rows,
     ## Cumulative complements can miss 0 or 1 by a few floating-point units.
     ## Include these boundary cases in the checks instead of silently dropping
     ## them; retain the original package predictions in the reference results.
-    roundoff <- is.finite(rows$reference_prob) &
-        rows$reference_prob >= -8*.Machine$double.eps &
-        rows$reference_prob <= 1 + 8*.Machine$double.eps
-    rows$reference_prob[roundoff] <- pmin(1, pmax(0, rows$reference_prob[roundoff]))
+    rows$reference_prob <- bfpwr_sim_probability_roundoff(rows$reference_prob)
     rows <- rows[is.finite(rows$reference_prob) &
                      rows$reference_prob >= 0 &
                      rows$reference_prob <= 1, , drop = FALSE]
