@@ -22,6 +22,7 @@
 #'     if \code{power} is specified. Defaults to \code{NULL}
 #'
 #' @inherit powerbf01 return
+#' @inherit nnmbf01 note
 #'
 #' @author Samuel Pawel
 #'

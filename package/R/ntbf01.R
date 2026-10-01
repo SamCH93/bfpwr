@@ -128,7 +128,8 @@ ntbf01. <- function(k, power, null = 0, plocation = 0, pscale = 1/sqrt(2),
         }
     }
 
-    n <- do.call(searchN, c(list(rootFun = rootFun, nrange = nrangeSearch),
+    n <- do.call(searchN, c(list(rootFun = rootFun, nrange = nrangeSearch,
+                                 peak = TRUE),
                            .bfpwr_uniroot_dots(list(...))))
 
     if (integer) return(ceiling(n))
@@ -160,7 +161,7 @@ ntbf01. <- function(k, power, null = 0, plocation = 0, pscale = 1/sqrt(2),
 #'     critical-value range \code{drange} is handled explicitly and is not
 #'     passed to the sample-size search.
 #'
-#' @inherit nbf01 return
+#' @inherit nbf01 return note
 #'
 #' @author Samuel Pawel, František Bartoš
 #'

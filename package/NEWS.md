@@ -2,8 +2,9 @@
 
 - add `bfpwrOptions()` to inspect and change session numerical settings;
   explicit arguments take precedence and saved designs retain their controls
-- find attainable one-sided H0 sample sizes when power peaks inside the search
-  range; handle empty adaptive stopping intervals, including infinite bounds
+- find attainable fixed-design sample sizes when power peaks inside the search
+  range, as probabilities of misleading evidence do; handle empty adaptive
+  stopping intervals, including infinite bounds
 - add point-null one-sided z-tests with truncated normal analysis priors via
   `alternative = "less"` or `"greater"`, including fixed and sequential
   power and sample-size calculations

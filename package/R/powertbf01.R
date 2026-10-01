@@ -30,6 +30,7 @@
 #'     returned object and reused when plotting power curves.
 #'
 #' @inherit powerbf01 return
+#' @inherit ntbf01 note
 #'
 #' @author Samuel Pawel, František Bartoš
 #'

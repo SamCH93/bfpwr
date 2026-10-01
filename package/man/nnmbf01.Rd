@@ -72,6 +72,16 @@ It is assumed that the standard error of the future parameter
     \code{sd}\sqrt{2}}{usd = sd*sqrt(2)}. See the vignette for more
     information.
 }
+\note{
+A warning message will be displayed in case that the specified target
+    power is not achievable under the specified analysis and design priors.
+    Power need not increase with sample size; for example, the probability
+    of misleading evidence first rises and then falls. If both endpoints of
+    \code{nrange} are below the target, the numerical search checks the
+    interior maximum. The returned sample size is the smallest at which
+    power reaches the target; power may fall below the target again at
+    larger sample sizes.
+}
 \examples{
 nnmbf01(k = 1/10, power = 0.9, usd = 1, null = 0, psd = 0.5/sqrt(2), dpm = 0.5, dpsd = 0)
 }

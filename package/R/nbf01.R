@@ -111,9 +111,7 @@ nbf01. <- function(k, power, usd, null = 0, pm, psd, dpm = pm, dpsd = psd,
                   alternative = alternative) - power
         }
 
-        n <- searchN(rootFun = rootFun, nrange = nrange,
-                      peak = alternative != "two.sided" && !lower.tail &&
-                          psd > 0 && dpsd > 0, ...)
+        n <- searchN(rootFun = rootFun, nrange = nrange, peak = TRUE, ...)
     }
     if (integer) return(ceiling(n))
     else return(n)
@@ -143,10 +141,12 @@ nbf01. <- function(k, power, usd, null = 0, pm, psd, dpm = pm, dpsd = psd,
 #' @note A warning message will be displayed in case that the specified target
 #'     power is not achievable under the specified analysis and design priors.
 #'     The normal design prior remains untruncated for one-sided alternatives.
-#'     One-sided H0 power with a continuous normal design prior can rise and
-#'     then fall as sample size increases. If both endpoints are below the
-#'     target, the numerical search checks the interior maximum and returns
-#'     the crossing on its rising side when attainable.
+#'     Power need not increase with sample size; for example, the probability
+#'     of misleading evidence first rises and then falls. If both endpoints of
+#'     \code{nrange} are below the target, the numerical search checks the
+#'     interior maximum. The returned sample size is the smallest at which
+#'     power reaches the target; power may fall below the target again at
+#'     larger sample sizes.
 #'
 #' @return The required sample size to achieve the specified power
 #'

@@ -87,6 +87,11 @@ powerbf01seq <- function(n = NULL, power = NULL, k1 = 1/10, k0 = 1/k1,
     alternative <- match.arg(alternative)
     target <- match.arg(target)
     search <- match.arg(search)
+    ## The lower-level functions call the BF family 'type'; here 'type' is the
+    ## sampling design, so report the wrapper's own argument name.
+    if (alternative != "two.sided" && bftype != "normal") {
+        stop("one-sided 'alternative' requires bftype = \"normal\"")
+    }
     stopifnot(
         length(k1) == 1,
         is.numeric(k1),

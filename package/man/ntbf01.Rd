@@ -99,6 +99,17 @@ This function computes the required sample size to obtain a
     \eqn{t}-test Bayes factor (\link{tbf01}) more extreme than a threshold
     \code{k} with a specified target power.
 }
+\note{
+A warning message will be displayed in case that the specified target
+    power is not achievable under the specified analysis and design priors.
+    The normal design prior remains untruncated for one-sided alternatives.
+    Power need not increase with sample size; for example, the probability
+    of misleading evidence first rises and then falls. If both endpoints of
+    \code{nrange} are below the target, the numerical search checks the
+    interior maximum. The returned sample size is the smallest at which
+    power reaches the target; power may fall below the target again at
+    larger sample sizes.
+}
 \examples{
  ## example from Schönbrodt and Wagenmakers (2018, p.135)
  ntbf01(k = 1/6, power = 0.95, dpm = 0.5, dpsd = 0, alternative = "greater")

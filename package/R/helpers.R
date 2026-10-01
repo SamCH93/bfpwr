@@ -8,8 +8,9 @@
 #' @param nrange Sample size search range over which numerical search is
 #'     performed
 #' @param peak Logical indicating whether to check for an interior power
-#'     maximum if both endpoints fall below the target. Used for one-sided
-#'     normal-prior H0 power, which can rise and then fall.
+#'     maximum if both endpoints fall below the target. Power need not be
+#'     monotone in n; for example, the probability of misleading evidence
+#'     first rises and then falls. The crossing on the rising side is returned.
 #' @param ... Other arguments passed to \code{stats::uniroot}. The sample-size
 #'     root tolerance defaults to \code{tol = 1e-8} and can be overridden.
 #'
@@ -28,8 +29,8 @@ searchN <- function(rootFun, nrange, tol = getOption("bfpwr.tol", 1e-8),
     upper <- rootFun(nrange[2])
     if (peak && is.finite(lower) && lower <= 0 &&
         is.finite(upper) && upper < 0) {
-        ## H0 power need not be increasing in N. Locate its interior peak
-        ## on log(N), then bracket the rising crossing against the lower end.
+        ## Power need not be increasing in N. Locate its interior peak on
+        ## log(N), then bracket the rising crossing against the lower end.
         maximum <- stats::optimize(function(logn) rootFun(exp(logn)),
                                     interval = log(nrange), maximum = TRUE,
                                     tol = tol)
