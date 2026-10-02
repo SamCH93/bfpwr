@@ -17,8 +17,10 @@
 
 ## Find a bracketed root and, when a faster scout function was used, certify
 ## the result against the final function before accepting it.
+## Keep residual_tolerance distinct so tol in dots reaches uniroot().
 .bfpwr_certified_root <- function(f, x0, x1, f0 = NaN, f1 = NaN,
-                                  final_fun = f, tolerance = 1e-5, ...) {
+                                  final_fun = f,
+                                  residual_tolerance = 1e-5, ...) {
     if (x0 == x1) {
         return(structure("degenerate root interval", class = "try-error"))
     }
@@ -37,7 +39,7 @@
             return(x0)
         }
         final0 <- .bfpwr_root_value(f = final_fun, x = x0)
-        if (is.finite(final0) && abs(final0) <= tolerance) {
+        if (is.finite(final0) && abs(final0) <= residual_tolerance) {
             return(x0)
         }
     }
@@ -46,7 +48,7 @@
             return(x1)
         }
         final1 <- .bfpwr_root_value(f = final_fun, x = x1)
-        if (is.finite(final1) && abs(final1) <= tolerance) {
+        if (is.finite(final1) && abs(final1) <= residual_tolerance) {
             return(x1)
         }
     }
@@ -62,7 +64,7 @@
     }
 
     residual <- .bfpwr_root_value(f = final_fun, x = root)
-    if (is.finite(residual) && abs(residual) <= tolerance) {
+    if (is.finite(residual) && abs(residual) <= residual_tolerance) {
         return(root)
     }
 
@@ -678,9 +680,11 @@
 ## evaluation.
 .bfpwr_residual_certified_root <- function(scout_fun, certify_fun, x0, x1,
                                            final_fun = certify_fun,
-                                           tolerance = 1e-5, ...) {
-    root <- try(stats::uniroot(f = scout_fun, interval = sort(c(x0, x1)),
-                               extendInt = "no", ...)$root,
+                                           residual_tolerance = 1e-5, ...) {
+    ## A failed scout is provisional; only the stable path determines the
+    ## boundary status. Do not leak its warnings into the final result.
+    root <- try(suppressWarnings(stats::uniroot(
+        f = scout_fun, interval = sort(c(x0, x1)), extendInt = "no", ...)$root),
                 silent = TRUE)
     if (inherits(root, "try-error") || !is.numeric(root) ||
         length(root) != 1 || !is.finite(root)) {
@@ -688,12 +692,12 @@
     }
 
     residual <- .bfpwr_root_value(f = certify_fun, x = root)
-    if (!is.finite(residual) || abs(residual) > tolerance) {
+    if (!is.finite(residual) || abs(residual) > residual_tolerance) {
         return(structure("scout root not certified", class = "try-error"))
     }
 
     final_residual <- .bfpwr_root_value(f = final_fun, x = root)
-    if (is.finite(final_residual) && abs(final_residual) <= tolerance) {
+    if (is.finite(final_residual) && abs(final_residual) <= residual_tolerance) {
         return(root)
     }
 
@@ -806,7 +810,7 @@
                     scout_fun = scout_fun, certify_fun = search_fun,
                     final_fun = certify_fun,
                     x0 = scout_prev_x, x1 = x1,
-                    tolerance = scout_tolerance, ...
+                    residual_tolerance = scout_tolerance, ...
                 )
                 if (!inherits(root, "try-error")) {
                     return(.bfpwr_one_sided_adaptive_result(
@@ -816,7 +820,8 @@
                 }
                 root <- .bfpwr_certified_root(
                     f = search_fun, x0 = scout_prev_x, x1 = x1,
-                    final_fun = certify_fun, tolerance = scout_tolerance, ...
+                    final_fun = certify_fun,
+                    residual_tolerance = scout_tolerance, ...
                 )
                 if (!inherits(root, "try-error")) {
                     return(.bfpwr_one_sided_adaptive_result(
@@ -861,7 +866,8 @@
                 root <- .bfpwr_certified_root(
                     f = search_fun, x0 = x_bracket0, x1 = x_bracket1,
                     f0 = f_bracket0, f1 = f_bracket1,
-                    final_fun = certify_fun, tolerance = scout_tolerance, ...
+                    final_fun = certify_fun,
+                    residual_tolerance = scout_tolerance, ...
                 )
                 if (!inherits(root, "try-error")) {
                     return(.bfpwr_one_sided_adaptive_result(
@@ -927,7 +933,7 @@
                 root <- .bfpwr_certified_root(
                     f = search_fun, x0 = xprev, x1 = x1, f0 = fprev,
                     f1 = f1, final_fun = certify_fun,
-                    tolerance = scout_tolerance, ...
+                    residual_tolerance = scout_tolerance, ...
                 )
                 if (!inherits(root, "try-error")) {
                     return(.bfpwr_one_sided_adaptive_result(

@@ -19,7 +19,8 @@
   `pnmbf01()`; fix `pbf01()` for very narrow normal priors and point
   alternatives identical to the null hypothesis
 - improve numerical stability of one-sided `tbf01()` when observations strongly
-  oppose the alternative hypothesis
+  oppose the alternative hypothesis; avoid unreliable tail scouting and retain
+  certified boundary-search statuses and requested root tolerances
 - tighten numerical integration and root-search defaults for fixed designs;
   allow overriding sample-size `tol` in all fixed-design power wrappers and
   t-test integration controls through `powertbf01()`, retaining them in plots;

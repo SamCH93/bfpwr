@@ -47,6 +47,13 @@
         return(NaN)
     }
 
+    ## The noncentral-t integral is unreliable in this one-sided tail. Reject
+    ## it as a scout so callers use the stable quadrature path directly.
+    if ((region$lower == 0 && t <= -.tbf01_tail_quadrature_cutoff) ||
+        (region$upper == 0 && t >= .tbf01_tail_quadrature_cutoff)) {
+        return(NaN)
+    }
+
     eta <- sqrt(neff)
     log_f0 <- stats::dt(x = t, df = df, log = TRUE)
 
