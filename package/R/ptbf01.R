@@ -194,6 +194,7 @@ ptbf01. <- function(k, n, n1 = n, n2 = n, null = 0, plocation = 0,
                 )
             }
         }
+        for (w in roots$warnings) warning(w)
         upper <- roots$upper
         lower <- roots$lower
 

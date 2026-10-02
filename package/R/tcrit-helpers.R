@@ -53,9 +53,15 @@
         }
     }
 
-    root <- try(stats::uniroot(f = f, interval = sort(c(x0, x1)),
-                               extendInt = "no", ...)$root,
-                silent = TRUE)
+    ## Warnings from a relaxed search remain provisional until the final
+    ## function certifies the root. Keep warnings from the final path visible.
+    root <- try(withCallingHandlers(
+        stats::uniroot(f = f, interval = sort(c(x0, x1)),
+                       extendInt = "no", ...)$root,
+        warning = function(w) {
+            if (!identical(final_fun, f)) invokeRestart("muffleWarning")
+        }
+    ), silent = TRUE)
     if (inherits(root, "try-error")) {
         return(root)
     }
@@ -174,12 +180,20 @@
 ## without requiring another Bayes-factor evaluation between the roots.
 .bfpwr_two_sided_root_pair <- function(f, lowerInterval, upperInterval,
                                        split = NULL, dots = list()) {
-    lower <- try(do.call(stats::uniroot, c(list(
-        f = f, interval = lowerInterval, extendInt = "upX"
-    ), dots))$root, silent = TRUE)
-    upper <- try(do.call(stats::uniroot, c(list(
-        f = f, interval = upperInterval, extendInt = "downX"
-    ), dots))$root, silent = TRUE)
+    ## Keep trial warnings with this pair so a corrected split or an
+    ## unattainable-maximum result can discard diagnostics from rejected roots.
+    warnings <- list()
+    withCallingHandlers({
+        lower <- try(do.call(stats::uniroot, c(list(
+            f = f, interval = lowerInterval, extendInt = "upX"
+        ), dots))$root, silent = TRUE)
+        upper <- try(do.call(stats::uniroot, c(list(
+            f = f, interval = upperInterval, extendInt = "downX"
+        ), dots))$root, silent = TRUE)
+    }, warning = function(w) {
+        warnings[[length(warnings) + 1L]] <<- w
+        invokeRestart("muffleWarning")
+    })
 
     valid <- !inherits(lower, "try-error") &&
         !inherits(upper, "try-error") &&
@@ -189,7 +203,7 @@
             lower < split && split < upper
     }
 
-    list(lower = lower, upper = upper, valid = valid)
+    list(lower = lower, upper = upper, valid = valid, warnings = warnings)
 }
 
 ## Structured tcrit issues preserve whether a warning is handled internally or
@@ -1232,6 +1246,7 @@ tcrit <- function(k, n1, n2, plocation, pscale, pdf, type, alternative,
                 )
             }
         }
+        for (w in roots$warnings) warning(w)
         tcrit <- c(NaN, NaN)
         lower <- roots$lower
         upper <- roots$upper
