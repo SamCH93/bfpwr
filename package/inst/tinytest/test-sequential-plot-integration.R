@@ -1,6 +1,8 @@
 library(tinytest)
 library(bfpwr)
 
+source("helper-test-precision.R", local = TRUE)
+
 ## When the design prior equals the null, both plot panels must be identical,
 ## including numerical integration accuracy and any backend controls.
 for (controls in list(list(ngrid = 17),

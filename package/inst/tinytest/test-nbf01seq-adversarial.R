@@ -1,6 +1,8 @@
 library(tinytest)
 library(bfpwr)
 
+source("helper-test-precision.R", local = TRUE)
+
 ## Dense information fractions should advance the lower bound to the first
 ## feasible maximum N instead of wasting evaluations on duplicate schedules.
 dense <- nbf01seq(k1 = 1/2, k0 = 2, power = 0.4, usd = sqrt(2), pm = 0,

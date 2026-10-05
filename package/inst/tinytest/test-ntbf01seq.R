@@ -1,14 +1,20 @@
 library(tinytest)
 library(bfpwr)
 
+source("helper-test-precision.R", local = TRUE)
+
 k1 <- 1/2
 k0 <- 2
 pow <- 0.4
 
-search <- suppressWarnings(
-    ntbf01seq(k1 = k1, k0 = k0, power = pow, dpm = 0.5, dpsd = 0,
-              alternative = "greater", looks = 2, nrange = c(2, 80),
-              strict = FALSE, details = TRUE)
+## This first case checks public defaults; later cases use the faster profile.
+search <- withr::with_options(
+    list(bfpwr.ngrid = 10000, bfpwr.tail.nquad = 512),
+    suppressWarnings(
+        ntbf01seq(k1 = k1, k0 = k0, power = pow, dpm = 0.5, dpsd = 0,
+                  alternative = "greater", looks = 2, nrange = c(2, 80),
+                  strict = FALSE, details = TRUE)
+    )
 )
 
 expect_true(search$reached,

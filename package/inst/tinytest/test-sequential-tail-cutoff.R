@@ -1,6 +1,8 @@
 library(tinytest)
 library(bfpwr)
 
+source("helper-test-precision.R", local = TRUE)
+
 ## A cutoff can lie beyond either an almost empty or an almost certain H0
 ## event. Compare to explicitly bracketed t boundaries in both directions.
 for (alternative in c("greater", "less")) {

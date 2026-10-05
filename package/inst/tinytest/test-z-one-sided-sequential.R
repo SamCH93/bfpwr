@@ -1,6 +1,8 @@
 library(tinytest)
 library(bfpwr)
 
+source("helper-test-precision.R", local = TRUE)
+
 ## A single look must match fixed-design probabilities on either side of a
 ## nonzero point null, for point and continuous design and analysis priors.
 for (alternative in c("less", "greater")) {
