@@ -343,8 +343,7 @@ eval_fixed_t_search <- function(row, bf_prior, design, metadata) {
             dpsd = dp$dpsd,
             lower.tail = lower_tail_for_row(row),
             integer = TRUE,
-            nrange = search_nrange(row),
-            tail.eps = 1e-3
+            nrange = search_nrange(row)
         )
     })
     if (inherits(evaluated$value, "condition")) {
@@ -444,10 +443,6 @@ eval_t_seq_search <- function(row, bf_prior, design, metadata) {
             nrange = search_nrange(row),
             ratio = ratio,
             strict = TRUE,
-            trange = if (!is.null(metadata$t_trange)) {
-                metadata$t_trange
-            } else "adaptive",
-            tail.eps = 1e-3,
             integer = TRUE,
             search = "adaptive",
             details = TRUE
@@ -786,4 +781,4 @@ main <- function() {
     }
 }
 
-main()
+if (sys.nframe() == 0L) main()

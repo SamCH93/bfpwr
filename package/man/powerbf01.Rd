@@ -15,7 +15,9 @@ powerbf01(
   type = c("two.sample", "one.sample", "paired"),
   dpm = pm,
   dpsd = psd,
-  nrange = c(1, 10^5)
+  nrange = c(1, 10^5),
+  alternative = c("two.sided", "less", "greater"),
+  tol = getOption("bfpwr.tol", 1e-08)
 )
 }
 \arguments{
@@ -56,6 +58,17 @@ mean difference. Defaults to the same value as the analysis prior
 \item{nrange}{Sample size search range over which numerical search is
 performed (only taken into account when \code{n} is \code{NULL}).
 Defaults to \code{c(1, 10^5)}}
+
+\item{alternative}{Direction of the alternative hypothesis, one of
+\code{"two.sided"} (default), \code{"less"}, or \code{"greater"}.
+For a one-sided alternative, the normal analysis prior is restricted to
+values below \code{null} (\code{"less"}) or above \code{null}
+(\code{"greater"}) and renormalized. \code{pm} and \code{psd} describe
+the normal distribution before truncation. A point prior
+(\code{psd = 0}) must lie strictly on the specified side of \code{null}.}
+
+\item{tol}{Numerical tolerance for sample-size root searches. Defaults to
+\code{getOption("bfpwr.tol", 1e-8)}.}
 }
 \value{
 Object of class \code{"power.bftest"}, a list of the arguments
@@ -75,10 +88,19 @@ This function provides a similar interface as
     directly compute the sample size for a fixed power) and \link{pbf01} (to
     directly compute the power for a fixed sample size) may also be useful
     because they can be used for other data and parameter types.
+    The sample-size tolerance \code{tol} is used only when a numerical
+    search is required; an analytical solution does not use it.
 }
 \note{
 A warning message will be displayed in case that the specified target
     power is not achievable under the specified analysis and design priors.
+    The normal design prior remains untruncated for one-sided alternatives.
+    Power need not increase with sample size; for example, the probability
+    of misleading evidence first rises and then falls. If both endpoints of
+    \code{nrange} are below the target, the numerical search checks the
+    interior maximum. The returned sample size is the smallest at which
+    power reaches the target; power may fall below the target again at
+    larger sample sizes.
 }
 \examples{
 ## determine power
@@ -86,6 +108,10 @@ powerbf01(n = 100, pm = 0, psd = 1, dpm = 0.5, dpsd = 0)
 
 ## determine sample size
 powerbf01(power = 0.99, pm = 0, psd = 1, dpm = 0.5, dpsd = 0)
+
+## one-sided alternative with a half-normal analysis prior
+powerbf01(power = 0.8, pm = 0, psd = 1, dpm = 0.5, dpsd = 0,
+          alternative = "greater")
 
 }
 \seealso{

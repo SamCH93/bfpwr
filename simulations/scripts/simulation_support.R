@@ -31,6 +31,19 @@ source_package_checkout <- function(root = repo_root()) {
     invisible(files)
 }
 
+bfpwr_sim_numerical_defaults <- function() {
+    defaults <- bfpwrOptions()
+    data.frame(
+        integration_grid = defaults$ngrid,
+        sample_size_tol = defaults$tol,
+        bf_rel_tol = defaults$rel.tol,
+        bf_abs_tol = defaults$rel.tol,
+        bf_subdivisions = defaults$subdivisions,
+        t_tail_eps = defaults$tail.eps,
+        t_tail_nquad = defaults$tail.nquad
+    )
+}
+
 bfpwr_sim_package_provenance <- function(
         root = getOption("bfpwr.sim.package_checkout", repo_root())) {
     root <- normalizePath(root, winslash = "/", mustWork = TRUE)
@@ -55,6 +68,11 @@ bfpwr_sim_package_provenance <- function(
         NA_character_
     }
 
+    source_md5 <- function(paths) {
+        paste(unname(tools::md5sum(sort(paths))), collapse = "/")
+    }
+    ## Include source checksums so different uncommitted calculations cannot
+    ## share a cache merely because they have the same Git revision.
     data.frame(
         package_git_revision = if (length(revision)) {
             revision[[1]]
@@ -67,10 +85,32 @@ bfpwr_sim_package_provenance <- function(
             NA
         },
         package_version = version,
+        package_source_md5 = source_md5(list.files(file.path(root, "package", "R"),
+            pattern = "[.]R$", full.names = TRUE)),
+        verification_source_md5 = source_md5(c(
+            list.files(file.path(root, "simulations", "R"),
+                       pattern = "[.]R$", full.names = TRUE),
+            list.files(file.path(root, "simulations", "scripts"),
+                       pattern = "[.]R$", full.names = TRUE))),
         package_source_root = root,
         package_recomputed_at = format(Sys.time(), "%Y-%m-%d %H:%M:%S %Z"),
+        bfpwr_sim_numerical_defaults(),
         stringsAsFactors = FALSE
     )
+}
+
+## Every computed cache carries the settings and source identity of its worker.
+bfpwr_sim_cache_identity <- function(provenance = bfpwr_sim_package_provenance()) {
+    provenance[c("package_git_revision", "package_source_md5",
+                 "verification_source_md5", names(bfpwr_sim_numerical_defaults()))]
+}
+
+bfpwr_sim_check_cache <- function(saved, expected, label) {
+    if (!isTRUE(all.equal(saved, expected, tolerance = 0, check.attributes = FALSE))) {
+        stop("stale numerical settings or source in ", label,
+             "; rerun calculations before assembly", call. = FALSE)
+    }
+    invisible(TRUE)
 }
 
 source_simulation_library <- function(root = repo_root()) {

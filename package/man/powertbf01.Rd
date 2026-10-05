@@ -19,8 +19,9 @@ powertbf01(
   nrange = c(2, 10^4),
   ratio = 1,
   drange = "adaptive",
-  tail.eps = 0.001,
-  tail.nquad = 128
+  tail.eps = getOption("bfpwr.tail.eps", 1e-06),
+  tail.nquad = getOption("bfpwr.tail.nquad", 512),
+  ...
 )
 }
 \arguments{
@@ -78,11 +79,15 @@ boundary is found before that point, the boundary-free probability
 implied by the searched side is returned and the omitted tail probability
 is bounded by \code{tail.eps}. Smaller values search farther and can
 recover extremely remote boundaries at additional computational cost.
-Defaults to \code{1e-3}}
+Defaults to \code{1e-6}}
 
 \item{tail.nquad}{Number of Gauss-Legendre quadrature nodes used by
 \code{\link{tbf01}} for stable wrong-tail one-sided calculations. Larger
-values are more accurate but slower. Defaults to \code{128}.}
+values are more accurate but slower. Defaults to \code{512}.}
+
+\item{...}{Numerical controls inherited from \code{\link{ptbf01}}, also
+used by \code{\link{ntbf01}} when finding a sample size. Saved in the
+returned object and reused when plotting power curves.}
 }
 \value{
 Object of class \code{"power.bftest"}, a list of the arguments
@@ -100,6 +105,17 @@ This function provides a similar interface as
     \link{ntbf01} (to directly compute the sample size for a fixed power) and
     \link{ptbf01} (to directly compute the power for a fixed sample size) may
     also be useful.
+}
+\note{
+A warning message will be displayed in case that the specified target
+    power is not achievable under the specified analysis and design priors.
+    The normal design prior remains untruncated for one-sided alternatives.
+    Power need not increase with sample size; for example, the probability
+    of misleading evidence first rises and then falls. If both endpoints of
+    \code{nrange} are below the target, the numerical search checks the
+    interior maximum. The returned sample size is the smallest at which
+    power reaches the target; power may fall below the target again at
+    larger sample sizes.
 }
 \examples{
 ## determine power

@@ -52,6 +52,23 @@ expect_equal(less_crit, -greater_crit, tolerance = 1e-5,
 expect_true(max(abs(c(less_residual, greater_residual))) < 1e-4,
             info = "one-sided adaptive tcrit roots should satisfy BF01 threshold")
 
+explicit_greater_crit <- bfpwr:::tcrit(
+    k = 30, n1 = 41, n2 = 41, plocation = 0, pscale = 1/sqrt(2), pdf = 1,
+    type = "two.sample", alternative = "greater", trange = c(-20, 0)
+)
+expect_equal(
+    greater_crit, explicit_greater_crit, tolerance = 1e-8,
+    info = "stable adaptive and explicit t roots should use the same root precision"
+)
+
+precise_root <- bfpwr:::.bfpwr_certified_root(
+    f = function(x) x^3 - 2, x0 = 0, x1 = 2, tol = 1e-12
+)
+expect_true(
+    abs(precise_root^3 - 2) < 1e-10,
+    info = "tol must reach uniroot instead of partially matching residual tolerance"
+)
+
 tcrit_missing_limit_warning <- NULL
 tcrit_missing_limit <- withCallingHandlers(
     bfpwr:::tcrit(k = 30, n1 = 41, n2 = 41, plocation = 0,
@@ -158,6 +175,85 @@ expect_false(
     info = "one-sided helper should not report a tail cutoff from only the relaxed search function"
 )
 
+## A false scout bracket with non-finite interior evaluations must not leak
+## uniroot warnings into the stable result (as observed with Linux dt()).
+faulty_scout <- function(x) {
+    if (x == 0) return(-1)
+    if (abs(x) == 1) return(1)
+    NaN
+}
+scout_warnings <- character()
+rejected_scout <- withCallingHandlers(
+    bfpwr:::.bfpwr_one_sided_adaptive_root(
+        certify_fun = function(x) -1,
+        scout_fun = faulty_scout,
+        alternative = "greater",
+        search_limit = 64,
+        steps = 1,
+        scout_tail_steps = 1,
+        tail_steps = 64,
+        maxiter = 10
+    ),
+    warning = function(w) {
+        scout_warnings <<- c(scout_warnings, conditionMessage(w))
+        invokeRestart("muffleWarning")
+    }
+)
+expect_equal(
+    rejected_scout$status, "impossible",
+    info = "stable evaluation should reject a false non-finite scout bracket"
+)
+expect_equal(
+    scout_warnings, character(),
+    info = "rejected scout warnings should not override the stable boundary status"
+)
+
+## The relaxed search can fail independently of the scout. Its rejected
+## brackets must also leave the certified boundary status intact.
+relaxed_search <- function(x) {
+    if (abs(x) > 1) return(-1)
+    faulty_scout(x)
+}
+relaxed_warnings <- character()
+rejected_relaxed <- withCallingHandlers(
+    bfpwr:::.bfpwr_one_sided_adaptive_root(
+        certify_fun = function(x) -1,
+        search_fun = relaxed_search,
+        scout_fun = relaxed_search,
+        alternative = "greater",
+        search_limit = 64,
+        steps = 1,
+        scout_tail_steps = 64,
+        tail_steps = 64,
+        maxiter = 10
+    ),
+    warning = function(w) {
+        relaxed_warnings <<- c(relaxed_warnings, conditionMessage(w))
+        invokeRestart("muffleWarning")
+    }
+)
+expect_equal(rejected_relaxed$status, "impossible",
+             info = "stable evaluation should reject false relaxed-search brackets")
+expect_equal(relaxed_warnings, character(),
+             info = "rejected relaxed-search warnings should not override certified status")
+
+final_warnings <- character()
+withCallingHandlers(
+    bfpwr:::.bfpwr_certified_root(
+        f = function(x) {
+            warning("final-path-warning")
+            x - 1
+        },
+        x0 = 0, x1 = 2
+    ),
+    warning = function(w) {
+        final_warnings <<- c(final_warnings, conditionMessage(w))
+        invokeRestart("muffleWarning")
+    }
+)
+expect_true(any(final_warnings == "final-path-warning"),
+            info = "warnings from the final root function must remain visible")
+
 flat_missing_root <- bfpwr:::.bfpwr_one_sided_adaptive_root(
     certify_fun = function(x) -1 - 1/(abs(x) + 1),
     scout_fun = function(x) -1 - 1/(abs(x) + 1),
@@ -228,6 +324,27 @@ expect_equal(
     info = "tcrit result should expose the status reason code"
 )
 
+expect_equal(
+    vapply(tcrit_impossible_result$issues, `[[`, character(1), "code"),
+    "one_sided_unattainable",
+    info = "unattainable one-sided t roots should have no provisional scout issues"
+)
+
+tail_t <- -c(4, 8, 16, 32, 64)
+tail_residual <- tbf01(t = tail_t, n = 15, alternative = "greater",
+                        log = TRUE) - log(20)
+expect_true(
+    all(is.finite(tail_residual)) && all(tail_residual < 0) &&
+        all(diff(tail_residual) > 0),
+    info = "the reported one-sided t tail should approach an unattainable BF smoothly"
+)
+expect_equal(
+    tail_residual,
+    tbf01(t = -tail_t, n = 15, alternative = "less", log = TRUE) - log(20),
+    tolerance = 1e-8,
+    info = "stable unattainable t tails should agree for mirrored alternatives"
+)
+
 seq_impossible_warning <- NULL
 withCallingHandlers(
     bfpwr:::.bfseq_warn_t_boundary_statuses(
@@ -272,6 +389,21 @@ if (!bfpwr_run_extended_tests()) {
         "remaining tbf01 numerical-stability checks are extended"
     ))
 }
+
+## A shifted two-sided prior can have no H0 root. NaN warnings from the
+## rejected unbounded searches must not override the finite maximum check.
+two_sided_impossible <- bfpwr:::.bfpwr_tcrit_result(
+    k = 20, n1 = 15, n2 = 15, plocation = 0.2, pscale = 0.7, pdf = 1,
+    type = "two.sample", alternative = "two.sided"
+)
+expect_equal(two_sided_impossible$status, "impossible",
+             info = "two-sided maximum certification should discard rejected root warnings")
+expect_equal(two_sided_impossible$reason, "maximum_bf_below_k")
+expect_equal(
+    vapply(two_sided_impossible$issues, `[[`, character(1), "code"),
+    "maximum_bf_below_k",
+    info = "two-sided impossible boundaries should retain only the final diagnostic"
+)
 
 expect_equal(
     tbf01(t = -20, n1 = 7880, n2 = 7880, alternative = "greater",

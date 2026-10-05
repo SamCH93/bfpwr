@@ -1,6 +1,7 @@
 nbf01. <- function(k, power, usd, null = 0, pm, psd, dpm = pm, dpsd = psd,
                    nrange = c(1, 10^5), lower.tail = TRUE, integer = TRUE,
-                   analytical = TRUE, ...) {
+                   analytical = TRUE,
+                   alternative = c("two.sided", "less", "greater"), ...) {
     ## input checks
     stopifnot(
         length(k) == 1,
@@ -58,6 +59,9 @@ nbf01. <- function(k, power, usd, null = 0, pm, psd, dpm = pm, dpsd = psd,
         !is.na(analytical)
     )
 
+    alternative <- match.arg(alternative)
+    .bf01_check_alternative(alternative, pm = pm, psd = psd, null = null)
+
     ## use analytical solution if specified and available
     if (analytical == TRUE) {
         available <- TRUE # is analytical solution available?
@@ -103,10 +107,11 @@ nbf01. <- function(k, power, usd, null = 0, pm, psd, dpm = pm, dpsd = psd,
         ## define function for numerical root-finding
         rootFun <- function(n) {
             pbf01(k = k, n = n, usd = usd, null = null, pm = pm, psd = psd, dpm = dpm,
-                  dpsd = dpsd, lower.tail = lower.tail) - power
+                  dpsd = dpsd, lower.tail = lower.tail,
+                  alternative = alternative) - power
         }
 
-        n <- searchN(rootFun = rootFun, nrange = nrange, ...)
+        n <- searchN(rootFun = rootFun, nrange = nrange, peak = TRUE, ...)
     }
     if (integer) return(ceiling(n))
     else return(n)
@@ -128,12 +133,20 @@ nbf01. <- function(k, power, usd, null = 0, pm, psd, dpm = pm, dpsd = psd,
 #'     the next larger integer. Defaults to \code{TRUE}
 #' @param analytical Logical indicating whether analytical (if available) or
 #'     numerical method should be used. Defaults to \code{TRUE}
-#' @param ... Other arguments passed to \code{stats::uniroot}
+#' @param ... Other arguments passed to \code{stats::uniroot}. The sample-size
+#'     root tolerance defaults to \code{tol = 1e-8} and can be overridden.
 #'
 #' @inherit pbf01 details
 #'
 #' @note A warning message will be displayed in case that the specified target
 #'     power is not achievable under the specified analysis and design priors.
+#'     The normal design prior remains untruncated for one-sided alternatives.
+#'     Power need not increase with sample size; for example, the probability
+#'     of misleading evidence first rises and then falls. If both endpoints of
+#'     \code{nrange} are below the target, the numerical search checks the
+#'     interior maximum. The returned sample size is the smallest at which
+#'     power reaches the target; power may fall below the target again at
+#'     larger sample sizes.
 #'
 #' @return The required sample size to achieve the specified power
 #'
@@ -161,7 +174,8 @@ nbf01. <- function(k, power, usd, null = 0, pm, psd, dpm = pm, dpsd = psd,
 #' @export
 nbf01 <- Vectorize(FUN = nbf01.,
                    vectorize.args = c("k", "power", "usd", "null", "pm", "psd",
-                                      "dpm", "dpsd", "integer", "analytical"))
+                                      "dpm", "dpsd", "integer", "analytical",
+                                      "alternative"))
 
 
 

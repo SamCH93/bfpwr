@@ -66,7 +66,8 @@ distribution. Is only taken into account if \code{dp = NA}. Defaults to
 \item{nrange}{Sample size search range over which numerical search is
 performed. Defaults to \code{c(1, 10^4)}}
 
-\item{...}{Other arguments passed to \code{stats::uniroot}}
+\item{...}{Other arguments passed to \code{stats::uniroot}. The sample-size
+root tolerance defaults to \code{tol = 1e-8} and can be overridden.}
 }
 \value{
 The required sample size to achieve the specified power

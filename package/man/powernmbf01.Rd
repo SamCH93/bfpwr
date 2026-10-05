@@ -15,7 +15,8 @@ powernmbf01(
   type = c("two.sample", "one.sample", "paired"),
   dpm,
   dpsd,
-  nrange = c(1, 10^5)
+  nrange = c(1, 10^5),
+  tol = getOption("bfpwr.tol", 1e-08)
 )
 }
 \arguments{
@@ -51,6 +52,9 @@ parameter. Set to 0 to obtain a point prior at the design prior mean}
 \item{nrange}{Sample size search range over which numerical search is
 performed (only taken into account when \code{n} is \code{NULL}).
 Defaults to \code{c(1, 10^5)}}
+
+\item{tol}{Numerical tolerance for sample-size root searches. Defaults to
+\code{getOption("bfpwr.tol", 1e-8)}.}
 }
 \value{
 Object of class \code{"power.bftest"}, a list of the arguments
@@ -71,6 +75,16 @@ This function provides a similar interface as
     \link{pnmbf01} (to directly compute the power for a fixed sample size)
     may also be useful because they can be used for other data and parameter
     types.
+}
+\note{
+A warning message will be displayed in case that the specified target
+    power is not achievable under the specified analysis and design priors.
+    Power need not increase with sample size; for example, the probability
+    of misleading evidence first rises and then falls. If both endpoints of
+    \code{nrange} are below the target, the numerical search checks the
+    interior maximum. The returned sample size is the smallest at which
+    power reaches the target; power may fall below the target again at
+    larger sample sizes.
 }
 \examples{
 ## determine power

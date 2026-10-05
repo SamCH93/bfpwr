@@ -4,8 +4,8 @@ ntbf01. <- function(k, power, null = 0, plocation = 0, pscale = 1/sqrt(2),
                     dpm = plocation, dpsd = pscale, lower.tail = TRUE,
                     integer = TRUE, nrange = c(2, 10^4),
                     ratio = 1, drange = "adaptive",
-                    tail.eps = 1e-3,
-                    tail.nquad = 128, ...) {
+                    tail.eps = getOption("bfpwr.tail.eps", 1e-6),
+                    tail.nquad = getOption("bfpwr.tail.nquad", 512), ...) {
     ## input checks
     stopifnot(
         length(k) == 1,
@@ -128,7 +128,9 @@ ntbf01. <- function(k, power, null = 0, plocation = 0, pscale = 1/sqrt(2),
         }
     }
 
-    n <- searchN(rootFun = rootFun, nrange = nrangeSearch, ...)
+    n <- do.call(searchN, c(list(rootFun = rootFun, nrange = nrangeSearch,
+                                 peak = TRUE),
+                           .bfpwr_uniroot_dots(list(...))))
 
     if (integer) return(ceiling(n))
     else return(n)
@@ -153,13 +155,13 @@ ntbf01. <- function(k, power, null = 0, plocation = 0, pscale = 1/sqrt(2),
 #'     value. If a fixed-\code{n} power evaluation reaches that cutoff before
 #'     finding a boundary, the returned 0/1 tail probability has omitted mass
 #'     bounded by \code{tail.eps}. Smaller values search farther. Defaults to
-#'     \code{1e-3}
+#'     \code{1e-6}
 #' @param ... Optional numerical controls passed to \code{\link{ptbf01}} and
 #'     to the \code{stats::uniroot} sample-size search. The fixed-design
 #'     critical-value range \code{drange} is handled explicitly and is not
 #'     passed to the sample-size search.
 #'
-#' @inherit nbf01 return
+#' @inherit nbf01 return note
 #'
 #' @author Samuel Pawel, František Bartoš
 #'

@@ -7,7 +7,12 @@
 #'     the sample size n
 #' @param nrange Sample size search range over which numerical search is
 #'     performed
-#' @param ... Other arguments passed to \code{stats::uniroot}
+#' @param peak Logical indicating whether to check for an interior power
+#'     maximum if both endpoints fall below the target. Power need not be
+#'     monotone in n; for example, the probability of misleading evidence
+#'     first rises and then falls. The crossing on the rising side is returned.
+#' @param ... Other arguments passed to \code{stats::uniroot}. The sample-size
+#'     root tolerance defaults to \code{tol = 1e-8} and can be overridden.
 #'
 #' @return The required sample size to achieve the specified power
 #'
@@ -17,10 +22,23 @@
 #'
 #' @keywords internal
 
-searchN <- function(rootFun, nrange, ...) {
+searchN <- function(rootFun, nrange, tol = getOption("bfpwr.tol", 1e-8),
+                    peak = FALSE, ...) {
     ## check boundaries of sample size search range
     lower <- rootFun(nrange[1])
     upper <- rootFun(nrange[2])
+    if (peak && is.finite(lower) && lower <= 0 &&
+        is.finite(upper) && upper < 0) {
+        ## Power need not be increasing in N. Locate its interior peak on
+        ## log(N), then bracket the rising crossing against the lower end.
+        maximum <- stats::optimize(function(logn) rootFun(exp(logn)),
+                                    interval = log(nrange), maximum = TRUE,
+                                    tol = tol)
+        if (maximum$objective >= 0) {
+            nrange[2] <- exp(maximum$maximum)
+            upper <- maximum$objective
+        }
+    }
     if (is.nan(lower)) {
         warning("lower bound of sample size search range ('nrange') leads to Power = NaN")
         n <- NaN
@@ -38,7 +56,8 @@ searchN <- function(rootFun, nrange, ...) {
         ## uniroot otherwise evaluates these endpoints again. We already need
         ## them for the range checks, so pass them through directly.
         res <- try(stats::uniroot(f = rootFun, interval = nrange,
-                                  f.lower = lower, f.upper = upper, ...)$root)
+                                  f.lower = lower, f.upper = upper,
+                                  tol = tol, ...)$root)
         if (inherits(res, "try-error")) {
             warning("problems while running uniroot")
             n <- NaN
@@ -66,7 +85,8 @@ searchN <- function(rootFun, nrange, ...) {
 #'     verified that the power does not drop below the target
 #' @param maxcycles Maximum number of cycles to check that power does not drop
 #'     beyond target. Defaults to \code{5}
-#' @param ... Other arguments passed to \code{stats::uniroot}
+#' @param ... Other arguments passed to \code{stats::uniroot}. The sample-size
+#'     root tolerance defaults to \code{tol = 1e-8} and can be overridden.
 #'
 #' @return The required sample size to achieve the specified power
 #'

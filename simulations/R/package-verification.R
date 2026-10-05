@@ -261,8 +261,20 @@ bfpwr_sim_sequential_reference_manifest <- function(fixture) {
             group, n = per_cell, offset = i - 1L)
     }
     rows <- bfpwr_sim_bind_rows_fill(selected)
+    if (identical(fixture$spec$family, "t")) {
+        ## Keep the four 20-look comparisons shown in the original report.
+        retained <- bfpwr_sim_t_sequential_reference_case_grid(fixture)
+        retained_key <- bfpwr_sim_row_key(retained,
+            c("bf_prior_id", "schedule_id", "evidence_threshold"))
+        fixture_key <- bfpwr_sim_row_key(fixture$final_summary,
+            c("bf_prior_id", "schedule_id", "evidence_threshold"))
+        retained_rows <- fixture$final_summary[fixture_key %in% retained_key, , drop = FALSE]
+        retained_rows$package_verification_case_id <- sprintf("pkgver-t20-%04d",
+                                                             seq_len(nrow(retained_rows)))
+        rows <- bfpwr_sim_bind_rows_fill(list(rows, retained_rows))
+    }
     rows <- bfpwr_sim_add_sequential_selection_fields(rows)
-    keep_cols <- c("fixture_set_id", "family", "bf_type", "bf_prior_id",
+    keep_cols <- c("package_verification_case_id", "fixture_set_id", "family", "bf_type", "bf_prior_id",
                    "design_case_id", "look_grid_name", "schedule_id",
                    "schedule_family_id", "start_n", "increment", "n_looks",
                    "max_n", "threshold_pair_id", "evidence_threshold",
@@ -270,22 +282,14 @@ bfpwr_sim_sequential_reference_manifest <- function(fixture) {
                    "direction_class", "schedule_class")
     rows <- rows[intersect(keep_cols, names(rows))]
     rows$mode <- "sequential"
-    rows$validation_role <- if (identical(fixture$spec$family, "t")) {
-        "sequential_expected_sample_size_reference"
-    } else {
-        "sequential_package_reference"
-    }
+    rows$validation_role <- "sequential_package_reference"
     rows$manifest_role <- rows$validation_role
     rows$package_function <- if (identical(fixture$spec$family, "t")) {
         "ptbf01seq"
     } else {
         "pbf01seq"
     }
-    rows$reference_scope <- if (identical(fixture$spec$family, "t")) {
-        "short_strict_expected_sample_size_only"
-    } else {
-        "short_strict_all_tails_all_looks_and_expected_sample_size"
-    }
+    rows$reference_scope <- "short_strict_all_tails_all_looks_and_expected_sample_size"
     rows$validation_required <- TRUE
     rows$package_key <- NA_character_
     rows$selection_stratum <- paste(rows$schedule_class, rows$design_class,
@@ -638,6 +642,9 @@ bfpwr_sim_build_package_verification_manifest <- function(
                                manifest$fixture_set_id,
                                manifest$package_verification_case_id),
                          , drop = FALSE]
+    for (name in names(manifest)[vapply(manifest, is.character, logical(1))]) {
+        manifest[[name]][is.na(manifest[[name]])] <- ""
+    }
     rownames(manifest) <- NULL
     manifest
 }

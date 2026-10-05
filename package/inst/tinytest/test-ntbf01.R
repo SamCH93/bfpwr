@@ -14,7 +14,7 @@ manual_ratio_root <- suppressWarnings(stats::uniroot(
             n = n, n1 = n, n2 = ceiling(n*ratio)
         ))) - target_power
     },
-    interval = search_args$nrange
+    interval = search_args$nrange, tol = 1e-8
 )$root)
 
 ratio_root <- suppressWarnings(do.call(ntbf01, c(search_args, list(

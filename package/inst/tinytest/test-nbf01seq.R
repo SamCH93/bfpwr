@@ -1,6 +1,8 @@
 library(tinytest)
 library(bfpwr)
 
+source("helper-test-precision.R", local = TRUE)
+
 k1 <- 1/5
 k0 <- 5
 pow <- 0.8

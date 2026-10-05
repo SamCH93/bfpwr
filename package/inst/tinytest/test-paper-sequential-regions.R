@@ -10,6 +10,9 @@ if (!bfpwr_run_extended_tests()) {
 
 ## Checks for numbers printed in the BFGSD paper. Each example calls the
 ## package function and compares the result to the value reported in the paper.
+## Reproduce the paper's 1,000-point integration setting explicitly; the current
+## package default is checked in test-sequential-default-integration.R.
+paper_ngrid <- 1000
 
 expect_numeric_equal <- function(value, expected, tolerance, info) {
     expect_equal(as.numeric(value), expected, tolerance = tolerance, info = info)
@@ -54,10 +57,10 @@ lowpv_se_h1 <- sqrt(1/(lowpv_p0*(1 - lowpv_p0)*lowpv_n) +
 lowpv_se_h0 <- sqrt(1/(lowpv_p0*(1 - lowpv_p0)*lowpv_n) +
                     1/(lowpv_p0*(1 - lowpv_p0)*lowpv_n))
 
-lowpv_h1 <- pbf01seq(k1 = lowpv_k1, k0 = lowpv_k0, se = lowpv_se_h1,
+lowpv_h1 <- pbf01seq(k1 = lowpv_k1, k0 = lowpv_k0, se = lowpv_se_h1, ngrid = paper_ngrid,
                      n = lowpv_n, pm = lowpv_pm, psd = lowpv_psd,
                      dpm = lowpv_pm, dpsd = 0, type = "normal")
-lowpv_h0 <- pbf01seq(k1 = lowpv_k1, k0 = lowpv_k0, se = lowpv_se_h0,
+lowpv_h0 <- pbf01seq(k1 = lowpv_k1, k0 = lowpv_k0, se = lowpv_se_h0, ngrid = paper_ngrid,
                      n = lowpv_n, pm = lowpv_pm, psd = lowpv_psd,
                      dpm = 0, dpsd = 0, type = "normal")
 
@@ -104,12 +107,12 @@ expect_numeric_equal(
 ## as an extended reference check.
 jzs_n <- seq(40, 100, 1)
 jzs_h1 <- suppressWarnings(
-    ptbf01seq(k1 = 1/30, k0 = 6, n = jzs_n, plocation = 0,
+    ptbf01seq(k1 = 1/30, k0 = 6, n = jzs_n, plocation = 0, ngrid = paper_ngrid,
               pscale = 1/sqrt(2), pdf = 1, dpm = 0.5, dpsd = 0.1,
               type = "two.sample", alternative = "greater")
 )
 jzs_h0 <- suppressWarnings(
-    ptbf01seq(k1 = 1/30, k0 = 6, n = jzs_n, plocation = 0,
+    ptbf01seq(k1 = 1/30, k0 = 6, n = jzs_n, plocation = 0, ngrid = paper_ngrid,
               pscale = 1/sqrt(2), pdf = 1, dpm = 0, dpsd = 0,
               type = "two.sample", alternative = "greater",
               tail.eps = 1e-8)

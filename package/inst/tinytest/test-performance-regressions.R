@@ -286,12 +286,10 @@ seq_t <- bfpwr_expect_elapsed_under(
                      alternative = "greater")
 )
 expect_seq_object(seq_t, "ptbf01seq")
-expect_equal(
-    c(tail(seq_t$cumpH1, 1), tail(seq_t$cumpH0, 1), seq_t$EN1),
-    c(0.7026386, 0.0178849, 69.40229),
-    tolerance = 5e-5,
-    info = "timed sequential t-test check still matches the paper schedule"
-)
+## Historical values are checked at the paper's original integration grid in
+## test-paper-sequential-regions.R. Time the current package default here.
+expect_equal(seq_t$integration$ngrid, 10000,
+             info = "sequential timing check uses the current default accuracy")
 
 ## S3 print and plot methods. Use plot = FALSE to exercise the method while
 ## avoiding graphics-device noise in timing measurements.

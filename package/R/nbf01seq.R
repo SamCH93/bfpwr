@@ -5,7 +5,8 @@ nbf01seq. <- function(k1, k0 = 1/k1, power, usd = sqrt(2), null = 0,
                       looks = 1, timing = NULL, minN = NULL, by = NULL,
                       strict = TRUE, integer = TRUE,
                       search = c("adaptive", "exhaustive"),
-                      details = FALSE, progress = NULL, ...) {
+                      details = FALSE, progress = NULL,
+                      alternative = c("two.sided", "less", "greater"), ...) {
     type <- match.arg(type)
     target <- match.arg(target)
     search <- match.arg(search)
@@ -76,6 +77,9 @@ nbf01seq. <- function(k1, k0 = 1/k1, power, usd = sqrt(2), null = 0,
     if (type != "normal") {
         stopifnot(psd > 0)
     }
+    alternative <- match.arg(alternative)
+    .bf01_check_alternative(alternative, pm = pm, psd = psd, null = null,
+                            type = type)
     progress <- .bfseq_validate_progress(progress)
 
     schedule <- .bfseq_schedule_spec(looks = looks, timing = timing,
@@ -83,7 +87,8 @@ nbf01seq. <- function(k1, k0 = 1/k1, power, usd = sqrt(2), null = 0,
     evalDesign <- .bfseq_z_schedule_evaluator(
         k1 = k1, k0 = k0, usd = usd, null = null, pm = pm, psd = psd,
         dpm = dpm, dpsd = dpsd, type = type, target = target,
-        schedule = schedule, strict = strict, dots = list(...)
+        schedule = schedule, strict = strict, dots = list(...),
+        alternative = alternative
     )
 
     solver <- .bfseq_search(power = power, target = target, nrange = nrange,
@@ -189,7 +194,8 @@ nbf01seq <- function(k1, k0 = 1/k1, power, usd = sqrt(2), null = 0,
                      looks = 1, timing = NULL, minN = NULL, by = NULL,
                      strict = TRUE, integer = TRUE,
                      search = c("adaptive", "exhaustive"),
-                     details = FALSE, ...) {
+                     details = FALSE,
+                     alternative = c("two.sided", "less", "greater"), ...) {
     progressInfo <- .bfseq_extract_progress(list(...))
     progress <- progressInfo$progress
     dots <- progressInfo$dots
@@ -205,9 +211,16 @@ nbf01seq <- function(k1, k0 = 1/k1, power, usd = sqrt(2), null = 0,
         .bfseq_match_vector_arg(target, c("H1", "H0"), "target")
     }
 
+    alternative <- if (missing(alternative)) {
+        "two.sided"
+    } else {
+        .bfseq_match_vector_arg(alternative, c("two.sided", "less", "greater"),
+                                "alternative")
+    }
+
     if (isTRUE(details)) {
-        if (length(type) != 1 || length(target) != 1) {
-            stop("'details = TRUE' requires scalar 'type' and 'target'")
+        if (length(type) != 1 || length(target) != 1 || length(alternative) != 1) {
+            stop("'details = TRUE' requires scalar 'type', 'alternative', and 'target'")
         }
         return(do.call(nbf01seq., c(list(
             k1 = k1, k0 = k0, power = power, usd = usd, null = null,
@@ -215,12 +228,12 @@ nbf01seq <- function(k1, k0 = 1/k1, power, usd = sqrt(2), null = 0,
             target = target, nrange = nrange, looks = looks,
             timing = timing, minN = minN, by = by, strict = strict,
             integer = integer, search = search, details = TRUE,
-            progress = progress
+            progress = progress, alternative = alternative
         ), dots)))
     }
 
     vectorizeArgs <- c("k1", "k0", "power", "usd", "null", "psd", "dpm",
-                       "dpsd", "type", "target", "integer")
+                       "dpsd", "type", "target", "integer", "alternative")
     if (!is.null(pm)) {
         vectorizeArgs <- c(vectorizeArgs, "pm")
     }
@@ -230,5 +243,5 @@ nbf01seq <- function(k1, k0 = 1/k1, power, usd = sqrt(2), null = 0,
       type = type, target = target, nrange = nrange, looks = looks,
       timing = timing, minN = minN, by = by, strict = strict,
       integer = integer, search = search, details = FALSE,
-      progress = progress), dots))
+      progress = progress, alternative = alternative), dots))
 }

@@ -20,8 +20,8 @@ ntbf01(
   nrange = c(2, 10^4),
   ratio = 1,
   drange = "adaptive",
-  tail.eps = 0.001,
-  tail.nquad = 128,
+  tail.eps = getOption("bfpwr.tail.eps", 1e-06),
+  tail.nquad = getOption("bfpwr.tail.nquad", 512),
   ...
 )
 }
@@ -80,11 +80,11 @@ remaining predictive probability in the searched tail is at most this
 value. If a fixed-\code{n} power evaluation reaches that cutoff before
 finding a boundary, the returned 0/1 tail probability has omitted mass
 bounded by \code{tail.eps}. Smaller values search farther. Defaults to
-\code{1e-3}}
+\code{1e-6}}
 
 \item{tail.nquad}{Number of Gauss-Legendre quadrature nodes used by
 \code{\link{tbf01}} for stable wrong-tail one-sided calculations. Larger
-values are more accurate but slower. Defaults to \code{128}.}
+values are more accurate but slower. Defaults to \code{512}.}
 
 \item{...}{Optional numerical controls passed to \code{\link{ptbf01}} and
 to the \code{stats::uniroot} sample-size search. The fixed-design
@@ -98,6 +98,17 @@ The required sample size to achieve the specified power
 This function computes the required sample size to obtain a
     \eqn{t}-test Bayes factor (\link{tbf01}) more extreme than a threshold
     \code{k} with a specified target power.
+}
+\note{
+A warning message will be displayed in case that the specified target
+    power is not achievable under the specified analysis and design priors.
+    The normal design prior remains untruncated for one-sided alternatives.
+    Power need not increase with sample size; for example, the probability
+    of misleading evidence first rises and then falls. If both endpoints of
+    \code{nrange} are below the target, the numerical search checks the
+    interior maximum. The returned sample size is the smallest at which
+    power reaches the target; power may fall below the target again at
+    larger sample sizes.
 }
 \examples{
  ## example from Schönbrodt and Wagenmakers (2018, p.135)

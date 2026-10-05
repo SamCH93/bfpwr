@@ -6,6 +6,7 @@
 #'     inconclusive in a sequential design. Optionally, also computes the
 #'     expected sample size.
 #'
+#' @inheritParams bf01
 #' @param k1 Bayes factor threshold in favor of \eqn{H_1}{H1} (i.e.,
 #'     \eqn{\text{BF}_{01} \leq \code{k1} < 1}{BF01 < \code{k1} < 1} implies
 #'     evidence for \eqn{H_1})
@@ -34,6 +35,9 @@
 #'     \code{"moment"}: point null vs. normal moment alternative which is
 #'     centered around \code{null}
 #' }
+#'     One-sided \code{alternative} values are supported for
+#'     \code{type = "normal"} only; \code{type = "directional"} compares
+#'     two composite hypotheses and retains its existing meaning.
 #'
 #' @param strict Logical. If \code{TRUE} and there are more than two critical
 #'     values per stage, enumerate all possible region combinations. If
@@ -44,9 +48,10 @@
 #'     settings. Defaults to \code{TRUE}
 #' @param ... Numerical integration controls. Use \code{ngrid} to set the
 #'     number of deterministic Halton grid points used by
-#'     \code{mvtnorm::lpmvnorm} (default \code{1000}). Alternatively, set
+#'     \code{mvtnorm::lpmvnorm} (default \code{10000}). Alternatively, set
 #'     \code{method = "pmvnorm"} and pass controls for
-#'     \code{mvtnorm::pmvnorm}.
+#'     \code{mvtnorm::pmvnorm}. Session defaults can be changed with
+#'     \link{bfpwrOptions}; explicit controls take precedence.
 #'
 #' @return An object of class \code{"bfseqdesign"}, which is a list containing
 #'     the input arguments, the critical z-values, the expected sample size, the
@@ -60,10 +65,15 @@
 #'     predictive distribution defined by \code{se} and the normal design prior
 #'     with \code{dpm} and \code{dpsd}. Integration is performed via
 #'     \code{mvtnorm::lpmvnorm}. This is deterministic numerical integration;
-#'     increasing \code{ngrid} can be used to check convergence. The null value
+#'     increasing \code{ngrid} can be used to check convergence. Very small
+#'     stopping probabilities can be missed by the integration grid; increasing
+#'     its size does not guarantee relative accuracy for rare events. The null value
 #'     and the analysis and design prior means are all specified on the
 #'     original parameter scale, matching
 #'     the fixed-sample z-test functions.
+#'     The normal design prior is not truncated, including for one-sided
+#'     analysis priors. One-sided normal Bayes factor boundaries are found
+#'     numerically using the same calculation as \code{\link{pbf01}}.
 #'
 #' @examples
 #' n <- seq(50, 200, 50) # sample size per stage
@@ -82,7 +92,8 @@
 pbf01seq <- function(k1, k0 = 1/k1, se, n = NULL, null = 0, pm = NULL,
                      psd, dpm = pm, dpsd = psd,
                      type = c("normal", "directional", "moment"),
-                     strict = TRUE, ...) {
+                     strict = TRUE,
+                     alternative = c("two.sided", "less", "greater"), ...) {
 
     ## input checks
     stopifnot(
@@ -152,10 +163,14 @@ pbf01seq <- function(k1, k0 = 1/k1, se, n = NULL, null = 0, pm = NULL,
     if (type != "normal") {
         stopifnot(psd > 0)
     }
+    alternative <- match.arg(alternative)
+    .bf01_check_alternative(alternative, pm = pm, psd = psd, null = null,
+                            type = type)
 
     .bfseq_build_z_design(k1 = k1, k0 = k0, se = se, n = n, null = null,
                           pm = pm, psd = psd, dpm = dpm, dpsd = dpsd,
-                          type = type, strict = strict, dots = list(...))
+                          type = type, strict = strict, dots = list(...),
+                          alternative = alternative)
 }
 
 ## ## compare to simulation-based probabilities
@@ -295,6 +310,8 @@ print.bfseqdesign <- function(x, digits = max(3L, getOption("digits") - 3L), ...
         if (x$type %in% c("normal", "moment")) {
             null <- " ="
             alt <- "!="
+            if (identical(x$alternative, "greater")) alt <- " >"
+            if (identical(x$alternative, "less")) alt <- " <"
         }
         if (x$type == "directional") {
             null <- " <="
@@ -331,6 +348,18 @@ print.bfseqdesign <- function(x, digits = max(3L, getOption("digits") - 3L), ...
             aprior <- paste0(parameter,
                              " ~ N(mean = ", round(x$pm, digits = digits),
                              ", sd = ", round(x$psd, digits = digits), ")")
+            if (identical(x$alternative, "greater")) {
+                aprior <- paste0(aprior, "_+")
+            }
+            if (identical(x$alternative, "less")) {
+                aprior <- paste0(aprior, "_-")
+            }
+            if (znull != 0 && (identical(x$alternative, "greater") ||
+                               identical(x$alternative, "less"))) {
+                aprior <- paste0(aprior, "; ",
+                    if (x$alternative == "greater") "> " else "< ",
+                    round(znull, digits))
+            }
         }
     } else {
         aprior <- paste0("parameter|H1 ~ NM(location = ",
@@ -510,9 +539,11 @@ plot.bfseqdesign <- function(x, plot = TRUE, nullplot = TRUE, zplot = FALSE,
                              pH1 = x$cumpH1, pInc = x$cumpInc)
         if (nullplot == TRUE) {
             if (x$test == "t") {
-                tail.eps <- if (is.null(x$tail.eps)) 1e-3 else x$tail.eps
+                tail.eps <- if (is.null(x$tail.eps)) {
+                    getOption("bfpwr.tail.eps", 1e-6)
+                } else x$tail.eps
                 tail.nquad <- if (is.null(x$tail.nquad)) {
-                    .tbf01_tail_nquad_default
+                    getOption("bfpwr.tail.nquad", 512)
                 } else {
                     x$tail.nquad
                 }
@@ -525,10 +556,12 @@ plot.bfseqdesign <- function(x, plot = TRUE, nullplot = TRUE, zplot = FALSE,
                                 tail.nquad = tail.nquad), x$integration))
             } else {
                 znull <- if (is.null(x$null)) 0 else x$null
+                alternative <- if (is.null(x$alternative)) "two.sided" else x$alternative
                 x0 <- do.call(pbf01seq, c(list(
                                k1 = x$k1, k0 = x$k0, se = x$se, pm = x$pm,
                                psd = x$psd, null = znull, dpm = znull,
-                               dpsd = 0, type = x$type, strict = x$strict),
+                               dpsd = 0, type = x$type, strict = x$strict,
+                               alternative = alternative),
                                x$integration))
             }
             plotDF0 <- data.frame(stage = stages, n = x$n, pH0 = x0$cumpH0,

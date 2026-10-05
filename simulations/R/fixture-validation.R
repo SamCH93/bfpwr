@@ -2158,6 +2158,15 @@ bfpwr_sim_fixed_independent_residuals <- function(corpus_root,
          summary = summary)
 }
 
+## Only the diagnostic copy is clamped; callers retain raw predictions.
+bfpwr_sim_probability_roundoff <- function(probability) {
+    roundoff <- is.finite(probability) &
+        probability >= -8*.Machine$double.eps &
+        probability <= 1 + 8*.Machine$double.eps
+    probability[roundoff] <- pmin(1, pmax(0, probability[roundoff]))
+    probability
+}
+
 bfpwr_sim_mc_reference_diagnostics <- function(rows,
                                                label = "fixed_tail",
                                                family_alpha = 0.01,
@@ -2168,12 +2177,19 @@ bfpwr_sim_mc_reference_diagnostics <- function(rows,
                                                               "evidence_threshold",
                                                               "look_grid_name"),
                                                min_group_rows = 30L) {
+    ## Cumulative complements can miss 0 or 1 by a few floating-point units.
+    ## Include these boundary cases in the checks instead of silently dropping
+    ## them; retain the original package predictions in the reference results.
+    rows$reference_prob <- bfpwr_sim_probability_roundoff(rows$reference_prob)
+    invalid <- sum(!is.finite(rows$reference_prob) |
+                   rows$reference_prob < 0 | rows$reference_prob > 1)
     rows <- rows[is.finite(rows$reference_prob) &
                      rows$reference_prob >= 0 &
                      rows$reference_prob <= 1, , drop = FALSE]
     if (nrow(rows) == 0) {
         return(list(
             summary = data.frame(label = label, rows_checked = 0L,
+                                 invalid_probabilities = invalid,
                                  rows_with_z = 0L,
                                  unsupported_rows = NA_integer_,
                                  exact_p_min = NA_real_,
@@ -2248,6 +2264,7 @@ bfpwr_sim_mc_reference_diagnostics <- function(rows,
     summary <- data.frame(
         label = label,
         rows_checked = nrow(rows),
+        invalid_probabilities = invalid,
         rows_with_z = m,
         unsupported_rows = NA_integer_,
         exact_p_min = min(rows$exact_p, na.rm = TRUE),
@@ -2403,7 +2420,8 @@ bfpwr_sim_validate_sequential_references <- function(fixture,
                                                      profile = c("curated",
                                                                  "none"),
                                                      strict = TRUE,
-                                                     manifest_cases = NULL) {
+                                                     manifest_cases = NULL,
+                                                     reference = NULL) {
     profile <- match.arg(profile)
     cases <- NULL
     if (!is.null(manifest_cases) && nrow(manifest_cases) > 0) {
@@ -2414,7 +2432,9 @@ bfpwr_sim_validate_sequential_references <- function(fixture,
     } else if (!is.null(manifest_cases)) {
         cases <- data.frame()
     }
-    reference <- switch(
+    ## A parallel refresh can supply the per-case calculations here. Apply the
+    ## same diagnostics to their combined rows, including multiplicity control.
+    if (is.null(reference)) reference <- switch(
         fixture$spec$family,
         z = bfpwr_sim_z_sequential_reference_table(
             fixture = fixture,

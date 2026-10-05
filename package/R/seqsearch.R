@@ -855,8 +855,9 @@
 ## N. Boundary and stage caches are shared across candidate evaluations.
 .bfseq_z_schedule_evaluator <- function(k1, k0, usd, null, pm, psd, dpm,
                                          dpsd, type, target, schedule,
-                                         strict, dots) {
-    oneCritical <- (type == "normal" && psd == 0) || type == "directional"
+                                         strict, dots, alternative = "two.sided") {
+    oneCritical <- .bfseq_z_one_critical(type, psd, alternative)
+    regionDirection <- .bfseq_region_direction(alternative)
     boundaryCache <- new.env(parent = emptyenv())
     stageCache <- new.env(parent = emptyenv())
 
@@ -870,9 +871,9 @@
             n = n,
             se = se,
             zk0 = zcrit(k = k0, se = se, null = null, mu = pm, tau = psd,
-                        type = type),
+                        type = type, alternative = alternative),
             zk1 = zcrit(k = k1, se = se, null = null, mu = pm, tau = psd,
-                        type = type)
+                        type = type, alternative = alternative)
         )
         assign(key, out, envir = boundaryCache)
         out
@@ -891,7 +892,7 @@
         }
         out <- .bfseq_stage_probabilities_from_bounds(
             bounds = bounds, oneCritical = oneCritical, strict = strict,
-            direction = NULL, null = null, dpm = dpm, dpsd = dpsd,
+            direction = regionDirection, null = null, dpm = dpm, dpsd = dpsd,
             dots = dots
         )
         assign(key, out, envir = stageCache)
@@ -903,7 +904,7 @@
         design <- .bfseq_build_z_design(
             k1 = k1, k0 = k0, se = usd/sqrt(n), n = n, null = null,
             pm = pm, psd = psd, dpm = dpm, dpsd = dpsd, type = type,
-            strict = strict, dots = dots,
+            strict = strict, dots = dots, alternative = alternative,
             getBoundary = function(i) getBoundary(n[[i]]),
             evalStage = function(i, bounds) evalStage(n[seq_len(i)], bounds)
         )
@@ -919,17 +920,13 @@
 .bfseq_t_schedule_evaluator <- function(k1, k0, plocation, pscale, pdf,
                                          dpm, dpsd, type, alternative, target,
                                          ratio, schedule, strict, trange,
-                                         tail.eps = 1e-3,
-                                         tail.nquad = .tbf01_tail_nquad_default,
+                                         tail.eps = getOption("bfpwr.tail.eps", 1e-6),
+                                         tail.nquad = getOption("bfpwr.tail.nquad", 512),
                                          dots) {
+    bfControl <- .bfpwr_t_boundary_controls(dots)
+    probabilityDots <- dots[!names(dots) %in% "bf.control"]
     oneCritical <- alternative != "two.sided"
-    regionDirection <- if (alternative == "greater") {
-        "positive"
-    } else if (alternative == "less") {
-        "negative"
-    } else {
-        NULL
-    }
+    regionDirection <- .bfseq_region_direction(alternative)
     adaptiveOneSided <- oneCritical && !is.numeric(trange) &&
         trange == "adaptive"
     boundaryCache <- new.env(parent = emptyenv())
@@ -960,18 +957,18 @@
         } else {
             NULL
         }
-        zk0Result <- .bfpwr_tcrit_result(
+        zk0Result <- do.call(.bfpwr_tcrit_result, c(list(
             k = k0, n1 = n1, n2 = n2, plocation = plocation,
             pscale = pscale, pdf = pdf, alternative = alternative,
             type = type, trange = trange, search_limit = searchLimit,
             tail.nquad = tail.nquad
-        )
-        zk1Result <- .bfpwr_tcrit_result(
+        ), bfControl))
+        zk1Result <- do.call(.bfpwr_tcrit_result, c(list(
             k = k1, n1 = n1, n2 = n2, plocation = plocation,
             pscale = pscale, pdf = pdf, alternative = alternative,
             type = type, trange = trange, search_limit = searchLimit,
             tail.nquad = tail.nquad
-        )
+        ), bfControl))
         zk0Message <- .bfseq_t_boundary_status_message(
             list(zk0Result), boundary = "H0", looks = look
         )
@@ -1024,7 +1021,8 @@
         }
         out <- .bfseq_stage_probabilities_from_bounds(
             bounds = bounds, oneCritical = oneCritical, strict = strict,
-            direction = regionDirection, dpm = dpm, dpsd = dpsd, dots = dots
+            direction = regionDirection, dpm = dpm, dpsd = dpsd,
+            dots = probabilityDots
         )
         assign(key, out, envir = stageCache)
         out

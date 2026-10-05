@@ -78,7 +78,7 @@ expect_equal(impossible_h0, 0,
 expect_true(grepl("Adaptive t power-boundary search reached", limit_warning,
                   fixed = TRUE),
             info = "one-sided ptbf01 should warn when adaptive boundary search reaches its limit")
-expect_true(grepl("absolute error <= 0.001", limit_warning, fixed = TRUE),
+expect_true(grepl("absolute error <= 1e-06", limit_warning, fixed = TRUE),
             info = "one-sided ptbf01 search-limit warning should report the tail-eps error bound")
 
 wide_tail_limit <- bfpwr:::.bfpwr_one_sided_tail_limit(

@@ -17,8 +17,10 @@
 
 ## Find a bracketed root and, when a faster scout function was used, certify
 ## the result against the final function before accepting it.
+## Keep residual_tolerance distinct so tol in dots reaches uniroot().
 .bfpwr_certified_root <- function(f, x0, x1, f0 = NaN, f1 = NaN,
-                                  final_fun = f, tolerance = 1e-5, ...) {
+                                  final_fun = f,
+                                  residual_tolerance = 1e-5, ...) {
     if (x0 == x1) {
         return(structure("degenerate root interval", class = "try-error"))
     }
@@ -37,7 +39,7 @@
             return(x0)
         }
         final0 <- .bfpwr_root_value(f = final_fun, x = x0)
-        if (is.finite(final0) && abs(final0) <= tolerance) {
+        if (is.finite(final0) && abs(final0) <= residual_tolerance) {
             return(x0)
         }
     }
@@ -46,14 +48,20 @@
             return(x1)
         }
         final1 <- .bfpwr_root_value(f = final_fun, x = x1)
-        if (is.finite(final1) && abs(final1) <= tolerance) {
+        if (is.finite(final1) && abs(final1) <= residual_tolerance) {
             return(x1)
         }
     }
 
-    root <- try(stats::uniroot(f = f, interval = sort(c(x0, x1)),
-                               extendInt = "no", ...)$root,
-                silent = TRUE)
+    ## Warnings from a relaxed search remain provisional until the final
+    ## function certifies the root. Keep warnings from the final path visible.
+    root <- try(withCallingHandlers(
+        stats::uniroot(f = f, interval = sort(c(x0, x1)),
+                       extendInt = "no", ...)$root,
+        warning = function(w) {
+            if (!identical(final_fun, f)) invokeRestart("muffleWarning")
+        }
+    ), silent = TRUE)
     if (inherits(root, "try-error")) {
         return(root)
     }
@@ -62,7 +70,7 @@
     }
 
     residual <- .bfpwr_root_value(f = final_fun, x = root)
-    if (is.finite(residual) && abs(residual) <= tolerance) {
+    if (is.finite(residual) && abs(residual) <= residual_tolerance) {
         return(root)
     }
 
@@ -81,40 +89,60 @@
         silent = TRUE)
 }
 
+## Check user controls before routing the supported union to each algorithm.
+.bfpwr_validate_controls <- function(controls, root = TRUE) {
+    supported <- c("rel.tol", "abs.tol", "subdivisions", "stop.on.error", "keep.xy")
+    if (root) supported <- c(supported, "tol", "maxiter", "trace", "check.conv")
+    if (!is.list(controls) || length(names(controls)) != length(controls) ||
+        any(!names(controls) %in% supported) || anyDuplicated(names(controls))) {
+        stop("numerical controls must have unique, supported names: ",
+             paste(supported, collapse = ", "))
+    }
+    for (name in names(controls)) {
+        value <- controls[[name]]
+        valid <- if (name %in% c("stop.on.error", "keep.xy", "check.conv")) {
+            length(value) == 1 && is.logical(value) && !is.na(value)
+        } else {
+            length(value) == 1 && is.numeric(value) && is.finite(value) &&
+                value >= 0
+        }
+        if (valid && name %in% c("subdivisions", "maxiter", "trace")) {
+            valid <- value == floor(value) &&
+                value >= (if (name == "trace") 0 else 1)
+        }
+        if (!valid) stop("invalid numerical control: ", name)
+    }
+    invisible(controls)
+}
+
 ## Keep only integrate() controls from dots so root-search controls are not
 ## accidentally forwarded to numerical integration.
-.bfpwr_integrate_dots <- function(dots, rel.tol.default = NULL) {
-    if (length(dots) == 0) {
-        out <- list()
-    } else {
-        dot_names <- names(dots)
-        if (is.null(dot_names)) {
-            out <- list()
-        } else {
-            integrate_names <- c("subdivisions", "rel.tol", "abs.tol",
-                                 "stop.on.error", "keep.xy")
-            keep <- nzchar(dot_names) & dot_names %in% integrate_names
-            out <- dots[keep]
-        }
-    }
+.bfpwr_integrate_dots <- function(dots, rel.tol.default = getOption("bfpwr.rel.tol", 1e-8)) {
+    out <- dots[names(dots) %in% c("subdivisions", "rel.tol", "abs.tol",
+                                  "stop.on.error", "keep.xy")]
     if (!is.null(rel.tol.default) && !("rel.tol" %in% names(out))) {
         out$rel.tol <- rel.tol.default
     }
+    if (is.null(out$abs.tol)) out$abs.tol <- out$rel.tol
+    if (is.null(out$subdivisions)) out$subdivisions <- getOption("bfpwr.subdivisions", 1000)
     out
 }
 
 ## Keep only uniroot() controls from dots for critical-value root searches.
 .bfpwr_uniroot_dots <- function(dots) {
-    if (length(dots) == 0) {
-        return(list())
-    }
-    dot_names <- names(dots)
-    if (is.null(dot_names)) {
-        return(list())
-    }
     keep_names <- c("tol", "maxiter", "trace", "check.conv")
-    keep <- nzchar(dot_names) & dot_names %in% keep_names
-    dots[keep]
+    out <- dots[names(dots) %in% keep_names]
+    if (is.null(out$tol)) out$tol <- getOption("bfpwr.tol", 1e-8)
+    out
+}
+
+## Sequential designs reserve top-level dots for mvtnorm, whose `tol` has a
+## different meaning. Keep BF integration and boundary-root controls together.
+.bfpwr_t_boundary_controls <- function(dots) {
+    controls <- dots$bf.control
+    if (is.null(controls)) controls <- list()
+    .bfpwr_validate_controls(controls)
+    c(.bfpwr_uniroot_dots(controls), .bfpwr_integrate_dots(controls))
 }
 
 ## Locate the maximum that separates the two roots of a two-sided BF. Centered
@@ -152,12 +180,20 @@
 ## without requiring another Bayes-factor evaluation between the roots.
 .bfpwr_two_sided_root_pair <- function(f, lowerInterval, upperInterval,
                                        split = NULL, dots = list()) {
-    lower <- try(do.call(stats::uniroot, c(list(
-        f = f, interval = lowerInterval, extendInt = "upX"
-    ), dots))$root, silent = TRUE)
-    upper <- try(do.call(stats::uniroot, c(list(
-        f = f, interval = upperInterval, extendInt = "downX"
-    ), dots))$root, silent = TRUE)
+    ## Keep trial warnings with this pair so a corrected split or an
+    ## unattainable-maximum result can discard diagnostics from rejected roots.
+    warnings <- list()
+    withCallingHandlers({
+        lower <- try(do.call(stats::uniroot, c(list(
+            f = f, interval = lowerInterval, extendInt = "upX"
+        ), dots))$root, silent = TRUE)
+        upper <- try(do.call(stats::uniroot, c(list(
+            f = f, interval = upperInterval, extendInt = "downX"
+        ), dots))$root, silent = TRUE)
+    }, warning = function(w) {
+        warnings[[length(warnings) + 1L]] <<- w
+        invokeRestart("muffleWarning")
+    })
 
     valid <- !inherits(lower, "try-error") &&
         !inherits(upper, "try-error") &&
@@ -167,7 +203,7 @@
             lower < split && split < upper
     }
 
-    list(lower = lower, upper = upper, valid = valid)
+    list(lower = lower, upper = upper, valid = valid, warnings = warnings)
 }
 
 ## Structured tcrit issues preserve whether a warning is handled internally or
@@ -658,9 +694,11 @@
 ## evaluation.
 .bfpwr_residual_certified_root <- function(scout_fun, certify_fun, x0, x1,
                                            final_fun = certify_fun,
-                                           tolerance = 1e-5, ...) {
-    root <- try(stats::uniroot(f = scout_fun, interval = sort(c(x0, x1)),
-                               extendInt = "no", ...)$root,
+                                           residual_tolerance = 1e-5, ...) {
+    ## A failed scout is provisional; only the stable path determines the
+    ## boundary status. Do not leak its warnings into the final result.
+    root <- try(suppressWarnings(stats::uniroot(
+        f = scout_fun, interval = sort(c(x0, x1)), extendInt = "no", ...)$root),
                 silent = TRUE)
     if (inherits(root, "try-error") || !is.numeric(root) ||
         length(root) != 1 || !is.finite(root)) {
@@ -668,12 +706,12 @@
     }
 
     residual <- .bfpwr_root_value(f = certify_fun, x = root)
-    if (!is.finite(residual) || abs(residual) > tolerance) {
+    if (!is.finite(residual) || abs(residual) > residual_tolerance) {
         return(structure("scout root not certified", class = "try-error"))
     }
 
     final_residual <- .bfpwr_root_value(f = final_fun, x = root)
-    if (is.finite(final_residual) && abs(final_residual) <= tolerance) {
+    if (is.finite(final_residual) && abs(final_residual) <= residual_tolerance) {
         return(root)
     }
 
@@ -786,7 +824,7 @@
                     scout_fun = scout_fun, certify_fun = search_fun,
                     final_fun = certify_fun,
                     x0 = scout_prev_x, x1 = x1,
-                    tolerance = scout_tolerance, ...
+                    residual_tolerance = scout_tolerance, ...
                 )
                 if (!inherits(root, "try-error")) {
                     return(.bfpwr_one_sided_adaptive_result(
@@ -796,7 +834,8 @@
                 }
                 root <- .bfpwr_certified_root(
                     f = search_fun, x0 = scout_prev_x, x1 = x1,
-                    final_fun = certify_fun, tolerance = scout_tolerance, ...
+                    final_fun = certify_fun,
+                    residual_tolerance = scout_tolerance, ...
                 )
                 if (!inherits(root, "try-error")) {
                     return(.bfpwr_one_sided_adaptive_result(
@@ -841,7 +880,8 @@
                 root <- .bfpwr_certified_root(
                     f = search_fun, x0 = x_bracket0, x1 = x_bracket1,
                     f0 = f_bracket0, f1 = f_bracket1,
-                    final_fun = certify_fun, tolerance = scout_tolerance, ...
+                    final_fun = certify_fun,
+                    residual_tolerance = scout_tolerance, ...
                 )
                 if (!inherits(root, "try-error")) {
                     return(.bfpwr_one_sided_adaptive_result(
@@ -907,7 +947,7 @@
                 root <- .bfpwr_certified_root(
                     f = search_fun, x0 = xprev, x1 = x1, f0 = fprev,
                     f1 = f1, final_fun = certify_fun,
-                    tolerance = scout_tolerance, ...
+                    residual_tolerance = scout_tolerance, ...
                 )
                 if (!inherits(root, "try-error")) {
                     return(.bfpwr_one_sided_adaptive_result(
@@ -1034,12 +1074,17 @@
 #' @param search_limit Finite one-sided adaptive search limit, either as a
 #'     scalar in \eqn{t}-statistic units or as the directional object returned
 #'     by \code{.bfpwr_one_sided_tail_limits()}.
-#' @param ... Optional numerical controls. For numeric ranges and two-sided
-#'     adaptive searches, arguments are passed to \code{stats::uniroot}. In
-#'     adaptive one-sided searches, \code{subdivisions}, \code{rel.tol},
-#'     \code{abs.tol}, \code{stop.on.error}, and \code{keep.xy} are used for BF
-#'     integration, while \code{tol}, \code{maxiter}, \code{trace}, and
-#'     \code{check.conv} are passed to \code{stats::uniroot}.
+#' @param ... Optional numerical controls for all boundary searches.
+#'     \code{rel.tol} (default \code{1e-8}), \code{abs.tol} (default
+#'     \code{rel.tol}), and \code{subdivisions} (default \code{1000}),
+#'     together with \code{stop.on.error} and \code{keep.xy}, are passed to
+#'     \code{stats::integrate} for BF evaluation. Root searches use
+#'     \code{tol} (default \code{1e-8}), \code{maxiter}, \code{trace}, and
+#'     \code{check.conv} from \code{stats::uniroot}. One-sided scouting uses
+#'     a looser integral unless \code{rel.tol} is supplied; returned roots are
+#'     checked against the final integral with the requested accuracy.
+#'     These controls reduce numerical error within the normal predictive
+#'     approximation; they do not remove that approximation.
 #'
 #' @return Numeric vector of critical t-value(s)
 #'
@@ -1085,18 +1130,20 @@
 #' @keywords internal
 tcrit <- function(k, n1, n2, plocation, pscale, pdf, type, alternative,
                   trange = "adaptive", search_limit = NULL,
-                  tail.nquad = .tbf01_tail_nquad_default, ...) {
+                  tail.nquad = getOption("bfpwr.tail.nquad", 512), ...) {
 
     ## determine t-statistic for which BF = k
     dots <- list(...)
+    integrateDots <- .bfpwr_integrate_dots(dots = dots)
     searchDots <- .bfpwr_integrate_dots(dots = dots,
                                         rel.tol.default = 1e-2)
     rootDots <- .bfpwr_uniroot_dots(dots = dots)
     ## Final BF evaluation used to accept returned roots.
     rootFun <- function(t) {
-        tbf01(t = t, n1 = n1, n2 = n2, plocation = plocation, pscale = pscale,
+        do.call(tbf01, c(list(t = t, n1 = n1, n2 = n2,
+              plocation = plocation, pscale = pscale,
               pdf = pdf, type = type, alternative = alternative,
-              log = TRUE, tail.nquad = tail.nquad) - log(k)
+              log = TRUE, tail.nquad = tail.nquad), integrateDots)) - log(k)
     }
     ## Search evaluation with integration controls from dots.
     rootFunSearch <- function(t) {
@@ -1199,6 +1246,7 @@ tcrit <- function(k, n1, n2, plocation, pscale, pdf, type, alternative,
                 )
             }
         }
+        for (w in roots$warnings) warning(w)
         tcrit <- c(NaN, NaN)
         lower <- roots$lower
         upper <- roots$upper
@@ -1233,6 +1281,7 @@ tcrit <- function(k, n1, n2, plocation, pscale, pdf, type, alternative,
                     certify_fun = rootFun, search_fun = rootFunSearch,
                     scout_fun = rootFunFast, alternative = alternative,
                     origin = 0, step_scale = 1, try_opposite = FALSE,
+                    scout_tolerance = rootDots$tol,
                     search_limit = search_limit
                 ), rootDots))
                 res <- search$root
@@ -1244,9 +1293,9 @@ tcrit <- function(k, n1, n2, plocation, pscale, pdf, type, alternative,
             extend <- "no"
 
             suppressWarnings({
-                res <- try(stats::uniroot(f = rootFun, interval = searchint,
-                                          extendInt = extend, ...)$root,
-                           silent = TRUE)
+                res <- try(do.call(stats::uniroot, c(list(
+                    f = rootFun, interval = searchint, extendInt = extend
+                ), rootDots))$root, silent = TRUE)
             })
         }
         if (inherits(res, "try-error")) {

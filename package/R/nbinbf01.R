@@ -16,6 +16,8 @@ nbinbf01. <- function(k, power, p0 = 0.5, type = c("point", "direction"), a = 1,
     )
 
 
+    type <- match.arg(type)
+
     ## define function for numerical root-finding
     rootFun <- function(n) {
         suppressWarnings({
@@ -41,7 +43,8 @@ nbinbf01. <- function(k, power, p0 = 0.5, type = c("point", "direction"), a = 1,
 #' @param power Target power
 #' @param nrange Sample size search range over which numerical search is
 #'     performed. Defaults to \code{c(1, 10^4)}
-#' @param ... Other arguments passed to \code{stats::uniroot}
+#' @param ... Other arguments passed to \code{stats::uniroot}. The sample-size
+#'     root tolerance defaults to \code{tol = 1e-8} and can be overridden.
 #'
 #' @return The required sample size to achieve the specified power
 #'

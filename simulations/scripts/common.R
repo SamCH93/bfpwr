@@ -124,7 +124,7 @@ find_fixture_dirs <- function(corpus_root, fixture_set = NULL) {
 }
 
 fixture_role <- function(fixture_set_id, family, mode) {
-    if (identical(fixture_set_id, "t-tbf01-fixed-core-v1")) {
+    if (identical(family, "t")) {
         return("diagnostic_approximation")
     }
     if (identical(family, "binomial") && identical(mode, "sequential")) {

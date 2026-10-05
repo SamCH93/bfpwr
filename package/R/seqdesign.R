@@ -1,6 +1,15 @@
 ## Shared builders for sequential BF design objects
 ## -----------------------------------------------------------------------------
 
+.bfseq_region_direction <- function(alternative) {
+    switch(alternative, greater = "positive", less = "negative", NULL)
+}
+
+.bfseq_z_one_critical <- function(type, psd, alternative) {
+    type == "directional" ||
+        (type == "normal" && (psd == 0 || alternative != "two.sided"))
+}
+
 ## Collect per-look standard errors and BF critical values in the shape needed
 ## by the region generators.
 .bfseq_boundary_data <- function(bounds, oneCritical) {
@@ -85,8 +94,10 @@
 ## boundary and stage callbacks let sample-size searches reuse cached work.
 .bfseq_build_z_design <- function(k1, k0, se, n = NULL, null = 0, pm, psd,
                                   dpm, dpsd, type, strict, dots,
-                                  getBoundary = NULL, evalStage = NULL) {
-    oneCritical <- (type == "normal" && psd == 0) || type == "directional"
+                                  getBoundary = NULL, evalStage = NULL,
+                                  alternative = "two.sided") {
+    oneCritical <- .bfseq_z_one_critical(type, psd, alternative)
+    regionDirection <- .bfseq_region_direction(alternative)
     integration <- .bfseq_integration_settings(dots)
 
     if (is.null(getBoundary)) {
@@ -95,9 +106,9 @@
                 n = if (is.null(n)) NA_real_ else n[[i]],
                 se = se[[i]],
                 zk0 = zcrit(k = k0, se = se[[i]], null = null, mu = pm,
-                            tau = psd, type = type),
+                            tau = psd, type = type, alternative = alternative),
                 zk1 = zcrit(k = k1, se = se[[i]], null = null, mu = pm,
-                            tau = psd, type = type)
+                            tau = psd, type = type, alternative = alternative)
             )
         }
     }
@@ -111,7 +122,7 @@
         }
         .bfseq_stage_probabilities_from_bounds(
             bounds = bounds[seq_len(i)], oneCritical = oneCritical,
-            strict = strict, direction = NULL, null = null, dpm = dpm,
+            strict = strict, direction = regionDirection, null = null, dpm = dpm,
             dpsd = dpsd, dots = dots
         )
     })
@@ -132,7 +143,7 @@
 
     structure(list(
         k1 = k1, k0 = k0, se = boundaries$se, n = n, null = null, pm = pm,
-        psd = psd, dpm = dpm, dpsd = dpsd, type = type,
+        psd = psd, dpm = dpm, dpsd = dpsd, type = type, alternative = alternative,
         strict = strict, integration = integration, test = "z",
         zk1 = boundaries$zk1,
         zk0 = boundaries$zk0, EN = EN, VarN = VarN,
@@ -148,13 +159,9 @@
                                   evalStage = NULL) {
     oneCritical <- alternative != "two.sided"
     integration <- .bfseq_integration_settings(dots)
-    regionDirection <- if (alternative == "greater") {
-        "positive"
-    } else if (alternative == "less") {
-        "negative"
-    } else {
-        NULL
-    }
+    integration$bf.control <- .bfpwr_t_boundary_controls(dots)
+    probabilityDots <- dots[!names(dots) %in% "bf.control"]
+    regionDirection <- .bfseq_region_direction(alternative)
 
     boundaries <- .bfseq_boundary_data(bounds = bounds,
                                        oneCritical = oneCritical)
@@ -167,7 +174,7 @@
         .bfseq_stage_probabilities_from_bounds(
             bounds = bounds[seq_len(i)], oneCritical = oneCritical,
             strict = strict, direction = regionDirection, dpm = dpm,
-            dpsd = dpsd, dots = dots
+            dpsd = dpsd, dots = probabilityDots
         )
     })
     pH1 <- vapply(stages, `[[`, numeric(1), "pH1")
