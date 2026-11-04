@@ -45,7 +45,8 @@ estimate at \eqn{n = 1}{n = 1}.}
 \code{0}}
 
 \item{pm}{Analysis prior mean. Not taken into account for \code{type =
-"moment"}}
+"moment"} for the analysis prior. If \code{dpm} is omitted, its
+default remains \code{pm}, including for moment priors}
 
 \item{psd}{Analysis prior standard deviation (\code{type = "normal"} and
 \code{type = "directional"}) or scale (\code{type = "moment"})}
@@ -65,7 +66,8 @@ estimate at \eqn{n = 1}{n = 1}.}
     centered around \code{null}
 }
     One-sided \code{alternative} values are supported for
-    \code{type = "normal"} only; \code{type = "directional"} compares
+    \code{type = "normal"} and \code{type = "moment"};
+    \code{type = "directional"} compares
     two composite hypotheses and retains its existing meaning.}
 
 \item{target}{Character string. Either \code{"H1"} for the final cumulative
@@ -124,10 +126,10 @@ scalar; vectorized inputs require \code{details = FALSE}. Defaults to
 
 \item{alternative}{Direction of the alternative hypothesis, one of
 \code{"two.sided"} (default), \code{"less"}, or \code{"greater"}.
-For a one-sided alternative, the normal analysis prior is restricted to
-values below \code{null} (\code{"less"}) or above \code{null}
-(\code{"greater"}) and renormalized. \code{pm} and \code{psd} describe
-the normal distribution before truncation. A point prior
+For normal and moment priors, one-sided alternatives truncate and
+renormalize the analysis prior below or above \code{null}, respectively,
+while retaining the point null hypothesis. Prior parameters describe
+the distribution before truncation. A normal point prior
 (\code{psd = 0}) must lie strictly on the specified side of \code{null}.}
 
 \item{...}{Additional arguments passed to \code{\link{pbf01seq}}.}

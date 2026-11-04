@@ -7,7 +7,7 @@
 
 .bfseq_z_one_critical <- function(type, psd, alternative) {
     type == "directional" ||
-        (type == "normal" && (psd == 0 || alternative != "two.sided"))
+        (type == "normal" && psd == 0) || alternative != "two.sided"
 }
 
 ## Collect per-look standard errors and BF critical values in the shape needed

@@ -26,7 +26,8 @@
 #'     \code{"two.sample"}.
 #' @param bftype Type of z-test Bayes factor. One of \code{"normal"},
 #'     \code{"directional"}, or \code{"moment"}. Defaults to \code{"normal"}.
-#'     One-sided \code{alternative} values require \code{bftype = "normal"}.
+#'     One-sided \code{alternative} values support \code{bftype = "normal"}
+#'     and \code{bftype = "moment"}.
 #' @param pm Analysis prior mean. Not taken into account for \code{bftype =
 #'     "moment"}.
 #' @param psd Analysis prior standard deviation (\code{bftype = "normal"} and
@@ -52,6 +53,10 @@
 #' ## point null versus a positive half-normal alternative
 #' powerbf01seq(power = 0.8, pm = 0, psd = 1, dpm = 0.5, dpsd = 0,
 #'              alternative = "greater", looks = 3, nrange = c(2, 200))
+#'
+#' ## point null versus a positive normal moment alternative
+#' powerbf01seq(n = 100, psd = 0.5/sqrt(2), dpm = 0.5, dpsd = 0,
+#'              bftype = "moment", alternative = "greater", looks = 3)
 #'
 #' @export
 powerbf01seq <- function(n = NULL, power = NULL, k1 = 1/10, k0 = 1/k1,
@@ -89,8 +94,8 @@ powerbf01seq <- function(n = NULL, power = NULL, k1 = 1/10, k0 = 1/k1,
     search <- match.arg(search)
     ## The lower-level functions call the BF family 'type'; here 'type' is the
     ## sampling design, so report the wrapper's own argument name.
-    if (alternative != "two.sided" && bftype != "normal") {
-        stop("one-sided 'alternative' requires bftype = \"normal\"")
+    if (alternative != "two.sided" && bftype == "directional") {
+        stop("one-sided 'alternative' requires bftype = \"normal\" or \"moment\"")
     }
     stopifnot(
         length(k1) == 1,

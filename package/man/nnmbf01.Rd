@@ -15,7 +15,8 @@ nnmbf01(
   nrange = c(1, 10^5),
   lower.tail = TRUE,
   integer = TRUE,
-  ...
+  ...,
+  alternative = c("two.sided", "less", "greater")
 )
 }
 \arguments{
@@ -52,6 +53,15 @@ the next larger integer. Defaults to \code{TRUE}}
 
 \item{...}{Other arguments passed to \code{stats::uniroot}. The sample-size
 root tolerance defaults to \code{tol = 1e-8} and can be overridden.}
+
+\item{alternative}{Direction of the alternative hypothesis, one of
+\code{"two.sided"} (default), \code{"less"}, or \code{"greater"}.
+For a one-sided alternative, the normal moment analysis prior is
+restricted to values below \code{null} (\code{"less"}) or above
+\code{null} (\code{"greater"}) and renormalized. The point null
+hypothesis is unchanged; \code{psd} is the scale before truncation.
+Must be specified by name: unnamed arguments after \code{integer} are
+passed to \code{stats::uniroot}.}
 }
 \value{
 The required sample size to achieve the specified power
@@ -73,14 +83,16 @@ It is assumed that the standard error of the future parameter
     information.
 }
 \note{
-A warning message will be displayed in case that the specified target
-    power is not achievable under the specified analysis and design priors.
-    Power need not increase with sample size; for example, the probability
-    of misleading evidence first rises and then falls. If both endpoints of
-    \code{nrange} are below the target, the numerical search checks the
-    interior maximum. The returned sample size is the smallest at which
-    power reaches the target; power may fall below the target again at
-    larger sample sizes.
+The function uses a numerical root search within \code{nrange} and
+    warns when it cannot bracket the target. If both endpoints are below
+    the target, the search looks for an interior peak. A nonmonotone power
+    curve can cross the target more than once, and the search may return a
+    later crossing. To find the first integer crossing, use \link{nbf01seq}
+    with \code{type = "moment"}, \code{looks = 1}, and \code{search = "exhaustive"}.
+    For H1 (\code{lower.tail = TRUE}) with \code{k < 1}, set
+    \code{k1 = k, k0 = 1/k, target = "H1"}. For H0 (\code{lower.tail = FALSE})
+    with \code{k > 1}, set \code{k1 = 1/k, k0 = k, target = "H0"}.
+    Specify the intended \code{nrange} explicitly because the defaults differ.
 }
 \examples{
 nnmbf01(k = 1/10, power = 0.9, usd = 1, null = 0, psd = 0.5/sqrt(2), dpm = 0.5, dpsd = 0)

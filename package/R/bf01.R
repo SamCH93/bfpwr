@@ -48,8 +48,9 @@ bf01. <- function(estimate, se, null = 0, pm, psd, log = FALSE,
 .bf01_check_alternative <- function(alternative, pm, psd, null,
                                     type = "normal") {
     if (alternative == "two.sided") return(invisible(NULL))
+    if (type == "moment") return(invisible(NULL))
     if (type != "normal") {
-        stop("one-sided 'alternative' requires a normal analysis prior (type = \"normal\")")
+        stop("one-sided 'alternative' requires a normal analysis prior (type = \"normal\") or a moment prior (type = \"moment\")")
     }
     if (psd == 0 && ((alternative == "greater" && pm <= null) ||
                     (alternative == "less" && pm >= null))) {

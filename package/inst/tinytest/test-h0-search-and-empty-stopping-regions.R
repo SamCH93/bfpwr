@@ -89,15 +89,13 @@ expect_true(n < 50)
 expect_true(tpower(n, -0.2, 0) >= 0.1 && tpower(n - 1, -0.2, 0) < 0.1)
 
 ## powerbf01seq() names the BF family 'bftype', not 'type'.
-for (bftype in c("directional", "moment")) {
-    expect_error(powerbf01seq(n = 30, pm = 0, psd = 1, dpm = 0.2, dpsd = 0,
-                              bftype = bftype, alternative = "greater"),
-                 pattern = "requires bftype = \"normal\"", fixed = TRUE)
-    expect_error(powerbf01seq(power = 0.8, pm = 0, psd = 1, dpm = 0.2,
-                              dpsd = 0, bftype = bftype, alternative = "less",
-                              nrange = c(2, 100)),
-                 pattern = "requires bftype = \"normal\"", fixed = TRUE)
-}
+expect_error(powerbf01seq(n = 30, pm = 0, psd = 1, dpm = 0.2, dpsd = 0,
+                          bftype = "directional", alternative = "greater"),
+             pattern = "requires bftype = \"normal\"", fixed = TRUE)
+expect_error(powerbf01seq(power = 0.8, pm = 0, psd = 1, dpm = 0.2,
+                          dpsd = 0, bftype = "directional", alternative = "less",
+                          nrange = c(2, 100)),
+             pattern = "requires bftype = \"normal\"", fixed = TRUE)
 
 ## Empty intervals have zero mass, including adaptive infinite
 ## boundaries. Sending [Inf, Inf] to the sampler can instead yield NaN.

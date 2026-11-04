@@ -16,7 +16,8 @@ powernmbf01(
   dpm,
   dpsd,
   nrange = c(1, 10^5),
-  tol = getOption("bfpwr.tol", 1e-08)
+  tol = getOption("bfpwr.tol", 1e-08),
+  alternative = c("two.sided", "less", "greater")
 )
 }
 \arguments{
@@ -55,6 +56,13 @@ Defaults to \code{c(1, 10^5)}}
 
 \item{tol}{Numerical tolerance for sample-size root searches. Defaults to
 \code{getOption("bfpwr.tol", 1e-8)}.}
+
+\item{alternative}{Direction of the alternative hypothesis, one of
+\code{"two.sided"} (default), \code{"less"}, or \code{"greater"}.
+For a one-sided alternative, the normal moment analysis prior is
+restricted to values below \code{null} (\code{"less"}) or above
+\code{null} (\code{"greater"}) and renormalized. The point null
+hypothesis is unchanged; \code{psd} is the scale before truncation.}
 }
 \value{
 Object of class \code{"power.bftest"}, a list of the arguments
@@ -77,14 +85,16 @@ This function provides a similar interface as
     types.
 }
 \note{
-A warning message will be displayed in case that the specified target
-    power is not achievable under the specified analysis and design priors.
-    Power need not increase with sample size; for example, the probability
-    of misleading evidence first rises and then falls. If both endpoints of
-    \code{nrange} are below the target, the numerical search checks the
-    interior maximum. The returned sample size is the smallest at which
-    power reaches the target; power may fall below the target again at
-    larger sample sizes.
+The function uses a numerical root search within \code{nrange} and
+    warns when it cannot bracket the target. If both endpoints are below
+    the target, the search looks for an interior peak. A nonmonotone power
+    curve can cross the target more than once, and the search may return a
+    later crossing. To find the first integer crossing, use \link{nbf01seq}
+    with \code{type = "moment"}, \code{looks = 1}, and \code{search = "exhaustive"}.
+    For H1 (\code{lower.tail = TRUE}) with \code{k < 1}, set
+    \code{k1 = k, k0 = 1/k, target = "H1"}. For H0 (\code{lower.tail = FALSE})
+    with \code{k > 1}, set \code{k1 = 1/k, k0 = k, target = "H0"}.
+    Specify the intended \code{nrange} explicitly because the defaults differ.
 }
 \examples{
 ## determine power
