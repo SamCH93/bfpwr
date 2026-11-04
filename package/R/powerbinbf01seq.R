@@ -12,7 +12,7 @@
 #' @inheritParams pbinbf01seq
 #'
 #' @return An object of type \code{"power.bftestseq"}, i.e., a list of the
-#'     arguments, computed probabilitites and expected samples sizes, and
+#'     arguments, computed probabilities and expected samples sizes, and
 #'     \code{method} and \code{note} elements
 #'
 #' @author Samuel Pawel
@@ -115,7 +115,7 @@ print.power.bftestseq <- function(x, digits = getOption("digits"), ...) {
             condition <- "design prior"
         } else {
             dpvars <- "dp"
-            dpnames <- "assumed propability"
+            dpnames <- "assumed probability"
             condition <- paste0("p = ", x$dp)
         }
         printx <- x[c("n1", "n2", "p0", "a", "b", dpvars, "kf", "k", "pintfut",
@@ -124,7 +124,7 @@ print.power.bftestseq <- function(x, digits = getOption("digits"), ...) {
                            "null value",
                            "analysis prior successes",
                            "analysis prior failures", dpnames,
-                           "BF futility threshold k",
+                           "BF futility threshold kf",
                            "BF efficacy threshold k",
                            ## paste0("Pr(futility at interim |", condition, ")"),
                            ## paste0("Pr(futility at interim | p = ", x$p0, ")"),

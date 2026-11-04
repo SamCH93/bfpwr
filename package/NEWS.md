@@ -1,7 +1,8 @@
-# bfpwr 0.1.6
+# bfpwr 0.1.7
 
 - added functions `pbinbf01seq` and `powerbinbf01seq` for sequential two-stage
   designs for binomial Bayes factors with futility stopping
+  (<https://doi.org/10.48550/arXiv.2511.23144>)
 
 # bfpwr 0.1.5
 
@@ -14,6 +15,7 @@
 
 - new functions related to Bayes factors for testing a binomial proportion:
   `binbf01`, `pbinbf01`, `nbinbf01`, `powerbinbf01`
+  (<https://doi.org/10.48550/arXiv.2502.02914>)
 - improvements in documentation based on feedback from Riko Kelter (thanks!)
 
 # bfpwr 0.1.3

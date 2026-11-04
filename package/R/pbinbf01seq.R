@@ -34,18 +34,19 @@ xcritbinbf01 <- Vectorize(FUN = xcritbinbf01.)
 #'
 #' @description Compute probability that binomial Bayes factor (\link{binbf01})
 #'     is equal or below a threshold at final stage, taking into account that
-#'     the study can stop if it greater than a specified threshold at interim.
+#'     the study can stop for futility if it is greater than a specified
+#'     threshold at interim.
 #'
 #' @inheritParams pbinbf01
 #' @inheritParams powerbf01
 #' @param n1 Sample size at interim stage
 #' @param n2 Sample size at final stage
-#' @param k Bayes factor threshold for evidence for efficacy . Defaults to
+#' @param k Bayes factor threshold for evidence for efficacy. Defaults to
 #'     \code{1/10}, Jeffreys' threshold for 'strong evidence' against the null
 #'     hypothesis
 #' @param kf Bayes factor threshold for evidence for futility. Defaults to
 #'     \code{1/k}.
-#' @param type Typo of test. Currently only \code{"directional"} is implemented
+#' @param type Type of test. Currently only \code{"direction"} is implemented
 #'
 #' @return The probability of obtaining a Bayes factor equal or below k at the
 #'     final stage taking into account potential futility stopping with BF01 >
@@ -53,26 +54,26 @@ xcritbinbf01 <- Vectorize(FUN = xcritbinbf01.)
 #'
 #' @author Samuel Pawel
 #'
-#' @seealso \link{binbf01}
+#' @seealso \link{binbf01}, \link{powerbinbf01seq}
 #'
 #' @examples
-#' ## probability of BF<1/10 under truncated beta prior
+#' ## probability of BF<1/10 under alternative truncated beta design prior
 #' pbinbf01seq(n1 = 10, n2 = 20, k = 1/10, kf = 3, p0 = 0.2, a = 1, b = 1,
 #'             dl = 0.2, du = 1, type = "direction") # with interim analysis
 #' pbinbf01(n = 20, k = 1/10, p0 = 0.2, a = 1, b = 1, dl = 0.2, du = 1,
 #'          type = "direction") # without interim analysis
 #'
-#' ## probability to stop at interim under Bayesian null
+#' ## probability to stop at interim under null truncated beta design prior
 #' pbinbf01(n = 10, k = 3, p0 = 0.2, a = 1, b = 1, dl = 0, du = 0.2,
 #'          type = "direction", lower.tail = FALSE)
 #'
-#' ## probability of BF<1/10 under point null
+#' ## probability of BF<1/10 under point null design prior
 #' pbinbf01seq(n1 = 10, n2 = 20, k = 1/10, kf = 3, p0 = 0.2, a = 1, b = 1,
 #'             dp = 0.2, type = "direction") # with interim analysis
 #' pbinbf01(n = 20, k = 1/10, p0 = 0.2, a = 1, b = 1, dp = 0.2,
 #'          type = "direction") # without interim analysis
 #'
-#' ## probability to stop at interim under point null
+#' ## probability to stop at interim under point null design prior
 #' pbinbf01(n = 10, k = 3, p0 = 0.2, a = 1, b = 1, dp = 0.2,
 #'          type = "direction", lower.tail = FALSE)
 #'
@@ -147,10 +148,10 @@ pbinbf01seq <- function(n1, n2, k = 1/10, kf = 1/k, p0 = 0.5,
     }
 
 
-    ## probability to stop at interim Pr(interim stage BF01 >= kf)
-    pinterim <- pbinbf01(k = kf, n = n1, p0 = p0, type = type, a = a, b = b,
-                         dp = dp, da = da, db = db, dl = dl, du = du,
-                         lower.tail = FALSE)
+    ## ## probability to stop at interim Pr(interim stage BF01 >= kf)
+    ## pinterim <- pbinbf01(k = kf, n = n1, p0 = p0, type = type, a = a, b = b,
+    ##                      dp = dp, da = da, db = db, dl = dl, du = du,
+    ##                      lower.tail = FALSE)
 
     ## probability of Pr(final stage BF01 <= k) when no interim analysis
     pfinal <- pbinbf01(k = k, n = n2, p0 = p0, type = type, a = a, b = b,
@@ -183,6 +184,7 @@ pbinbf01seq <- function(n1, n2, k = 1/10, kf = 1/k, p0 = 0.5,
         }
     } else {
         ## TODO implement for point null hypothesis BF
+        stop("types other than 'direction' are currently not implemented")
     }
 
     ## adjust unconditional probability

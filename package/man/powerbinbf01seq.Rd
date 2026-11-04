@@ -25,7 +25,7 @@ powerbinbf01seq(
 
 \item{n2}{Sample size at final stage}
 
-\item{k}{Bayes factor threshold for evidence for efficacy . Defaults to
+\item{k}{Bayes factor threshold for evidence for efficacy. Defaults to
 \code{1/10}, Jeffreys' threshold for 'strong evidence' against the null
 hypothesis}
 
@@ -34,7 +34,7 @@ hypothesis}
 
 \item{p0}{Tested binomial proportion. Defaults to \code{0.5}}
 
-\item{type}{Typo of test. Currently only \code{"directional"} is implemented}
+\item{type}{Type of test. Currently only \code{"direction"} is implemented}
 
 \item{a}{Number of successes parameter of the beta analysis prior
 distribution. Defaults to \code{1}}
@@ -65,7 +65,7 @@ distribution. Is only taken into account if \code{dp = NA}. Defaults to
 }
 \value{
 An object of type \code{"power.bftestseq"}, i.e., a list of the
-    arguments, computed probabilitites and expected samples sizes, and
+    arguments, computed probabilities and expected samples sizes, and
     \code{method} and \code{note} elements
 }
 \description{
