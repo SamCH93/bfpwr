@@ -231,7 +231,7 @@ ptbf01seq <- function(k1, k0 = 1/k1, n, n1 = n, n2 = n, plocation = 0,
                           alternative = alternative, type = type,
                           trange = trange, strict = strict,
                           tail.eps = tail.eps, tail.nquad = tail.nquad,
-                          dots = list(...))
+                          dots = list(...), pars = pars)
 }
 
 ## ## compare to simulation-based probabilities

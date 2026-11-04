@@ -24,16 +24,10 @@
 #' ## regions to stop with two-sided p < 0.05 in first or second stage
 #' predpars(se = sqrt(2/seq(10, 50, 10)), dpm = 0.5, dpsd = 0.1)
 predpars <- function(se, null = 0, dpm, dpsd) {
-    m <- length(se)
     inf <- 1/se^2 # information levels
     mean <- (dpm - null)/se # mean vector
-    sigma <- matrix(nrow = m, ncol = m)
-    for (i in seq_len(m)) {
-        for (j in seq_len(m)) {
-            sigma[i,j] <- sqrt(pmin(inf[i], inf[j])/pmax(inf[i], inf[j]))
-        }
-    }
-    sigma <- sigma + dpsd^2 * sqrt(inf) %*% t(sqrt(inf))
+    sigma <- sqrt(outer(inf, inf, pmin)/outer(inf, inf, pmax))
+    sigma <- sigma + dpsd^2 * tcrossprod(sqrt(inf))
     list("mean" = mean, "sigma" = sigma)
 }
 
