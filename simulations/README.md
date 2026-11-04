@@ -1,16 +1,27 @@
 # Simulation Verification
 
+The PR 8 one-sided moment-prior extension is documented in
+[MOMENT-EXTENSION.md](MOMENT-EXTENSION.md). It reuses the existing trajectories
+and provides an incremental review PDF and a full report retaining all prior
+results, with the new conditions in matching tables and figures.
+
 This directory contains the local simulation-verification workspace.
 The full simulation corpus is large, so it is stored as a release artifact at
 `FBartos/bfpwr@sim-corpus-v1` rather than committed to the package repository.
 
 ## Quick Start
 
-From the repository root, run:
+From the repository root, select a downloaded or assembled moment results directory:
 
 ```sh
-Rscript simulations/scripts/build_verification.R
+Rscript simulations/scripts/build_verification.R --moment-root simulations/corpus/moment-v2
 ```
+
+The build, prediction refresh, and one-sided z verification scripts check for
+`verification.rds` in the moment results directory before starting work for a
+pooled report. Omit `--moment-root` to use `simulations/corpus/moment-v2`.
+See [One-sided moment extension reports](#one-sided-moment-extension-reports)
+to download the bundle, or use `--skip-report` to run without it.
 
 This is the normal one-command workflow. It downloads the prepared fixture
 bundle if needed, recomputes package-side references with the current checkout,
@@ -33,12 +44,13 @@ different or unrecorded numerical accuracy settings.
 
 The build script performs these steps:
 
-1. Downloads and unpacks the release fixture bundle.
-2. Reads the committed package-verification case manifest.
-3. Recomputes package probabilities, sample-size searches, and timing
+1. Checks for the saved moment results if reporting is enabled.
+2. Downloads and unpacks the release fixture bundle.
+3. Reads the committed package-verification case manifest.
+4. Recomputes package probabilities, sample-size searches, and timing
    diagnostics against the current package code.
-4. Validates the recomputed results against the fixture summaries.
-5. Renders the PDF report.
+5. Validates the recomputed results against the fixture summaries.
+6. Renders the PDF report.
 
 Each recomputation writes `package-reference-provenance.csv` and records the
 same package Git revision in the search-comparison bundle. A release result
@@ -56,7 +68,7 @@ trajectories per generating condition, then refresh the PDF and preview plots:
 
 ```sh
 Rscript simulations/scripts/download_corpus_release.R --asset-set designs
-Rscript simulations/scripts/verify_one_sided_z.R
+Rscript simulations/scripts/verify_one_sided_z.R --moment-root simulations/corpus/moment-v2
 ```
 
 This adds 70 realistic prior/design/direction combinations and selected long
@@ -93,7 +105,8 @@ Rscript simulations/scripts/run_verification.R --corpus-root simulations/corpus/
 Regenerate the PDF from existing validation outputs:
 
 ```sh
-Rscript simulations/scripts/build_verification.R --skip-fetch --skip-recompute
+Rscript simulations/scripts/build_verification.R --skip-fetch --skip-recompute \
+  --moment-root simulations/corpus/moment-v2
 ```
 
 Refresh the committed verification manifest after intentionally changing the
@@ -170,7 +183,8 @@ while retaining the existing 10,000 simulated replications:
 
 ```sh
 Rscript simulations/scripts/build_package_verification_manifest.R
-Rscript simulations/scripts/refresh_simulation_grid.R --workers 6
+Rscript simulations/scripts/refresh_simulation_grid.R --workers 6 \
+  --moment-root simulations/corpus/moment-v2
 ```
 
 The refresh writes separate results under
@@ -218,9 +232,88 @@ To render the completed results again:
 
 ```sh
 Rscript simulations/scripts/render_simulation_verification_background.R \
-  --results-root simulations/corpus/v1/predictions-default-ngrid-10000
+  --results-root simulations/corpus/v1/predictions-default-ngrid-10000 \
+  --moment-root simulations/corpus/moment-v2
 ```
 
 The grid refresh fixes the integration RNG kind to
 `Mersenne-Twister/Inversion/Rejection`. Recorded elapsed times come from concurrent
 workers and are descriptive, rather than isolated performance benchmarks.
+
+## One-sided moment extension reports
+
+Download the portable baseline report inputs and their published SHA256
+checksums from the `sim-corpus-v1` release. Extract the verified archive into a
+new directory, then download the versioned Moment+/- results and render both
+PDFs from the saved inputs:
+
+```powershell
+$archive = 'bfpwr-sim-corpus-v1-baseline-integrated-report-inputs.tar.gz'
+$checksums = 'SHA256SUMS-baseline-integrated.txt'
+$baseline = 'simulations/corpus/baseline-integrated'
+$moment = 'simulations/corpus/moment-v2'
+gh release download sim-corpus-v1 --repo FBartos/bfpwr --pattern $archive --pattern $checksums
+if ($LASTEXITCODE) { throw 'Baseline download failed' }
+$expected = (Get-Content $checksums | Where-Object { $_.EndsWith("  $archive") }) -split '\s+'
+if ((Get-FileHash $archive -Algorithm SHA256).Hash -ne $expected[0]) {
+    throw 'Baseline archive checksum mismatch'
+}
+New-Item -ItemType Directory -Path $baseline -ErrorAction Stop | Out-Null
+tar -xzf $archive -C $baseline
+if ($LASTEXITCODE) { throw 'Baseline extraction failed' }
+& $env:ANALYSIS_RSCRIPT simulations/scripts/download_moment_extension.R `
+  --version moment-v2 --output $moment
+if ($LASTEXITCODE) { throw 'Moment results download failed' }
+& $env:ANALYSIS_RSCRIPT simulations/scripts/render_moment_extension.R `
+  --baseline-root $baseline --moment-root $moment --pdf-dir output/pdf
+if ($LASTEXITCODE) { throw 'Report render failed' }
+```
+
+The final directory contains the incremental and full PDFs plus
+`report-input-provenance.rds`. TeX and figures remain under
+`output/pdf/build/moment-extension/`.
+The renderer accepts `--build-dir` for build intermediates and `--preflight-only`
+to check completeness without rendering. `--scope incremental` renders only
+the new one-sided moment prior results in the affected sections.
+`--scope full` renders the complete report.
+The default `--scope both` renders both views. All scopes require the complete
+baseline and saved moment bundles.
+The [moment extension documentation](MOMENT-EXTENSION.md#release-and-reports)
+describes the provenance fields.
+Development renders must use a private `--pdf-dir`
+and must not be committed or published.
+The full report is tracked here. The published Moment+ and Moment- update also
+includes an [incremental review report](https://github.com/FBartos/bfpwr/releases/download/sim-corpus-v1/simulation-verification-moment-v2-incremental.pdf).
+
+In the full report, new prior variants join the existing test sections and
+analysis-prior tables.
+Moment+ and Moment- points join the existing moment probability, stopping-moment,
+and sequential search plots. Fixed z-test searches pool the existing Normal
+points and the new Moment points in the existing plot. The full PDF is rendered
+directly from the native Rnw. The incremental PDF shows the affected sections
+with only the new Moment+ and Moment- results, searches, and timings. Both PDFs use the approved
+table and section structure. Additional diagnostics stay in machine-readable
+artifacts only.
+Rendering reads cached values only and fails when required
+baseline families, prior results, searches or timings are missing. The sidecar
+retains separate source/runtime provenance and input hashes for both cohorts.
+
+`bfpwr_sim_moment_reference_check(bundle)` in
+`simulations/R/moment-reference-check.R` uses frozen `bundle$designs` and package
+BF boundaries. A legacy v1 bundle uses an explicitly labelled registry fallback.
+The diagnostic returns all keyed stopping-moment rows and a reference-convergence
+summary. Its 64/128-node refinement and mass tolerances are distinct from the
+retained Monte Carlo consistency rule; neither constitutes a package-default
+accuracy promise. Recorded Monte Carlo tolerances are preserved. Legacy v1
+tolerances are reconstructed from the observed stopping maximum and labelled.
+Relative errors with a zero denominator and standardized errors with zero MCSE
+are undefined. Short-look conditional integration and transformation checks run
+with `ANALYSIS_RSCRIPT simulations/tests/test-moment-reference-check.R`; an
+optional bundle path additionally checks every moment row.
+
+Timing schema 2 records actual package calls once, with phase and comparison
+coverage, and keeps reused comparisons separately. Summed concurrent call times,
+measured case phase durations, and the first-start/last-completion span describe
+different quantities. The reporter does not add overlapping totals or interpret
+these production timings as a controlled before/after benchmark. Legacy timing
+data are labelled as incomplete rather than assigned missing phase totals.

@@ -9,6 +9,7 @@
 \usepackage[dvipsnames,table]{xcolor}
 \usepackage{booktabs}
 \usepackage{longtable}
+\usepackage{adjustbox}
 \usepackage{float}
 \usepackage{geometry}
 \geometry{
@@ -54,6 +55,7 @@ opts_chunk$set(fig.height = 6.5,
                dev = "png",
                dpi = 300,
                cache = FALSE,
+               error = FALSE,
                message = FALSE,
                warning = FALSE)
 @
@@ -140,7 +142,7 @@ family_labels <- c(z = "\\textit{z}-Test",
                    binomial = "Binomial Test")
 
 .fixture_table_counter <- 0L
-latex_table <- function(x, caption = NULL, keep_together = FALSE) {
+latex_table <- function(x, caption = NULL, keep_together = FALSE, max_width = FALSE) {
     if (is.null(x) || nrow(x) == 0) {
         cat("\\emph{No rows available.}\n\n")
         return(invisible(NULL))
@@ -155,13 +157,15 @@ latex_table <- function(x, caption = NULL, keep_together = FALSE) {
         if (!is.null(caption)) {
             cat("\\caption{", caption, "}\\label{", label, "}\n", sep = "")
         }
-        cat("\\resizebox{\\textwidth}{!}{%\n")
+        if (max_width) cat("\\begin{adjustbox}{max width=\\textwidth}\n") else
+            cat("\\resizebox{\\textwidth}{!}{%\n")
         cat(knitr::kable(x,
                          format = "latex",
                          booktabs = TRUE,
                          row.names = FALSE,
                          escape = FALSE))
-        cat("\n}\n\\end{table}\n")
+        if (max_width) cat("\n\\end{adjustbox}\n") else cat("\n}\n")
+        cat("\\end{table}\n")
     } else {
         cat(knitr::kable(x,
                          format = "latex",
@@ -187,11 +191,6 @@ fmt_value <- function(x) {
         return(fmt_number(x))
     }
     as.character(x)
-}
-
-fmt_scientific <- function(x) {
-    parts <- strsplit(format(x, scientific = TRUE, digits = 3), "e", fixed = TRUE)[[1]]
-    paste0(parts[1], "\\times10^{", as.integer(parts[2]), "}")
 }
 
 format_named_list <- function(x) {
@@ -402,7 +401,10 @@ format_h1_prior <- function(prior_case) {
             return(format_normal_prior(prior$pm, prior$psd, "greater", prior$null))
         }
         body <- if (identical(prior_case$bf_type, "moment")) {
-            paste0("Moment(", fmt_number(prior$psd), ")")
+            paste0("Moment", format_sided_suffix(if (is.null(prior$alternative))
+                       "two.sided" else prior$alternative), "(", fmt_number(prior$psd),
+                   if (!is.null(prior$null) && prior$null != 0)
+                       paste0("; null = ", fmt_number(prior$null)) else "", ")")
         } else if (identical(prior$psd, 0)) {
             paste0("Point(", fmt_number(prior$pm), ")")
         } else {
@@ -524,10 +526,14 @@ design_table <- function(family) {
     drop_empty_columns(rows)
 }
 
-analysis_prior_table <- function(family) {
-    family_priors <- bf_priors[vapply(bf_priors, function(x) {
+analysis_prior_table <- function(family, new_only = FALSE) {
+    priors <- if (new_only) moment_bundle$cases else bf_priors
+    family_priors <- priors[vapply(priors, function(x) {
         identical(x$test_family, family)
     }, logical(1))]
+    if (family == "z" && !new_only) {
+        family_priors <- c(family_priors, moment_bundle$cases)
+    }
     if (length(family_priors) == 0) return(data.frame())
     rows <- do.call(rbind, lapply(family_priors, function(x) {
         data.frame(
@@ -539,7 +545,7 @@ analysis_prior_table <- function(family) {
             stringsAsFactors = FALSE
         )
     }))
-    if (family == "z" && !is.null(one_sided)) {
+    if (family == "z" && !new_only && !is.null(one_sided)) {
         cases <- one_sided$cases
         rows <- rbind(rows, data.frame(
             Function = "bf01",
@@ -554,8 +560,9 @@ analysis_prior_table <- function(family) {
     out[order(out$Function, out$H1, out$H0), ]
 }
 
-fixture_setup_table <- function(family, mode) {
-    family_fixtures <- fixtures[vapply(fixtures, function(x) {
+fixture_setup_table <- function(family, mode, new_only = FALSE) {
+    specs <- if (new_only) moment_fixtures else fixtures
+    family_fixtures <- specs[vapply(specs, function(x) {
         identical(x$family, family) && identical(x$mode, mode)
     }, logical(1))]
     rows <- list()
@@ -564,6 +571,9 @@ fixture_setup_table <- function(family, mode) {
                                          "-reference-diagnostic-rows.csv")
         if (is.na(path)) next
         comparisons <- utils::read.csv(path, stringsAsFactors = FALSE)
+        if (spec$family == "z" && identical(spec$bf_types, "moment")) {
+            comparisons <- pool_moment_rows(comparisons, moment_reference_rows(mode), new_only)
+        }
         comparisons <- comparisons[is.finite(comparisons$reference_prob), ]
         if (nrow(comparisons) == 0L) next
         # Fixed comparisons use different sample sizes for short and long designs.
@@ -589,7 +599,7 @@ fixture_setup_table <- function(family, mode) {
                 "Sequence" = sequence, check.names = FALSE)
         }
     }
-    if (family == "z" && !is.null(one_sided)) {
+    if (family == "z" && !new_only && !is.null(one_sided)) {
         x <- one_sided$probabilities[one_sided$probabilities$mode == mode &
                                        is.finite(one_sided$probabilities$reference_prob), ]
         if (nrow(x) > 0L) {
@@ -804,7 +814,7 @@ plot_event_error_summary <- function(rows, event_col = "tail") {
     invisible(NULL)
 }
 
-plot_fixed_fixture <- function(spec) {
+plot_fixed_fixture <- function(spec, new_only = FALSE) {
     fixture <- bfpwr_sim_read_fixture_summary(
         corpus_root = corpus_root,
         fixture_set_id = spec$fixture_set_id,
@@ -814,6 +824,9 @@ plot_fixed_fixture <- function(spec) {
     rows <- diagnostics$diagnostic_rows
     if (spec$fixture_set_id == "z-bf01-fixed-core-v1") {
         rows <- bfpwr_sim_bind_rows_fill(rows, one_sided_reference_rows("fixed"))
+    }
+    if (spec$fixture_set_id == "z-nmbf01-fixed-core-v1") {
+        rows <- pool_moment_rows(rows, moment_reference_rows("fixed"), new_only)
     }
     rows <- rows[is.finite(rows$reference_prob), , drop = FALSE]
     if (nrow(rows) == 0) {
@@ -1123,7 +1136,7 @@ sequential_reference_diagnostics <- function(fixture) {
          source = if (nrow(en) > 0) "cached_en" else "missing")
 }
 
-plot_sequential_fixture <- function(spec) {
+plot_sequential_fixture <- function(spec, new_only = FALSE) {
     fixture <- bfpwr_sim_read_fixture_summary(
         corpus_root = corpus_root,
         fixture_set_id = spec$fixture_set_id,
@@ -1137,6 +1150,10 @@ plot_sequential_fixture <- function(spec) {
     if (spec$fixture_set_id == "z-bf01-sequential-core-v1") {
         rows <- bfpwr_sim_bind_rows_fill(rows, one_sided_reference_rows("sequential"))
         en <- bfpwr_sim_bind_rows_fill(en, one_sided_en_rows())
+    }
+    if (spec$fixture_set_id == "z-nmbf01-sequential-core-v1") {
+        rows <- pool_moment_rows(rows, moment_reference_rows("sequential"), new_only)
+        en <- pool_moment_rows(en, moment_en_rows(), new_only)
     }
     if (nrow(rows) == 0 && nrow(en) == 0) {
         return(invisible(NULL))
@@ -1323,14 +1340,18 @@ sequential_search_probabilities <- function(rows) {
     result
 }
 
-sample_size_comparisons <- function() {
-    rows <- list()
+saved_package_search_comparisons <- function() {
     path <- search_validation_file("search-validation-comparison.rds")
-    if (!is.na(path)) {
-        saved <- readRDS(path)
-        # Simulation-only rows have no package search to compare.
-        x <- saved$comparison[saved$comparison$package_key %in%
-                                  saved$package$package_key, , drop = FALSE]
+    if (is.na(path)) return(data.frame())
+    saved <- readRDS(path)
+    # Simulation-only rows have no package search to compare.
+    saved$comparison[saved$comparison$package_key %in% saved$package$package_key, , drop = FALSE]
+}
+
+sample_size_comparisons <- function(new_only = FALSE) {
+    rows <- list()
+    if (!new_only) {
+        x <- saved_package_search_comparisons()
         if (nrow(x) > 0) {
             probability <- sequential_search_probabilities(x)
             rows[[length(rows) + 1L]] <- data.frame(
@@ -1344,21 +1365,21 @@ sample_size_comparisons <- function() {
                 simulation_prob = probability$prob,
                 simulation_mcse = probability$mcse, stringsAsFactors = FALSE)
         }
+        if (!is.null(one_sided)) {
+            x <- one_sided$searches
+            rows[[length(rows) + 1L]] <- data.frame(
+                family = "z", mode = x$mode, source = "one-sided",
+                function_name = ifelse(x$mode == "fixed", "nbf01", "nbf01seq"),
+                model = "normal", case_id = x$case_id, target = x$target,
+                outcome = x$outcome, threshold = as.numeric(x$pair),
+                simulation_n = x$simulation_n, package_n = x$n_found,
+                comparison_n = x$grid_n,
+                package_prob = x$predicted_grid_power,
+                simulation_prob = x$simulation_power,
+                simulation_mcse = x$simulation_mcse, stringsAsFactors = FALSE)
+        }
     }
-    if (!is.null(one_sided)) {
-        x <- one_sided$searches
-        rows[[length(rows) + 1L]] <- data.frame(
-            family = "z", mode = x$mode, source = "one-sided",
-            function_name = ifelse(x$mode == "fixed", "nbf01", "nbf01seq"),
-            model = "normal", case_id = x$case_id, target = x$target,
-            outcome = x$outcome, threshold = as.numeric(x$pair),
-            simulation_n = x$simulation_n, package_n = x$n_found,
-            comparison_n = x$grid_n,
-            package_prob = x$predicted_grid_power,
-            simulation_prob = x$simulation_power,
-            simulation_mcse = x$simulation_mcse, stringsAsFactors = FALSE)
-    }
-    if (length(rows) == 0L) return(data.frame())
+    rows[[length(rows) + 1L]] <- moment_search_rows()
     x <- do.call(rbind, rows)
     x$comparable <- is.finite(x$simulation_n) & x$simulation_n > 0 &
         is.finite(x$package_n) & x$package_n > 0
@@ -1370,8 +1391,12 @@ sample_size_comparisons <- function() {
     x
 }
 
-plot_sample_size_comparisons <- function(rows, mode, model = "normal") {
-    x <- rows[rows$mode == mode & rows$model == model & rows$comparable, , drop = FALSE]
+plot_sample_size_comparisons <- function(rows, mode, model = NULL) {
+    selected <- if (mode == "fixed") {
+        models <- if (is.null(model)) c("normal", "moment") else model
+        rows$family == "z" & rows$model %in% models
+    } else rows$model == model
+    x <- rows[rows$mode == mode & selected & rows$comparable, , drop = FALSE]
     if (nrow(x) == 0L) return(invisible(NULL))
     # Match the text scale that R applies to the other 2-by-2 report panels.
     old_par <- par(mfrow = c(1, 2), cex = 0.83,
@@ -1409,7 +1434,11 @@ plot_sample_size_comparisons <- function(rows, mode, model = "normal") {
            col = c("steelblue", "firebrick"), lty = c(1, 2),
            lwd = 2, bty = "n", cex = 0.7)
     mtext("At the package solution", side = 3, line = 0.25, cex = 0.7)
-    title <- if (mode == "fixed") "nbf01: one-sided normal" else {
+    title <- if (mode == "fixed") {
+        if (is.null(model)) "nbf01 and nnmbf01: one-sided normal and moment priors" else
+            c(normal = "nbf01: one-sided normal priors",
+              moment = "nnmbf01: one-sided normal moment priors")[[model]]
+    } else {
         c(normal = "nbf01seq: normal and point priors",
           moment = "nbf01seq: normal moment prior",
           directional = "nbf01seq: directional hypotheses",
@@ -1496,8 +1525,7 @@ package_timing_rows <- function() {
     out[is.finite(out$elapsed_seconds), , drop = FALSE]
 }
 
-package_timing_summary_table <- function() {
-    timings <- package_timing_rows()
+package_timing_summary_table <- function(timings = package_timing_rows()) {
     if (nrow(timings) == 0) return(data.frame())
     timings$timing_source <- ifelse(is.na(timings$timing_source) |
                                         !nzchar(timings$timing_source),
@@ -1607,6 +1635,8 @@ plot_package_timing_histograms <- function() {
     invisible(NULL)
 }
 
+source(file.path(repo_root_path, "simulations/scripts/moment_report_adapters.R"))
+
 fixture_report_objects <- c(
     "repo_root_path", "registry_available", "corpus_root", "corpus_available",
     "results_root", "report_workers",
@@ -1631,7 +1661,8 @@ fixture_report_objects <- c(
     "t_n2", "t_sequential_reference",
     "sequential_reference_diagnostics", "plot_sequential_fixture",
     "search_validation_file", "fmt_count", "fmt_seconds",
-    "sequential_search_probabilities", "sample_size_comparisons",
+    "sequential_search_probabilities", "saved_package_search_comparisons",
+    "sample_size_comparisons",
     "plot_sample_size_comparisons",
     "package_timing_rows", "package_timing_summary_table",
     "plot_package_timing_histograms"
@@ -1676,7 +1707,7 @@ if (registry_available) for (family in names(family_labels)) {
                                 gsub("\\\\textit\\{|\\}", "", family_labels[[family]]),
                                 "verification run. Designs lists the matching short IDs from the design-prior table."))
     if (family == "z" && !is.null(one_sided)) {
-        cat("\\noindent Normal($\\mu$, $\\sigma$) uses mean $\\mu$ and SD $\\sigma$ before truncation. Subscripts $+$ and $-$ denote truncation above and below zero; a nonzero cutoff is shown explicitly. Normal design priors remain untruncated.\\par\n")
+        cat("\\noindent Subscripts $+$ and $-$ denote truncation above and below zero; a nonzero cutoff is shown explicitly. Normal design priors remain untruncated.\\par\n")
     }
 
     if (family == "t") cat("\\clearpage\n")
@@ -1705,24 +1736,6 @@ if (registry_available) for (family in names(family_labels)) {
                 caption = paste("Sequential-design verification settings for",
                                 gsub("\\\\textit\\{|\\}", "", family_labels[[family]]),
                                 "analyses. Designs refers to the design-prior table."), keep_together = TRUE)
-    if (family == "z" && !is.null(one_sided)) {
-        cat("\\begin{samepage}\\noindent The Normal$_{+}$ and Normal$_{-}$ cases use a single look at 300, three equally spaced looks (100, 200, 300), three uneven looks (20, 100, 300), and 50 looks from 10 to 500. For the centered prior with SD 0.707 and point design priors at 0 and 0.2, schedules also contain 100 or 200 looks in steps of 10. BF 10/3 and BF 3/10 denote asymmetric stopping thresholds $(k_1,k_0)=(1/10,3)$ and $(1/3,10)$.\\par\\end{samepage}\n")
-        if (!is.null(one_sided$rare_event_diagnostics)) {
-            cat("\\noindent Very rare stopping probabilities can be missed by the integration grid. Events whose fixed-look union bound implies fewer than one expected occurrence in 10,000 trajectories are retained as accuracy diagnostics, including their original interval failures. Their relative accuracy is not certified; larger discrepancies and invalid probabilities remain required failures.\\par\n")
-            rare <- one_sided$rare_event_diagnostics
-            rare <- rare[rare$case_id == "narrow--less--z-dnorm-0-s0p5-usd1-short" &
-                         rare$schedule == "dense50" & rare$pair == "30" &
-                         rare$n == 110 & rare$outcome == "H0", ]
-            if (nrow(rare) == 1) {
-                cat("\\noindent For example, the Normal$_{-}$(0,0.1) analysis prior and Normal(0,0.5) design prior with $(k_1,k_0)=(1/30,30)$ give an H0 stopping prediction of $",
-                    fmt_scientific(rare$reference_prob),
-                    "$ by $n=110$, whereas the fixed-look union bound is $",
-                    fmt_scientific(rare$probability_upper_bound),
-                    "$. The simulation contains ", rare$n_event,
-                    " such event in 10,000 trajectories.\\par\n", sep = "")
-            }
-        }
-    }
     mat_seq <- materialized_fixture_specs(family, "sequential")
     if (!corpus_available) {
         cat("\\noindent Simulation results unavailable; sequential-design figures are not rendered.\n\n")
@@ -1731,18 +1744,6 @@ if (registry_available) for (family in names(family_labels)) {
     } else {
         if (family == "t") {
             cat("\\noindent The sequential \\textit{t}-test probabilities use a normal approximation to the sampling distribution of the test statistics. Comparisons with exact-t simulations therefore diagnose this approximation; they do not certify exact-t accuracy. Numerical validity and fixture integrity remain required checks.\\par\n")
-            for (spec in mat_seq) {
-                path <- fixture_validation_file(spec$fixture_set_id,
-                                                "-reference-summary.csv")
-                if (!is.na(path) && file.exists(path)) {
-                    summary <- utils::read.csv(path)
-                    cat("\\noindent In this run, ", summary$severe_interval_failures,
-                        " of ", summary$rows_checked,
-                        " probability comparisons fall outside the severe binomial prediction intervals; the largest absolute difference is ",
-                        fmt_number(100*summary$max_abs_error),
-                        " percentage points.\\par\n", sep = "")
-                }
-            }
         }
         for (spec in mat_seq) {
             plot_sequential_fixture(spec)
@@ -1754,24 +1755,13 @@ if (registry_available) for (family in names(family_labels)) {
 \clearpage
 \section{Sample-Size Search Checks}
 
-\noindent The searches cover \texttt{nbf01} with one-sided Normal priors,
+\noindent The searches cover \texttt{nbf01} with one-sided Normal priors, \texttt{nnmbf01},
 \texttt{nbf01seq}, and \texttt{ntbf01seq}. They compare the first sample sizes at
 which simulated and computed probabilities of evidence for H1 or H0 reach a
 target. Sequential sample sizes refer to the maximum planned sample size.
 Only finite results from both methods enter the figures.
 
-\noindent Left panels compare sample sizes. Right panels compare computed and
-simulated probabilities at the package solution, expressed in Monte Carlo SEs,
-with reference lines at $\pm 2$ and $\pm 3$ SEs. For fixed designs, the package
-solution is rounded up to the simulation grid for the probability comparison.
-
-\subsection{Fixed-Design z-Test: \texttt{nbf01}}
-
-\noindent These comparisons cover the 70 Normal$_{+}$ and Normal$_{-}$
-analysis-prior/design-prior combinations listed in the z-test section. Targets
-are 0.8 and 0.9 for both H1 and H0, with BF thresholds 3, 10, and 30 and a search
-range from 10 to 500. The package searches over integer sample sizes; simulated
-probabilities are available every 10 observations.
+\subsection{Fixed-Design z-Test: \texttt{nbf01}, \texttt{nnmbf01}}
 
 <<fixed-search-comparison, results = 'asis', echo = FALSE, error = FALSE, fig.height = 3.8, fig.width = 6.8, out.width = "\\textwidth">>=
 search_rows <- sample_size_comparisons()
@@ -1785,19 +1775,6 @@ if (nrow(search_rows) == 0L) {
 \clearpage
 \subsection{Sequential z-Test: \texttt{nbf01seq}}
 
-\noindent The normal and point priors, normal moment priors, and directional
-hypotheses use 15, 20, and 15 searches, respectively, with the analysis and design
-priors listed in the z-test section. Targets are 0.1, 0.3, and 0.8 for all three
-models, and 0.95 for directional hypotheses. BF thresholds are 3, 10, and 30 for
-H1 and H0. Looks occur every 10 observations starting at 10 or 20. Upper search
-bounds depend on the scenario and extend to 2,000 for normal and directional
-models and 1,000 for moment priors.
-
-\noindent The one-sided normal cases use Normal$_{+}$(0, 0.707),
-Normal$_{-}$(0, 0.707), Normal$_{+}$(0.2, 0.3), and Normal$_{-}$(0.2, 0.3), all
-seven generating distributions, and targets 0.8 and 0.9 for H1 and H0. These 112
-searches use $(k_1,k_0)=(1/10,10)$ and looks from 10 to 500 in steps of 10.
-
 <<sequential-z-search-comparisons, results = 'asis', echo = FALSE, error = FALSE, fig.height = 3.8, fig.width = 6.8, out.width = "\\textwidth">>=
 if (nrow(search_rows) > 0L) {
     for (model in c("normal", "moment", "directional")) {
@@ -1808,17 +1785,6 @@ if (nrow(search_rows) > 0L) {
 
 \clearpage
 \subsection{Sequential t-Test: \texttt{ntbf01seq}}
-
-\noindent The 26 searches use Cauchy and StudentT analysis priors with two-sided,
-greater, and less alternatives, and point and Normal design priors. Sampling is
-one-sample, paired, or two-sample, with two-sample allocation ratios 1 and 1.1.
-Targets are 0.1, 0.3, 0.8, and 0.95, with BF thresholds 3, 10, and 30 for H1 and
-H0. Looks occur every 10 observations starting at 10 or 20, and upper search
-bounds range from 30 to 2,000. Two-sample sizes refer to group 1.
-For allocation ratio 1.1, group-2 sizes are rounded to the nearest integer in
-the simulation and upward in the package search.
-The sequential t probabilities use a normal approximation to the sampling
-distribution of the test statistics.
 
 <<sequential-t-search-comparisons, results = 'asis', echo = FALSE, error = FALSE, fig.height = 3.8, fig.width = 6.8, out.width = "\\textwidth">>=
 if (nrow(search_rows) > 0L) {
@@ -1834,10 +1800,6 @@ at once because those functions are vectorized; most sequential and sample-size
 search calls are one setting at a time.
 
 <<package-call-timing-section, results = 'asis', echo = FALSE, fig.height = 8.5, fig.width = 7.5>>=
-if (report_workers > 1L) {
-    cat("\\noindent Calculations used ", report_workers,
-        " concurrent workers.\\par\n", sep = "")
-}
 timing_summary <- package_timing_summary_table()
 if (nrow(timing_summary) == 0) {
     cat("\\noindent Run time results are unavailable.\n\n")
@@ -1848,25 +1810,7 @@ if (nrow(timing_summary) == 0) {
                     "Fixed probability rows can be vectorized, so calls and",
                     "rows covered need not match."), keep_together = TRUE)
     if (!is.null(one_sided)) {
-        timings <- rbind(
-            data.frame(Function = ifelse(one_sided$timings$operation == "fixed",
-                                         "pbf01", "pbf01seq"),
-                       seconds = one_sided$timings$seconds),
-            data.frame(Function = ifelse(one_sided$searches$mode == "fixed",
-                                         "nbf01", "nbf01seq"),
-                       seconds = one_sided$searches$seconds))
-        directional_timings <- do.call(rbind, lapply(
-            split(timings, timings$Function), function(x) {
-                data.frame(Function = x$Function[1], "Timed runs" = nrow(x),
-                    Median = fmt_seconds(median(x$seconds)),
-                    P90 = fmt_seconds(as.numeric(quantile(x$seconds, 0.9))),
-                    Max = fmt_seconds(max(x$seconds)),
-                    Total = fmt_seconds(sum(x$seconds)), check.names = FALSE)
-            }))
-        latex_table(directional_timings,
-            caption = paste("One-sided z-test run times.",
-                "Each fixed pbf01 run times the H1 and H0 vector calls together;",
-                "each other run times one package call."), keep_together = TRUE)
+        latex_one_sided_timing_table()
     }
     cat("\\clearpage\n")
     cat("\\noindent Histograms show the calls in the probability and sample-size search timing table.\\par\n")

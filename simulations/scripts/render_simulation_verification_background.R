@@ -17,6 +17,7 @@ source_simulation_library()
 
 args <- parse_args()
 root <- repo_root()
+moment_root <- resolve_moment_root(root, arg_value(args, "moment-root"))
 corpus_root <- normalizePath(arg_value(args, "corpus-root",
                                        file.path(root, "simulations",
                                                  "corpus", "v1")),
@@ -33,7 +34,8 @@ stopifnot(dir.exists(file.path(results_root, "fixture-validation")))
 Sys.setenv(
     BFPWR_SIM_CORPUS = corpus_root,
     BFPWR_SIM_RESULTS = results_root,
-    BFPWR_SIM_REPO = root
+    BFPWR_SIM_REPO = root,
+    BFPWR_SIM_MOMENT_RESULTS = moment_root
 )
 
 cat("Started:", format(Sys.time(), "%Y-%m-%d %H:%M:%S %Z"), "\n")

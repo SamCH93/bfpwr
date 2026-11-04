@@ -1,0 +1,66 @@
+\section{\textit{z}-Test}
+
+\subsection*{Simulated Design Priors}
+<<moment-designs, results='asis'>>=
+latex_table(design_table("z"),
+    caption="Simulated design priors for the z-Test verification run. The Design column gives short IDs used by the analysis-prior table.")
+@
+
+\clearpage
+\subsection*{Analysis Priors}
+<<moment-priors, results='asis'>>=
+latex_table(analysis_prior_table("z", new_only = TRUE),
+    caption="Analysis priors used for the z-Test verification run. Designs lists the matching short IDs from the design-prior table.")
+@
+
+\noindent Subscripts $+$ and $-$ denote truncation above and below zero; a
+nonzero cutoff is shown explicitly. Normal design priors remain untruncated.
+
+\clearpage
+\subsection{Fixed-Design}
+<<moment-fixed, results='asis'>>=
+latex_table(fixture_setup_table("z", "fixed", new_only = TRUE),
+    caption="Fixed-design verification settings for z-Test analyses. Designs refers to the design-prior table.",
+    keep_together=TRUE, max_width=TRUE)
+for (spec in moment_fixtures) if (spec$mode == "fixed") plot_fixed_fixture(spec, new_only = TRUE)
+@
+
+\subsection{Sequential-Design}
+<<moment-sequential, results='asis'>>=
+latex_table(fixture_setup_table("z", "sequential", new_only = TRUE),
+    caption="Sequential-design verification settings for z-Test analyses. Designs refers to the design-prior table.",
+    keep_together=TRUE, max_width=TRUE)
+for (spec in moment_fixtures) if (spec$mode == "sequential") plot_sequential_fixture(spec, new_only = TRUE)
+@
+
+\clearpage
+\section{Sample-Size Search Checks}
+
+\noindent The searches compare simulated and package-returned sample sizes for
+\texttt{nnmbf01} and \texttt{nbf01seq} with one-sided moment priors.
+Sequential sample sizes refer to the maximum planned
+sample size. Only finite results from both methods enter the figures.
+
+\subsection{Fixed-Design z-Test: \texttt{nnmbf01}}
+<<moment-fixed-search, results='asis', fig.height=3.8>>=
+search_rows <- sample_size_comparisons(new_only = TRUE)
+plot_sample_size_comparisons(search_rows, "fixed", "moment")
+@
+
+\clearpage
+\subsection{Sequential z-Test: \texttt{nbf01seq}}
+
+<<moment-sequential-search, results='asis', fig.height=3.8>>=
+plot_sample_size_comparisons(search_rows, "sequential", "moment")
+@
+
+\clearpage
+\section{Run Time Diagnostics}
+
+\noindent Elapsed times are recorded for the package calculations shown above. Fixed-design probability calls can cover several rows
+at once because those functions are vectorized; most sequential and sample-size
+search calls are one setting at a time.
+
+<<moment-timings, results='asis'>>=
+latex_one_sided_timing_table(incremental = TRUE)
+@
