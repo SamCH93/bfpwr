@@ -7,7 +7,7 @@ This repository contains
 
 2. `./paper` Code and data to reproduce result from the paper: *Pawel, S., Held.
    L. (2025). Closed-Form Power and Sample Size Calculations for Bayes Factors.
-   The American Statistician. <https://doi.org/10.1080/00031305.2025.2467919>*
+   The American Statistician. 79(3), 330-344. <https://doi.org/10.1080/00031305.2025.2467919>*
 
 To cite our work, use the following BibTeX reference
 
@@ -17,7 +17,10 @@ To cite our work, use the following BibTeX reference
   author = {Samuel Pawel and Leonhard Held},
   title = {Closed-Form Power and Sample Size Calculations for {Bayes} Factors},
   journal = {The American Statistician},
-  doi = {10.1080/00031305.2025.2467919}
+  doi = {10.1080/00031305.2025.2467919},
+  volume = {79},
+  number = {3},
+  pages = {330--344}
 }
 ```
 

@@ -2,7 +2,7 @@
 
 This directory contains code and data related to the preprint
 
-> Pawel, S., Held, L. (2025). Closed-Form Power and Sample Size Calculations for Bayes Factors. The American Statistician. <https://doi.org/10.1080/00031305.2025.2467919>
+> *Pawel, S., Held. L. (2025). Closed-Form Power and Sample Size Calculations for Bayes Factors. The American Statistician. 79(3), 330-344. <https://doi.org/10.1080/00031305.2025.2467919>*
 
 
 ## Reproducibility
