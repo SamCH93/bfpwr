@@ -112,7 +112,20 @@
                                    lower.tail = FALSE, log.p = TRUE)
     upper_scale <- .bfpwr_logspace_sub(log_lower_tail, log_upper_tail)
 
-    max(lower_scale, upper_scale, na.rm = TRUE)
+    ## Subtract on the side of the interval: both limits in the upper tail
+    ## (lower limit above the median) leave tiny upper-tail probabilities that
+    ## subtract accurately, whereas the lower-tail difference then cancels 1 - 1
+    ## and returns noise that can exceed the true value (the earlier max() of
+    ## both routes picked it). The other way round for the lower tail. The
+    ## other route is only a fallback if the chosen one is undefined.
+    if (log_lower_tail < log_lower) {
+        chosen <- upper_scale
+        other <- lower_scale
+    } else {
+        chosen <- lower_scale
+        other <- upper_scale
+    }
+    if (is.na(chosen)) other else chosen
 }
 
 .bfpwr_qnorm_logistic_inverse <- function(log_odds) {
