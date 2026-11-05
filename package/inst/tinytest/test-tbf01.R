@@ -499,6 +499,22 @@ expect_equal(
     info = "tbf01 should resolve a narrow prior at a large sample size"
 )
 
+## At an extreme t the likelihood peak is far from the prior, and the heavy
+## prior tail beyond it is a negligible piece of the direct integral. That piece
+## must not fail at the tolerance scaled for narrow priors (the Bayes factor
+## then fell back to quadrature: log BF01 -13.6 instead of -494 at t = -1e12,
+## and ptbf01 became about ten times slower). Beyond its maximum the Bayes
+## factor decreases with |t|.
+heavy_extreme <- tbf01(
+    t = c(1e4, 1e8, 1e12, -1e12), n1 = 10, n2 = 13,
+    plocation = 2.41468008980155, pscale = 0.254380572902165,
+    pdf = 1.90000312660144, type = "two.sample", log = TRUE
+)
+expect_true(all(is.finite(heavy_extreme)) && all(diff(heavy_extreme[1:3]) < 0),
+            info = "tbf01 should decrease with t at extreme t-statistics")
+expect_equal(heavy_extreme[3], heavy_extreme[4], tolerance = 1e-6,
+             info = "tbf01 should be symmetric at an extreme t far from the prior")
+
 ## Two-sided shifted informed priors with data in the opposite direction. Here
 ## stats::dt(t, df, ncp) is noise where t and ncp have opposite signs, which
 ## made the direct integral fail or switch to the one-sided tail quadrature

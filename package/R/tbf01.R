@@ -270,14 +270,21 @@
     ## width or the prior scale. An absolute tolerance of 1e-8 would allow a
     ## relative error of 1e-2 for a spike of width 1e-6 (tbf01(0, n = 25,
     ## pscale = 1e-6, type = "one.sample", log = TRUE) was 0.0813 instead of
-    ## 3.99e-6), so scale it by that width.
+    ## 3.99e-6), so scale it by that width. A piece that is negligible next to
+    ## the main part (e.g., a heavy prior tail far from a likelihood peak at an
+    ## extreme t) can fail at the scaled tolerance ("probably divergent"),
+    ## which would send the whole Bayes factor to the slow fallback; such a
+    ## piece is retried at the unscaled tolerance.
     pieces <- vapply(seq_len(length(breaks) - 1), function(i) {
-        value <- try(stats::integrate(f = intfun, lower = breaks[i],
-                                      upper = breaks[i + 1], rel.tol = rel.tol,
-                                      abs.tol = abs.tol*min(1, width, pscale),
-                                      subdivisions = subdivisions,
-                                      ...)$value,
-                     silent = TRUE)
+        piece <- function(abs.tol) {
+            try(stats::integrate(f = intfun, lower = breaks[i],
+                                 upper = breaks[i + 1], rel.tol = rel.tol,
+                                 abs.tol = abs.tol,
+                                 subdivisions = subdivisions, ...)$value,
+                silent = TRUE)
+        }
+        value <- piece(abs.tol*min(1, width, pscale))
+        if (inherits(value, "try-error")) value <- piece(abs.tol)
         if (inherits(value, "try-error")) NaN else value
     }, numeric(1))
     f1 <- sum(pieces)
