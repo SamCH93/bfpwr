@@ -18,12 +18,9 @@
   oppose the alternative hypothesis
 - fix two-sided `ptbf01()` power and critical-value searches for shifted
   informed priors, including heavy-tailed priors
-- compute `tbf01()` accurately when the t-statistic and effect sizes under the
-  prior have opposite signs, for extreme t-statistics, and for very large
-  sample sizes, where `stats::dt()` with a noncentrality parameter is
-  unreliable and a single integral over the prior can miss the narrow
-  likelihood; this corrects informed-prior and large-sample Bayes factors and
-  the power and sample-size calculations that use them
+- improve accuracy of `tbf01()` for informed priors, extreme t-statistics, and
+  very large sample sizes, where `stats::dt()` with a noncentrality parameter
+  is unreliable
 - add `tail.eps` to control the tail-probability cutoff in one-sided adaptive
   t critical-value searches, and `tail.nquad` to control the accuracy/speed
   tradeoff in one-sided t Bayes factor calculations (defaults: `1e-6` and 512)
