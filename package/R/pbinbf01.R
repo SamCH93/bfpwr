@@ -1,3 +1,81 @@
+## Shared pieces of the fixed (pbinbf01) and two-stage (pbinbf01seq) binomial
+## power calculations. Input validation stays in the callers.
+
+## Predicate "BF01(x) <= k" for the integer counts x of a sample of size n. The
+## comparison is made on the log scale with floating point arithmetic.
+.binbf01_below_threshold <- function(k, n, p0, type, a, b) {
+    logk <- log(k)
+    function(x) {
+        binbf01(x = x, n = n, p0 = p0, type = type, a = a, b = b,
+                log = TRUE) <= logk
+    }
+}
+
+## The data are integer counts, so the successful counts are determined on
+## that grid. Continuous optimization followed by floor/ceiling can lose a
+## boundary count when the root is numerically just to one side of an integer.
+.binbf01_first_below <- function(below, lower, upper) {
+    ## The predicate is FALSE then TRUE on this interval.
+    while (lower < upper) {
+        midpoint <- floor((lower + upper)/2)
+        if (below(midpoint)) {
+            upper <- midpoint
+        } else {
+            lower <- midpoint + 1
+        }
+    }
+    lower
+}
+
+.binbf01_last_below <- function(below, lower, upper) {
+    ## The predicate is TRUE then FALSE on this interval.
+    while (lower < upper) {
+        midpoint <- ceiling((lower + upper)/2)
+        if (below(midpoint)) {
+            lower <- midpoint
+        } else {
+            upper <- midpoint - 1
+        }
+    }
+    lower
+}
+
+## Log predictive PMF of the number of successes x out of n observations under
+## the design prior: a point design prior at dp (if not NA) or a Beta(da, db)
+## design prior truncated to (dl, du). The truncated Beta case works on the
+## log scale because extreme truncation intervals can make the beta
+## normalizing constants very small. The common full and one-sided truncation
+## intervals can be evaluated vectorwise; only interior intervals need the
+## scalar stable interval helper.
+.binbf01_pred_logpmf <- function(x, n, dp, da, db, dl, du) {
+    if (!is.na(dp)) {
+        return(stats::dbinom(x = x, size = n, prob = dp, log = TRUE))
+    }
+    log_norm_const <- .bfpwr_lpbeta_interval(lower = dl, upper = du,
+                                             shape1 = da, shape2 = db)
+    beta_bin_logpmf <- lchoose(n, x) + lbeta(da + x, db + n - x) - lbeta(da, db)
+    if (dl <= 0 && du >= 1) {
+        return(beta_bin_logpmf)
+    }
+    log_interval <- if (dl <= 0) {
+        stats::pbeta(q = du, shape1 = da + x, shape2 = db + n - x,
+                     log.p = TRUE)
+    } else if (du >= 1) {
+        stats::pbeta(q = dl, shape1 = da + x, shape2 = db + n - x,
+                     lower.tail = FALSE, log.p = TRUE)
+    } else {
+        vapply(
+            X = x,
+            FUN.VALUE = numeric(1),
+            FUN = function(xi) {
+                .bfpwr_lpbeta_interval(lower = dl, upper = du,
+                                       shape1 = da + xi, shape2 = db + n - xi)
+            }
+        )
+    }
+    beta_bin_logpmf + log_interval - log_norm_const
+}
+
 ## function to compute Pr(binbf01 <= k)
 pbinbf01. <- function(k, n, p0 = 0.5, type = c("point", "direction"), a = 1,
                       b = 1, dp = NA, da = a, db = b, dl = 0, du = 1,
@@ -47,10 +125,6 @@ pbinbf01. <- function(k, n, p0 = 0.5, type = c("point", "direction"), a = 1,
             is.finite(dp),
             0 < dp, dp < 1
             )
-        ## predictive PMF under the point design prior
-        predlogpmf <- function(x) {
-            stats::dbinom(x = x, size = n, prob = dp, log = TRUE)
-        }
         predlogcdf <- function(q) {
             if (q < 0) {
                 return(-Inf)
@@ -94,47 +168,12 @@ pbinbf01. <- function(k, n, p0 = 0.5, type = c("point", "direction"), a = 1,
             is.finite(du),
             dl < du, du <= 1
         )
-        ## predictive PMF under the truncated Beta design prior. Work on the
-        ## log scale because extreme truncation intervals can make the beta
-        ## normalizing constants very small. The common full and one-sided
-        ## truncation intervals can be evaluated vectorwise; only interior
-        ## intervals need the scalar stable interval helper.
-        log_norm_const <- .bfpwr_lpbeta_interval(lower = dl, upper = du,
-                                                 shape1 = da, shape2 = db)
-        beta_bin_logpmf <- function(x) {
-            lchoose(n, x) + lbeta(da + x, db + n - x) - lbeta(da, db)
-        }
-        if (dl <= 0 && du >= 1) {
-            predlogpmf <- beta_bin_logpmf
-        } else {
-            log_interval <- if (dl <= 0) {
-                function(x) {
-                    stats::pbeta(q = du, shape1 = da + x,
-                                 shape2 = db + n - x, log.p = TRUE)
-                }
-            } else if (du >= 1) {
-                function(x) {
-                    stats::pbeta(q = dl, shape1 = da + x,
-                                 shape2 = db + n - x, lower.tail = FALSE,
-                                 log.p = TRUE)
-                }
-            } else {
-                function(x) {
-                    vapply(
-                        X = x,
-                        FUN.VALUE = numeric(1),
-                        FUN = function(xi) {
-                            .bfpwr_lpbeta_interval(lower = dl, upper = du,
-                                                    shape1 = da + xi,
-                                                    shape2 = db + n - xi)
-                        }
-                    )
-                }
-            }
-            predlogpmf <- function(x) {
-                beta_bin_logpmf(x) + log_interval(x) - log_norm_const
-            }
-        }
+    }
+
+    ## predictive PMF under the design prior
+    predlogpmf <- function(x) {
+        .binbf01_pred_logpmf(x = x, n = n, dp = dp, da = da, db = db,
+                             dl = dl, du = du)
     }
 
     ## BF as a function of the data
@@ -142,38 +181,8 @@ pbinbf01. <- function(k, n, p0 = 0.5, type = c("point", "direction"), a = 1,
         binbf01(x = x, n = n, p0 = p0, type = type, a = a, b = b, log = TRUE)
     }
 
-    ## The data are integer counts, so determine the successful counts on that
-    ## grid. Continuous optimization followed by floor/ceiling can lose a
-    ## boundary count when the root is numerically just to one side of an
-    ## integer.
-    logk <- log(k)
-    belowThreshold <- function(x) {
-        logbf(x) <= logk
-    }
-    firstBelow <- function(lower, upper) {
-        ## The predicate is FALSE then TRUE on this interval.
-        while (lower < upper) {
-            midpoint <- floor((lower + upper)/2)
-            if (belowThreshold(midpoint)) {
-                upper <- midpoint
-            } else {
-                lower <- midpoint + 1
-            }
-        }
-        lower
-    }
-    lastBelow <- function(lower, upper) {
-        ## The predicate is TRUE then FALSE on this interval.
-        while (lower < upper) {
-            midpoint <- ceiling((lower + upper)/2)
-            if (belowThreshold(midpoint)) {
-                lower <- midpoint
-            } else {
-                upper <- midpoint - 1
-            }
-        }
-        lower
-    }
+    belowThreshold <- .binbf01_below_threshold(k = k, n = n, p0 = p0,
+                                               type = type, a = a, b = b)
 
     logpow <- NULL
     xsuccess <- integer(0)
@@ -186,7 +195,7 @@ pbinbf01. <- function(k, n, p0 = 0.5, type = c("point", "direction"), a = 1,
                 xsuccess <- 0:n
             }
         } else if (belowThreshold(n)) {
-            xcrit <- firstBelow(0, n)
+            xcrit <- .binbf01_first_below(belowThreshold, 0, n)
             if (pointDesign) {
                 logpow <- predlogsf(xcrit)
             } else {
@@ -215,10 +224,10 @@ pbinbf01. <- function(k, n, p0 = 0.5, type = c("point", "direction"), a = 1,
             leftCrit <- NULL
             rightCrit <- NULL
             if (belowThreshold(0)) {
-                leftCrit <- lastBelow(0, xmax)
+                leftCrit <- .binbf01_last_below(belowThreshold, 0, xmax)
             }
             if (belowThreshold(n)) {
-                rightCrit <- firstBelow(xmax, n)
+                rightCrit <- .binbf01_first_below(belowThreshold, xmax, n)
             }
 
             if (pointDesign) {
