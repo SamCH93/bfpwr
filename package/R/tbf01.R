@@ -44,14 +44,9 @@
 ## df from 1 to 2e4, |t| up to 40 and |ncp| up to 100.
 .tbf01_dnt_nquad <- 64
 
-.tbf01_log_dnt <- function(t, df, ncp) {
-    ## Noncentral-t log density of the statistic t for a vector of ncp values.
-    ## When t and ncp have opposite signs, stats::dt subtracts two nearly equal
-    ## distribution functions and returns noise once the density drops below
-    ## about 1e-11 (t = -4.9, df = 24, ncp = 6 gives log density -29.2 instead
-    ## of -44.8). Noisy integrands make stats::integrate fail and send
-    ## two-sided informed priors to a fallback that is only accurate in the
-    ## one-sided tail. Those values instead use the exact representation
+.tbf01_log_dnt_opposite <- function(t, df, ncp) {
+    ## Exact noncentral-t log density at t for a vector of ncp values whose
+    ## sign is opposite to the sign of t. Write
     ##   dnt(t; df, ncp) = dt(t; df) exp(-ncp^2/2) E[exp(s Y)],
     ##   Y ~ chi with df + 1 degrees of freedom, s = ncp t/sqrt(df + t^2) < 0.
     ## With k = df + 1, E[exp(s Y)] = I(s)/I(0) for
@@ -65,27 +60,60 @@
     ## t/sqrt(df + t^2) is written as sign(t)/sqrt(1 + df/t^2) so that t^2
     ## cannot overflow.
     s <- ncp*sign(t)/sqrt(1 + df/t^2)
-    opposite <- is.finite(s) & s < 0
-    out <- numeric(length(ncp))
-    if (!all(opposite)) {
-        out[!opposite] <- suppressWarnings(
-            stats::dt(x = t, df = df, ncp = ncp[!opposite], log = TRUE)
-        )
-    }
-    if (!any(opposite)) {
-        return(out)
-    }
-
     k <- df + 1
-    s <- s[opposite]
     a <- (s + sqrt(s^2 + 4*k))/2
     rule <- .bfpwr_gauss_laguerre(shape = k, n = .tbf01_dnt_nquad)
     G <- outer(1/(a - s), rule$x)
     log_correction <- log(drop(exp(-(G - a)^2/2) %*% rule$w))
     log_I0 <- (k/2 - 1)*log(2) + lgamma(k/2)
-    out[opposite] <- stats::dt(x = t, df = df, log = TRUE) -
-        ncp[opposite]^2/2 + a^2/2 + lgamma(k) - k*log(a - s) - log_I0 +
-        log_correction
+    stats::dt(x = t, df = df, log = TRUE) - ncp^2/2 + a^2/2 + lgamma(k) -
+        k*log(a - s) - log_I0 + log_correction
+}
+
+.tbf01_log_dnt <- function(t, df, ncp) {
+    ## Noncentral-t log density of the statistic t for a vector of ncp values.
+    ## stats::dt is unreliable in the tails, where it subtracts nearly equal
+    ## distribution functions and returns noise (t = -4.9, df = 24, ncp = 6
+    ## gives log density -29.2 instead of -44.8; the same-sign density is off
+    ## by up to 650 for extreme t and very large samples, and for df above
+    ## about 4e5). Noisy integrands make stats::integrate fail or miss the
+    ## likelihood and send informed priors and large samples to a fallback
+    ## that is only accurate in the one-sided tail. The density therefore
+    ## comes from exact representations, according to the sign of
+    ## s = ncp sign(t)/sqrt(1 + df/t^2) (that of ncp t):
+    ## - s < 0 (t and ncp of opposite sign): the chi mixture of
+    ##   .tbf01_log_dnt_opposite().
+    ## - s > 0: T^2 is noncentral F distributed with 1 and df degrees of
+    ##   freedom and noncentrality ncp^2, so that
+    ##   dnt(t) + dnt(-t) = 2 |t| f_F(t^2; 1, df, ncp^2). The mirrored density
+    ##   dnt(-t) is an opposite-sign density, and since dnt(-t) <= dnt(t) at
+    ##   most a factor two cancels in the difference.
+    ## - s = 0 (t = 0 or ncp = 0): the central case, stats::dt is accurate.
+    s <- ncp*sign(t)/sqrt(1 + df/t^2)
+    out <- numeric(length(ncp))
+    opposite <- is.finite(s) & s < 0
+    same <- is.finite(s) & s > 0
+    other <- !(opposite | same)
+    if (any(other)) {
+        out[other] <- suppressWarnings(
+            stats::dt(x = t, df = df, ncp = ncp[other], log = TRUE)
+        )
+    }
+    if (any(opposite)) {
+        out[opposite] <- .tbf01_log_dnt_opposite(t = t, df = df,
+                                                 ncp = ncp[opposite])
+    }
+    if (any(same)) {
+        ncp_same <- ncp[same]
+        log_opp <- .tbf01_log_dnt_opposite(t = -t, df = df, ncp = ncp_same)
+        log_even <- log(2*abs(t)) + suppressWarnings(
+            stats::df(x = t^2, df1 = 1, df2 = df, ncp = ncp_same^2, log = TRUE)
+        )
+        log_same <- log_even + log1p(-exp(log_opp - log_even))
+        ## an underflowing even part means an underflowing density
+        log_same[log_even == -Inf] <- -Inf
+        out[same] <- log_same
+    }
     out
 }
 
@@ -107,10 +135,9 @@
     eta <- sqrt(neff)
     log_f0 <- stats::dt(x = t, df = df, log = TRUE)
 
-    ## Same-sign noncentral-t densities still come from stats::dt. Where it
-    ## cannot evaluate them even at the likelihood peak ncp = t (|t| near the
-    ## overflow range), only the opposite-sign part would remain, so leave
-    ## the Bayes factor to the fallback.
+    ## Where the density cannot be evaluated even at the likelihood peak
+    ## ncp = t (|t| near the overflow range), leave the Bayes factor to the
+    ## fallback.
     if (!is.finite(.tbf01_log_dnt(t = t, df = df, ncp = t))) {
         return(NaN)
     }
@@ -142,12 +169,31 @@
         z[!is.finite(z)] <- -Inf
         exp(z)
     }
-    f1 <- try(stats::integrate(f = intfun, lower = region$lower,
-                               upper = region$upper, rel.tol = rel.tol,
-                               abs.tol = abs.tol, subdivisions = subdivisions,
-                               ...)$value,
-              silent = TRUE)
-    if (inherits(f1, "try-error") || !is.finite(f1) || f1 <= 0) {
+
+    ## A single integrate() over an infinite range can miss a likelihood spike
+    ## that is narrow at large n (n = 1e7, t = 20 gives log BF01 -106.5
+    ## instead of -192.06; splitting only at the peak still loses one half of
+    ## the spike). The likelihood in d is roughly normal around t/eta with
+    ## standard deviation width, so integrate piecewise between the region
+    ## limits, the null, and +-8 width around the likelihood peak and +-8
+    ## prior scales around the prior location.
+    width <- sqrt(1 + t^2/(2*df))/eta
+    breaks <- c(region$lower, region$upper, 0,
+                t/eta + c(-8, 0, 8)*width, plocation + c(-8, 0, 8)*pscale)
+    breaks <- breaks[!is.na(breaks)]
+    breaks <- sort(unique(breaks[breaks >= region$lower &
+                                 breaks <= region$upper]))
+    pieces <- vapply(seq_len(length(breaks) - 1), function(i) {
+        value <- try(stats::integrate(f = intfun, lower = breaks[i],
+                                      upper = breaks[i + 1], rel.tol = rel.tol,
+                                      abs.tol = abs.tol,
+                                      subdivisions = subdivisions,
+                                      ...)$value,
+                     silent = TRUE)
+        if (inherits(value, "try-error")) NaN else value
+    }, numeric(1))
+    f1 <- sum(pieces)
+    if (!all(is.finite(pieces)) || f1 <= 0) {
         return(NaN)
     }
 
@@ -349,12 +395,15 @@ tbf01. <- function(t, n, n1 = n, n2 = n, plocation = 0, pscale = 1/sqrt(2),
 #'
 #' @details The Bayes factor is implemented as in equation (5) in Gronau et al.
 #'     (2020), and using suitable truncation in case of one-sided alternatives.
-#'     Most calculations use \code{stats::integrate}. Noncentral-\eqn{t}
-#'     densities whose \eqn{t}-statistic and noncentrality parameter have
-#'     opposite signs, where \code{stats::dt} is unreliable, use an exact
-#'     mixture representation evaluated with Gauss-Laguerre quadrature.
-#'     Extreme wrong-tail one-sided calculations use fixed Gauss-Legendre
-#'     quadrature to avoid noncentral-\eqn{t} underflow.
+#'     Most calculations use \code{stats::integrate}, with the integral over
+#'     the prior split around the likelihood peak and the prior location.
+#'     Noncentral-\eqn{t} densities come from exact representations instead of
+#'     \code{stats::dt}, which is unreliable in the tails: a chi mixture
+#'     evaluated with Gauss-Laguerre quadrature when the \eqn{t}-statistic and
+#'     the noncentrality parameter have opposite signs, and the noncentral
+#'     \eqn{F} density of \eqn{t^2} otherwise. Extreme wrong-tail one-sided
+#'     calculations use fixed Gauss-Legendre quadrature to avoid
+#'     noncentral-\eqn{t} underflow.
 #'
 #' @param t \eqn{t}-statistic
 #' @param n Sample size (per group)

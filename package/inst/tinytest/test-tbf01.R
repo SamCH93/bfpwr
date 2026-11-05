@@ -384,6 +384,54 @@ expect_equal(
     info = "tcrit status should not treat empty results as valid"
 )
 
+## Same-sign noncentral-t densities for extreme t-statistics and very large
+## samples, where stats::dt(t, df, ncp) is unreliable (by up to 650 on the log
+## scale) or non-finite and a single integral over the prior misses the narrow
+## likelihood. The references come from integrating the prior scale mixture
+## representation of the Bayes factor, which uses no noncentral-t density.
+expect_equal(
+    tbf01(t = c(20, -20), n = 1e7, type = "one.sample", log = TRUE),
+    rep(-192.057674346016, 2), tolerance = 1e-9,
+    info = "tbf01 should integrate the narrow likelihood at n = 1e7 for either sign of t"
+)
+expect_equal(
+    tbf01(t = 12, n = 99, plocation = 0.1, pscale = 0.05, pdf = 30,
+          type = "one.sample", log = TRUE),
+    -13.803734290484, tolerance = 1e-9,
+    info = "tbf01 should be accurate for an extreme t with an informed prior"
+)
+expect_equal(
+    tbf01(t = 30, n = 25, plocation = 0.6, pscale = 0.15, pdf = 10,
+          type = "one.sample", log = TRUE),
+    -21.378506777814, tolerance = 1e-9,
+    info = "tbf01 should be accurate for an extreme same-sign t-statistic"
+)
+expect_equal(
+    tbf01(t = 6, n = 2e5, type = "one.sample", log = TRUE),
+    -12.015846174838, tolerance = 1e-9,
+    info = "tbf01 should be accurate for very large degrees of freedom"
+)
+
+## The density helper covers the three cases (opposite sign, central, same
+## sign). Where stats::dt is accurate it agrees with it (to about 1e-8; dt
+## itself is only that accurate), and over all t the density integrates to
+## one.
+dnt_ncp <- c(-3, -0.5, 0, 0.5, 3)
+expect_equal(
+    bfpwr:::.tbf01_log_dnt(t = 2, df = 10, ncp = dnt_ncp),
+    stats::dt(x = 2, df = 10, ncp = dnt_ncp, log = TRUE),
+    tolerance = 1e-6,
+    info = "tbf01 density helper should agree with stats::dt where that is accurate"
+)
+expect_equal(
+    stats::integrate(
+        Vectorize(function(t) exp(bfpwr:::.tbf01_log_dnt(t, df = 10, ncp = 3))),
+        lower = -Inf, upper = Inf, rel.tol = 1e-10
+    )$value,
+    1, tolerance = 1e-8,
+    info = "tbf01 density helper should integrate to one over the t-statistic"
+)
+
 if (!bfpwr_run_extended_tests()) {
     exit_file(bfpwr_extended_skip_message(
         "remaining tbf01 numerical-stability checks are extended"
