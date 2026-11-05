@@ -25,6 +25,17 @@ expect_silent(power_n2 <- ptbf01(k = 1/10, n = 2, dpm = 0.5, dpsd = 0,
 expect_true(is.finite(power_n2) && power_n2 >= 0 && power_n2 <= 1e-4,
             info = "ptbf01 should be a tiny finite probability at n = 2")
 
+## A prior of scale 1e-6 that is centred at the null and a true null: BF01 is
+## at most 1.05 only for estimates indistinguishable from the null, so the
+## probability of BF01 > 1.05 is 0 (it was 1.4e-4 with the coarse absolute
+## tolerance of the direct integral).
+expect_equal(
+    ptbf01(k = 1.05, n = 25, pscale = 1e-6, dpm = 0, dpsd = 0,
+           type = "one.sample", lower.tail = FALSE),
+    0,
+    info = "ptbf01 should resolve a very narrow prior"
+)
+
 source("helper-extended-tests.R", local = TRUE)
 if (!bfpwr_run_extended_tests()) {
     exit_file(bfpwr_extended_skip_message(

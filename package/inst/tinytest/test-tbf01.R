@@ -474,6 +474,31 @@ expect_true(all(is.finite(n2_extreme)) && all(diff(n2_extreme) < 0),
 expect_equal(n2_extreme[3], -2.255763, tolerance = 1e-6,
              info = "tbf01 should be accurate for t = 1e5 at n = 2")
 
+## Narrow priors: the direct integral is a spike of the order of the prior
+## scale, so its absolute tolerance has to scale with that width (the default
+## tolerance of 1e-8 gave 0.0813 for the first case). At t = 0 the Bayes factor
+## of the default Cauchy prior is exact: dnt(0; df, ncp)/dt(0; df) is
+## exp(-ncp^2/2), so log BF01 = -n pscale^2/2 - log(2) - log(pnorm(-sqrt(n)
+## pscale)). The other references come from integrating the scale mixture
+## representation.
+expect_equal(
+    tbf01(t = c(0, 1), n = 25, pscale = 1e-6, type = "one.sample",
+          log = TRUE),
+    c(3.9894182617406e-06, 1.79179708348354e-06), tolerance = 1e-6,
+    info = "tbf01 should resolve a prior of scale 1e-6 centred at the null"
+)
+expect_equal(
+    tbf01(t = 2.5, n = 100, plocation = 0.05, pscale = 1e-4,
+          type = "one.sample", log = TRUE),
+    -1.09562667675191, tolerance = 1e-9,
+    info = "tbf01 should resolve a narrow prior away from the null"
+)
+expect_equal(
+    tbf01(t = 0, n = 1e4, pscale = 1e-5, type = "one.sample", log = TRUE),
+    0.000797702907876618, tolerance = 1e-6,
+    info = "tbf01 should resolve a narrow prior at a large sample size"
+)
+
 ## Two-sided shifted informed priors with data in the opposite direction. Here
 ## stats::dt(t, df, ncp) is noise where t and ncp have opposite signs, which
 ## made the direct integral fail or switch to the one-sided tail quadrature
