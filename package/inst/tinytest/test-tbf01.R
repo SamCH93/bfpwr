@@ -432,6 +432,47 @@ expect_equal(
     info = "tbf01 density helper should integrate to one over the t-statistic"
 )
 
+## Two-sided shifted informed priors with data in the opposite direction. Here
+## stats::dt(t, df, ncp) is noise where t and ncp have opposite signs, which
+## made the direct integral fail or switch to the one-sided tail quadrature
+## depending on the platform. References agree to 12 digits between adaptive
+## integration over the chi mixing representation of the noncentral t and over
+## the textbook representation T = (Z + ncp)/sqrt(V/df).
+opposite_two_sided <- tbf01(
+    t = c(-4.9, -4.682265, -4.68227), n = 25,
+    plocation = 0.6, pscale = 0.15, pdf = 10,
+    type = "one.sample", alternative = "two.sided", log = TRUE
+)
+expect_equal(
+    opposite_two_sided, c(3.138185250488, 3.375119097799, 3.375113770205),
+    tolerance = 1e-9,
+    info = "two-sided informed tbf01 should be accurate and continuous in the opposite tail"
+)
+expect_equal(
+    tbf01(t = -6, n1 = 60, n2 = 78, plocation = 0.6, pscale = 0.15, pdf = 10,
+          type = "two.sample", alternative = "two.sided", log = TRUE),
+    -2.957834379563, tolerance = 1e-9,
+    info = "two-sided informed tbf01 should not fall back to one-sided tail quadrature"
+)
+
+## The mirror image: positive t with a prior located at negative effects
+## (same references up to the sign of the t-statistic and prior location).
+expect_equal(
+    tbf01(t = 4.9, n = 25, plocation = -0.6, pscale = 0.15, pdf = 10,
+          type = "one.sample", alternative = "two.sided", log = TRUE),
+    3.138185250488, tolerance = 1e-9,
+    info = "two-sided informed tbf01 should be accurate for t > 0 and a prior at negative effects"
+)
+
+## Fractional degrees of freedom (n1 + n2 - 2 = 20.75), t of either sign;
+## reference by integrating the prior scale mixture representation.
+expect_equal(
+    tbf01(t = c(-3.5, 3.5), n1 = 10.5, n2 = 12.25, plocation = 0.5,
+          pscale = 0.2, pdf = 4, type = "two.sample", log = TRUE),
+    c(1.054800113276, -3.114723481199), tolerance = 1e-9,
+    info = "tbf01 should be accurate for fractional degrees of freedom"
+)
+
 if (!bfpwr_run_extended_tests()) {
     exit_file(bfpwr_extended_skip_message(
         "remaining tbf01 numerical-stability checks are extended"
@@ -524,26 +565,3 @@ expect_true(is.finite(opposite_less) && opposite_less > 0,
             info = "one-sided opposite-direction tbf01 should be finite on the log scale")
 expect_equal(opposite_less, opposite_greater, tolerance = 1e-8,
              info = "mirrored one-sided opposite-direction tbf01 values should agree")
-
-## Two-sided shifted informed priors with data in the opposite direction. Here
-## stats::dt(t, df, ncp) is noise where t and ncp have opposite signs, which
-## made the direct integral fail or switch to the one-sided tail quadrature
-## depending on the platform. References agree to 12 digits between adaptive
-## integration over the chi mixing representation of the noncentral t and over
-## the textbook representation T = (Z + ncp)/sqrt(V/df).
-opposite_two_sided <- tbf01(
-    t = c(-4.9, -4.682265, -4.68227), n = 25,
-    plocation = 0.6, pscale = 0.15, pdf = 10,
-    type = "one.sample", alternative = "two.sided", log = TRUE
-)
-expect_equal(
-    opposite_two_sided, c(3.138185250488, 3.375119097799, 3.375113770205),
-    tolerance = 1e-9,
-    info = "two-sided informed tbf01 should be accurate and continuous in the opposite tail"
-)
-expect_equal(
-    tbf01(t = -6, n1 = 60, n2 = 78, plocation = 0.6, pscale = 0.15, pdf = 10,
-          type = "two.sample", alternative = "two.sided", log = TRUE),
-    -2.957834379563, tolerance = 1e-9,
-    info = "two-sided informed tbf01 should not fall back to one-sided tail quadrature"
-)

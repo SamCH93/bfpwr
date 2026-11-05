@@ -135,3 +135,37 @@ for (shapes in list(c(0.5, 0.5), c(3, 4), c(40, 240), c(240, 40), c(2, 300))) {
         }
     }
 }
+
+## The generalized Gauss-Laguerre rule behind the opposite-sign noncentral-t
+## density (weights normalized to a Gamma(shape, 1) expectation) integrates
+## the first moments exactly: E[1] = 1, E[X] = shape, E[X^2] = shape*(shape + 1).
+for (shape in c(1.5, 5.5, 21.75, 31)) {
+    rule <- bfpwr:::.bfpwr_gauss_laguerre(shape = shape, n = 64)
+    expect_equal(length(rule$x), 64,
+                 info = "Gauss-Laguerre rule should have the requested number of nodes")
+    expect_equal(sum(rule$w), 1, tolerance = 1e-12,
+                 info = "Gauss-Laguerre weights should sum to one")
+    expect_equal(sum(rule$w*rule$x), shape, tolerance = 1e-12,
+                 info = "Gauss-Laguerre rule should reproduce the gamma mean")
+    expect_equal(sum(rule$w*rule$x^2), shape*(shape + 1), tolerance = 1e-12,
+                 info = "Gauss-Laguerre rule should reproduce the second gamma moment")
+}
+
+## Only the most recent rule is cached. A repeated call returns the cached
+## rule, and alternating shapes or orders recompute the correct rule.
+rule_3 <- bfpwr:::.bfpwr_gauss_laguerre(shape = 3, n = 8)
+expect_identical(bfpwr:::.bfpwr_gauss_laguerre(shape = 3, n = 8), rule_3,
+                 info = "a repeated Gauss-Laguerre call should return the cached rule")
+rule_5 <- bfpwr:::.bfpwr_gauss_laguerre(shape = 5, n = 8)
+expect_equal(sum(rule_5$w*rule_5$x), 5, tolerance = 1e-12,
+             info = "a new shape should not return the cached rule")
+rule_3_again <- bfpwr:::.bfpwr_gauss_laguerre(shape = 3, n = 8)
+expect_equal(rule_3_again, rule_3, tolerance = 1e-14,
+             info = "an interleaved shape should recompute the earlier rule")
+expect_equal(sum(rule_3_again$w*rule_3_again$x), 3, tolerance = 1e-12,
+             info = "the recomputed rule should keep its moments")
+rule_3_n16 <- bfpwr:::.bfpwr_gauss_laguerre(shape = 3, n = 16)
+expect_equal(length(rule_3_n16$x), 16,
+             info = "a new order should not return the cached rule")
+expect_equal(length(bfpwr:::.bfpwr_gauss_laguerre(shape = 3, n = 8)$x), 8,
+             info = "returning to the earlier order should recompute it")
