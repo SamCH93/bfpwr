@@ -102,10 +102,11 @@ ptbf01. <- function(k, n, n1 = n, n2 = n, null = 0, plocation = 0,
             suppressWarnings({
                 X <- (log(1 + neff*pscale^2) + (null - plocation)^2/pscale^2 - log(k^2))*
                     (1 + 1/neff/pscale^2)/neff
-                if (is.nan(X)) X <- 0.1
+                sqrtX <- sqrt(X)
+                if (is.nan(sqrtX)) sqrtX <- 0.3
                 M <- (-null - (null - plocation)/neff/pscale^2)
-                critz1 <- -sqrt(X) - M # limit 1 z-test BF
-                critz2 <- sqrt(X) - M # limit 2 z-test BF
+                critz1 <- -sqrtX - M # limit 1 z-test BF
+                critz2 <- sqrtX - M # limit 2 z-test BF
             })
             meancritz <- (critz1 + critz2)/2
             if (critz1 < critz2) {
