@@ -70,6 +70,83 @@
         k*log(a - s) - log_I0 + log_correction
 }
 
+## Gauss-Hermite nodes and series terms for the same-sign noncentral-t density
+## (see .tbf01_log_dnt_same()).
+.tbf01_dnt_nhermite <- 64
+.tbf01_dnt_nseries <- 400
+
+.tbf01_log_dnt_same_hermite <- function(t, df, ncp, s) {
+    ## Same-sign log density (s = ncp sign(t)/sqrt(1 + df/t^2) > 0) from the
+    ## chi mixture of .tbf01_log_dnt_opposite(). Its Gauss-Laguerre
+    ## evaluation relies on s < 0 (G concentrated), so write
+    ##   I(s) = integral_0^Inf y^(k - 1) exp(-y^2/2 + s y) dy
+    ##        = exp(s^2/2) J(s),  J(s) = integral_0^Inf y^(k - 1) exp(-(y - s)^2/2) dy,
+    ## so that, with k = df + 1 and I(0) = 2^(k/2 - 1) Gamma(k/2),
+    ##   log dnt = log dt(t; df) - ncp^2 df/(2 (df + t^2)) + log J(s) - log I(0)
+    ## (-ncp^2/2 + s^2/2 = -ncp^2 df/(2 (df + t^2))). In z = log y the
+    ## integrand exp(k z - (e^z - s)^2/2) is unimodal with its Laplace mode at
+    ## ys = (s + sqrt(s^2 + 4k))/2 (where y (y - s) = k) and curvature
+    ## ys sqrt(s^2 + 4k) there, so a Gauss-Hermite rule centred at log(ys)
+    ## with scale sig = 1/sqrt(ys sqrt(s^2 + 4k)) integrates it accurately,
+    ## for large s and for large k (relative error below 1e-9 on the log
+    ## scale, checked against adaptive integration, also at log densities of
+    ## order -1e11). Every term is written to stay finite for t up to the
+    ## largest double: s is only squared in 4k/s^2 when s is large, and
+    ## ncp^2 df/(2 (df + t^2)) is evaluated as (ncp/t)^2 df/(2 (df/t^2 + 1))
+    ## for |t| > 1.
+    k <- df + 1
+    big <- s > sqrt(k)
+    root <- ys <- numeric(length(s))
+    q <- sqrt(1 + 4*k/s[big]^2)
+    root[big] <- s[big]*q
+    ys[big] <- s[big]*((1 + q)/2)
+    root[!big] <- sqrt(s[!big]^2 + 4*k)
+    ys[!big] <- (s[!big] + root[!big])/2
+    ## ys - s without cancellation
+    shift <- 2*k/(root + s)
+    sig <- 1/(sqrt(ys)*sqrt(root))
+
+    rule <- .bfpwr_gauss_hermite(.tbf01_dnt_nhermite)
+    delta <- outer(sqrt(2)*sig, rule$x)
+    h <- k*(log(ys) + delta) - (ys*expm1(delta) + shift)^2/2
+    terms <- sweep(h, 2, log(rule$w) + rule$x^2, "+")
+    top <- apply(terms, 1, max)
+    log_J <- top + log(rowSums(exp(terms - top))) + log(sqrt(2)*sig)
+
+    log_quad <- if (abs(t) <= 1) {
+        ncp^2*df/(2*(df + t^2))
+    } else {
+        (ncp/t)^2*df/(2*(df/t^2 + 1))
+    }
+    stats::dt(x = t, df = df, log = TRUE) - log_quad + log_J -
+        ((k/2 - 1)*log(2) + lgamma(k/2))
+}
+
+.tbf01_log_dnt_same_series <- function(t, df, ncp, s) {
+    ## Same-sign log density for small k = df + 1 and 0 < s < 10, where the
+    ## Gauss-Hermite rule of .tbf01_log_dnt_same_hermite() is not accurate
+    ## (the integrand is not yet close to normal in log y). The even part of
+    ## the density is a confluent hypergeometric function,
+    ##   dnt(t) + dnt(-t) = 2 dt(t; df) exp(-ncp^2/2) 1F1(k/2; 1/2; s^2/2),
+    ## with 1F1 = sum_j (k/2)_j/(1/2)_j (s^2/2)^j/j!, a series of positive
+    ## terms. For k/2 < 5 and s^2/2 < 50 the terms peak below j = 55 and are
+    ## negligible by j = 400. The mirrored opposite-sign density dnt(-t) is
+    ## subtracted from the even part, and since dnt(-t) <= dnt(t) at most a
+    ## factor two cancels.
+    k <- df + 1
+    j <- seq_len(.tbf01_dnt_nseries + 1) - 1
+    base <- lgamma(k/2 + j) - lgamma(k/2) + lgamma(1/2) - lgamma(1/2 + j) -
+        lgamma(j + 1)
+    terms <- outer(log(s^2/2), j) + rep(base, each = length(s))
+    terms[, 1] <- base[1]
+    top <- apply(terms, 1, max)
+    log_1F1 <- top + log(rowSums(exp(terms - top)))
+    log_even <- log(2) + stats::dt(x = t, df = df, log = TRUE) - ncp^2/2 +
+        log_1F1
+    log_opp <- .tbf01_log_dnt_opposite(t = -t, df = df, ncp = ncp)
+    log_even + log1p(-exp(log_opp - log_even))
+}
+
 .tbf01_log_dnt <- function(t, df, ncp) {
     ## Noncentral-t log density of the statistic t for a vector of ncp values.
     ## stats::dt is unreliable in the tails, where it subtracts nearly equal
@@ -82,13 +159,15 @@
     ## comes from exact representations, according to the sign of
     ## s = ncp sign(t)/sqrt(1 + df/t^2) (that of ncp t):
     ## - s < 0 (t and ncp of opposite sign): the chi mixture of
-    ##   .tbf01_log_dnt_opposite().
-    ## - s > 0: T^2 is noncentral F distributed with 1 and df degrees of
-    ##   freedom and noncentrality ncp^2, so that
-    ##   dnt(t) + dnt(-t) = 2 |t| f_F(t^2; 1, df, ncp^2). The mirrored density
-    ##   dnt(-t) is an opposite-sign density, and since dnt(-t) <= dnt(t) at
-    ##   most a factor two cancels in the difference.
+    ##   .tbf01_log_dnt_opposite(), evaluated with Gauss-Laguerre quadrature.
+    ## - s > 0 with s >= 10 or df + 1 >= 10: the same mixture, evaluated with
+    ##   Gauss-Hermite quadrature in log y, .tbf01_log_dnt_same_hermite().
+    ## - s > 0 with s < 10 and df + 1 < 10: the hypergeometric series of the
+    ##   even part, .tbf01_log_dnt_same_series().
     ## - s = 0 (t = 0 or ncp = 0): the central case, stats::dt is accurate.
+    ## (The noncentral F density of t^2 would give the even part as well, but
+    ## stats::df returns NaN once ncp^2 t^2/2 exceeds 2^31 and is slow for
+    ## large noncentrality.)
     s <- ncp*sign(t)/sqrt(1 + df/t^2)
     out <- numeric(length(ncp))
     opposite <- is.finite(s) & s < 0
@@ -104,15 +183,18 @@
                                                  ncp = ncp[opposite])
     }
     if (any(same)) {
-        ncp_same <- ncp[same]
-        log_opp <- .tbf01_log_dnt_opposite(t = -t, df = df, ncp = ncp_same)
-        log_even <- log(2*abs(t)) + suppressWarnings(
-            stats::df(x = t^2, df1 = 1, df2 = df, ncp = ncp_same^2, log = TRUE)
-        )
-        log_same <- log_even + log1p(-exp(log_opp - log_even))
-        ## an underflowing even part means an underflowing density
-        log_same[log_even == -Inf] <- -Inf
-        out[same] <- log_same
+        hermite <- same & (s >= 10 | df + 1 >= 10)
+        series <- same & !hermite
+        if (any(hermite)) {
+            out[hermite] <- .tbf01_log_dnt_same_hermite(
+                t = t, df = df, ncp = ncp[hermite], s = s[hermite]
+            )
+        }
+        if (any(series)) {
+            out[series] <- .tbf01_log_dnt_same_series(
+                t = t, df = df, ncp = ncp[series], s = s[series]
+            )
+        }
     }
     out
 }
@@ -136,7 +218,7 @@
     log_f0 <- stats::dt(x = t, df = df, log = TRUE)
 
     ## Where the density cannot be evaluated even at the likelihood peak
-    ## ncp = t (|t| near the overflow range), leave the Bayes factor to the
+    ## ncp = t (it is not finite there), leave the Bayes factor to the
     ## fallback.
     if (!is.finite(.tbf01_log_dnt(t = t, df = df, ncp = t))) {
         return(NaN)
@@ -400,9 +482,9 @@ tbf01. <- function(t, n, n1 = n, n2 = n, plocation = 0, pscale = 1/sqrt(2),
 #'     Noncentral-\eqn{t} densities come from exact representations instead of
 #'     \code{stats::dt}, which is unreliable in the tails: a chi mixture
 #'     evaluated with Gauss-Laguerre quadrature when the \eqn{t}-statistic and
-#'     the noncentrality parameter have opposite signs, and the noncentral
-#'     \eqn{F} density of \eqn{t^2} otherwise. Extreme wrong-tail one-sided
-#'     calculations use fixed Gauss-Legendre quadrature to avoid
+#'     the noncentrality parameter have opposite signs, and Gauss-Hermite
+#'     quadrature or a hypergeometric series otherwise. Extreme wrong-tail
+#'     one-sided calculations use fixed Gauss-Legendre quadrature to avoid
 #'     noncentral-\eqn{t} underflow.
 #'
 #' @param t \eqn{t}-statistic

@@ -432,6 +432,48 @@ expect_equal(
     info = "tbf01 density helper should integrate to one over the t-statistic"
 )
 
+## Same-sign densities in each branch (hypergeometric series for small df and
+## small s, Gauss-Hermite otherwise; references by adaptive integration of the
+## chi mixture) and for extreme t-statistics, where stats::df, once used for
+## the same-sign density, returns NaN as soon as ncp^2 t^2/2 exceeds 2^31
+## (|t| of about 6.5e4 at n = 2) and sent every Bayes factor to the slow
+## fallback.
+expect_equal(bfpwr:::.tbf01_log_dnt(t = 2, df = 1, ncp = 1.5),
+             -1.735769022161, tolerance = 1e-9,
+             info = "same-sign density should be accurate in the series branch")
+expect_equal(bfpwr:::.tbf01_log_dnt(t = -6, df = 2, ncp = -4),
+             -2.401876233845, tolerance = 1e-9,
+             info = "same-sign density should be accurate in the series branch for negative t")
+expect_equal(bfpwr:::.tbf01_log_dnt(t = 40, df = 4, ncp = 30),
+             -3.886931880451, tolerance = 1e-9,
+             info = "same-sign density should be accurate in the Gauss-Hermite branch for large s")
+expect_equal(bfpwr:::.tbf01_log_dnt(t = 0.5, df = 20, ncp = 3),
+             -4.024634735744, tolerance = 1e-9,
+             info = "same-sign density should be accurate in the Gauss-Hermite branch for large df")
+expect_equal(bfpwr:::.tbf01_log_dnt(t = 538.9, df = 1, ncp = 500),
+             -7.020668178952, tolerance = 1e-9,
+             info = "same-sign density should be accurate for an extreme t")
+expect_true(
+    all(is.finite(bfpwr:::.tbf01_log_dnt(t = 1e300, df = 1,
+                                         ncp = 1e300*c(0.5, 1)))) &&
+    all(is.finite(bfpwr:::.tbf01_log_dnt(t = .Machine$double.xmax, df = 1,
+                                         ncp = .Machine$double.xmax*c(0.5, 1)))) &&
+    all(is.finite(bfpwr:::.tbf01_log_dnt(t = -1e300, df = 24,
+                                         ncp = -1e300*c(0.5, 1)))),
+    info = "same-sign densities should stay finite for t up to the largest double"
+)
+expect_equal(
+    tbf01(t = 20, n = 2, type = "one.sample", log = TRUE),
+    -1.01104902, tolerance = 1e-8,
+    info = "tbf01 should agree with the Mathematica value at n = 2"
+)
+n2_extreme <- tbf01(t = c(6e4, 7e4, 1e5), n = 2, type = "one.sample",
+                    log = TRUE)
+expect_true(all(is.finite(n2_extreme)) && all(diff(n2_extreme) < 0),
+            info = "tbf01 should be finite and continuous across t = 6.5e4 at n = 2")
+expect_equal(n2_extreme[3], -2.255763, tolerance = 1e-6,
+             info = "tbf01 should be accurate for t = 1e5 at n = 2")
+
 ## Two-sided shifted informed priors with data in the opposite direction. Here
 ## stats::dt(t, df, ncp) is noise where t and ncp have opposite signs, which
 ## made the direct integral fail or switch to the one-sided tail quadrature

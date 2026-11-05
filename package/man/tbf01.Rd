@@ -95,9 +95,9 @@ prior split around the likelihood peak and the prior location.
 Noncentral-\eqn{t} densities come from exact representations instead of
 \code{stats::dt}, which is unreliable in the tails: a chi mixture evaluated
 with Gauss-Laguerre quadrature when the \eqn{t}-statistic and the
-noncentrality parameter have opposite signs, and the noncentral \eqn{F}
-density of \eqn{t^2} otherwise. Extreme wrong-tail one-sided calculations use
-fixed Gauss-Legendre quadrature to avoid noncentral-\eqn{t} underflow.
+noncentrality parameter have opposite signs, and Gauss-Hermite quadrature or
+a hypergeometric series otherwise. Extreme wrong-tail one-sided calculations
+use fixed Gauss-Legendre quadrature to avoid noncentral-\eqn{t} underflow.
 }
 \examples{
 ## analyses from Rouder et al. (2009):
