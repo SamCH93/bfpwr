@@ -16,7 +16,7 @@ Authors@R:
 Author: Samuel Pawel [aut, cre] (<https://orcid.org/0000-0003-2779-320X>), František Bartoš [aut] (<https://orcid.org/0000-0002-0018-5573>)
 Maintainer: Samuel Pawel <samuel.pawel@uzh.ch>
 Title: Power and Sample Size Calculations for Bayes Factor Analysis
-Description: Implements z-test, t-test, and normal moment prior Bayes factors based on summary statistics, along with functionality to perform corresponding power and sample size calculations for fixed and sequential designs as described in Pawel and Held (2025) <doi:10.1080/00031305.2025.2467919> and Pawel and Held (2026) <doi:10.48550/ARXIV.2601.02851>.
+Description: Implements z-test, t-test, normal moment prior, and binomial test Bayes factors based on summary statistics, along with functionality to perform corresponding power and sample size calculations for fixed and sequential designs as described in Pawel and Held (2025) <doi:10.1080/00031305.2025.2467919>, Pawel and Held (2026) <doi:10.48550/ARXIV.2601.02851>, and Kelter and Pawel (2026) <doi:10.1177/09622802261507279>.
 License: GPL-3
 Encoding: UTF-8
 Imports: lamW, mvtnorm, withr, qrng, utils
