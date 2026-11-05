@@ -1,41 +1,6 @@
 library(tinytest)
 library(bfpwr)
 
-## Two-sided searches whose Bayes factor never reaches k on a side. At small n
-## the two-sided BF01 can stay above k for all t on one or both sides (for n = 3
-## and this informed prior, log BF01 stays between -0.81 and 0.78 while
-## log(1/3) = -1.10). The root searches used to extend their brackets to the
-## overflow range (about 2000 evaluations) and ptbf01 returned NaN with a
-## warning. A side without crossing now contributes 0, and BF01 > k for all
-## estimates means power 0 (and 1 for the complement) without a warning.
-no_crossing_args <- list(k = 1/3, n = 3, plocation = 0.3, pscale = 0.1, pdf = 3,
-                         dpm = 0.3, dpsd = 0.1, type = "one.sample")
-expect_silent(no_crossing <- do.call(ptbf01, no_crossing_args))
-expect_equal(no_crossing, 0,
-             info = "ptbf01 should be 0 when BF01 stays above k on both sides")
-expect_silent(no_crossing_upper <- do.call(ptbf01, c(no_crossing_args,
-                                                     list(lower.tail = FALSE))))
-expect_equal(no_crossing_upper, 1,
-             info = "the complement should be 1 when BF01 stays above k on both sides")
-
-## At n = 2 the JZS Bayes factor reaches 1/10 only for |t| of the order of 1e5,
-## so the power is a tiny probability, found without a warning.
-expect_silent(power_n2 <- ptbf01(k = 1/10, n = 2, dpm = 0.5, dpsd = 0,
-                                 type = "one.sample"))
-expect_true(is.finite(power_n2) && power_n2 >= 0 && power_n2 <= 1e-4,
-            info = "ptbf01 should be a tiny finite probability at n = 2")
-
-## A prior of scale 1e-6 that is centred at the null and a true null: BF01 is
-## at most 1.05 only for estimates indistinguishable from the null, so the
-## probability of BF01 > 1.05 is 0 (it was 1.4e-4 with the coarse absolute
-## tolerance of the direct integral).
-expect_equal(
-    ptbf01(k = 1.05, n = 25, pscale = 1e-6, dpm = 0, dpsd = 0,
-           type = "one.sample", lower.tail = FALSE),
-    0,
-    info = "ptbf01 should resolve a very narrow prior"
-)
-
 source("helper-extended-tests.R", local = TRUE)
 if (!bfpwr_run_extended_tests()) {
     exit_file(bfpwr_extended_skip_message(

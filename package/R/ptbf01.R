@@ -169,38 +169,11 @@ ptbf01. <- function(k, n, n1 = n, n2 = n, null = 0, plocation = 0,
             }
         }
 
-        ## The searches below extend their brackets until the Bayes factor
-        ## crosses k. At small n it can stay above k on one or both sides for
-        ## all t (e.g., n = 3), and the extension would then run to the
-        ## overflow range, about 2000 evaluations, before failing. So first
-        ## evaluate the Bayes factor far in each tail (|t| = 1e12, where it is
-        ## at its large-|t| value to about 1e-20 for df up to 1e4). If it is
-        ## still above k there, the side has no crossing and is not searched;
-        ## the neglected probability is at most P(|T| > 1e12). This assumes the
-        ## Bayes factor is monotone in each tail beyond its maximum, the same
-        ## assumption as the bracket extension.
-        noCrossing <- function(side) {
-            value <- .bfpwr_root_value(f = rootFun,
-                                       x = null + side*1e12*se)
-            is.finite(value) && value > 0
-        }
-        emptyLower <- noCrossing(-1)
-        emptyUpper <- noCrossing(1)
-        if (emptyLower && emptyUpper) {
-            ## BF01 > k for all estimates
-            if (lower.tail == FALSE) {
-                return(1)
-            } else {
-                return(0)
-            }
-        }
-
         roots <- .bfpwr_two_sided_root_pair(
             f = rootFun, lowerInterval = searchIntLow,
             upperInterval = searchIntUp,
             split = if (centered) NULL else proposedSplit,
-            dots = rootDots, searchLower = !emptyLower,
-            searchUpper = !emptyUpper
+            dots = rootDots
         )
         if (!centered && !roots$valid) {
             opt <- .bfpwr_two_sided_maximum(f = rootFun, interval = maxInt)
@@ -217,8 +190,7 @@ ptbf01. <- function(k, n, n1 = n, n2 = n, null = 0, plocation = 0,
                 searchIntUp <- c(opt$maximum, maxInt[2])
                 roots <- .bfpwr_two_sided_root_pair(
                     f = rootFun, lowerInterval = searchIntLow,
-                    upperInterval = searchIntUp, dots = rootDots,
-                    searchLower = !emptyLower, searchUpper = !emptyUpper
+                    upperInterval = searchIntUp, dots = rootDots
                 )
             }
         }

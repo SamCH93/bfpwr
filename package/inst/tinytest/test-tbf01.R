@@ -384,34 +384,6 @@ expect_equal(
     info = "tcrit status should not treat empty results as valid"
 )
 
-## Same-sign noncentral-t densities for extreme t-statistics and very large
-## samples, where stats::dt(t, df, ncp) is unreliable (by up to 650 on the log
-## scale) or non-finite and a single integral over the prior misses the narrow
-## likelihood. The references come from integrating the prior scale mixture
-## representation of the Bayes factor, which uses no noncentral-t density.
-expect_equal(
-    tbf01(t = c(20, -20), n = 1e7, type = "one.sample", log = TRUE),
-    rep(-192.057674346016, 2), tolerance = 1e-9,
-    info = "tbf01 should integrate the narrow likelihood at n = 1e7 for either sign of t"
-)
-expect_equal(
-    tbf01(t = 12, n = 99, plocation = 0.1, pscale = 0.05, pdf = 30,
-          type = "one.sample", log = TRUE),
-    -13.803734290484, tolerance = 1e-9,
-    info = "tbf01 should be accurate for an extreme t with an informed prior"
-)
-expect_equal(
-    tbf01(t = 30, n = 25, plocation = 0.6, pscale = 0.15, pdf = 10,
-          type = "one.sample", log = TRUE),
-    -21.378506777814, tolerance = 1e-9,
-    info = "tbf01 should be accurate for an extreme same-sign t-statistic"
-)
-expect_equal(
-    tbf01(t = 6, n = 2e5, type = "one.sample", log = TRUE),
-    -12.015846174838, tolerance = 1e-9,
-    info = "tbf01 should be accurate for very large degrees of freedom"
-)
-
 ## The density helper covers the three cases (opposite sign, central, same
 ## sign). Where stats::dt is accurate it agrees with it (to about 1e-8; dt
 ## itself is only that accurate), and over all t the density integrates to
@@ -431,94 +403,6 @@ expect_equal(
     1, tolerance = 1e-8,
     info = "tbf01 density helper should integrate to one over the t-statistic"
 )
-
-## Same-sign densities in each branch (hypergeometric series for small df and
-## small s, Gauss-Hermite otherwise; references by adaptive integration of the
-## chi mixture) and for extreme t-statistics, where stats::df, once used for
-## the same-sign density, returns NaN as soon as ncp^2 t^2/2 exceeds 2^31
-## (|t| of about 6.5e4 at n = 2) and sent every Bayes factor to the slow
-## fallback.
-expect_equal(bfpwr:::.tbf01_log_dnt(t = 2, df = 1, ncp = 1.5),
-             -1.735769022161, tolerance = 1e-9,
-             info = "same-sign density should be accurate in the series branch")
-expect_equal(bfpwr:::.tbf01_log_dnt(t = -6, df = 2, ncp = -4),
-             -2.401876233845, tolerance = 1e-9,
-             info = "same-sign density should be accurate in the series branch for negative t")
-expect_equal(bfpwr:::.tbf01_log_dnt(t = 40, df = 4, ncp = 30),
-             -3.886931880451, tolerance = 1e-9,
-             info = "same-sign density should be accurate in the Gauss-Hermite branch for large s")
-expect_equal(bfpwr:::.tbf01_log_dnt(t = 0.5, df = 20, ncp = 3),
-             -4.024634735744, tolerance = 1e-9,
-             info = "same-sign density should be accurate in the Gauss-Hermite branch for large df")
-expect_equal(bfpwr:::.tbf01_log_dnt(t = 538.9, df = 1, ncp = 500),
-             -7.020668178952, tolerance = 1e-9,
-             info = "same-sign density should be accurate for an extreme t")
-expect_true(
-    all(is.finite(bfpwr:::.tbf01_log_dnt(t = 1e300, df = 1,
-                                         ncp = 1e300*c(0.5, 1)))) &&
-    all(is.finite(bfpwr:::.tbf01_log_dnt(t = .Machine$double.xmax, df = 1,
-                                         ncp = .Machine$double.xmax*c(0.5, 1)))) &&
-    all(is.finite(bfpwr:::.tbf01_log_dnt(t = -1e300, df = 24,
-                                         ncp = -1e300*c(0.5, 1)))),
-    info = "same-sign densities should stay finite for t up to the largest double"
-)
-expect_equal(
-    tbf01(t = 20, n = 2, type = "one.sample", log = TRUE),
-    -1.01104902, tolerance = 1e-8,
-    info = "tbf01 should agree with the Mathematica value at n = 2"
-)
-expect_equal(
-    tbf01(t = -538.9, n = 2, type = "one.sample", log = TRUE),
-    -1.681741962695, tolerance = 1e-8,
-    info = "tbf01 should be accurate for an extreme negative t at n = 2"
-)
-n2_extreme <- tbf01(t = c(6e4, 7e4, 1e5), n = 2, type = "one.sample",
-                    log = TRUE)
-expect_true(all(is.finite(n2_extreme)) && all(diff(n2_extreme) < 0),
-            info = "tbf01 should be finite and continuous across t = 6.5e4 at n = 2")
-expect_equal(n2_extreme[3], -2.255763, tolerance = 1e-6,
-             info = "tbf01 should be accurate for t = 1e5 at n = 2")
-
-## Narrow priors: the direct integral is a spike of the order of the prior
-## scale, so its absolute tolerance has to scale with that width (the default
-## tolerance of 1e-8 gave 0.0813 for the first case). At t = 0 the Bayes factor
-## of the default Cauchy prior is exact: dnt(0; df, ncp)/dt(0; df) is
-## exp(-ncp^2/2), so log BF01 = -n pscale^2/2 - log(2) - log(pnorm(-sqrt(n)
-## pscale)). The other references come from integrating the scale mixture
-## representation.
-expect_equal(
-    tbf01(t = c(0, 1), n = 25, pscale = 1e-6, type = "one.sample",
-          log = TRUE),
-    c(3.9894182617406e-06, 1.79179708348354e-06), tolerance = 1e-6,
-    info = "tbf01 should resolve a prior of scale 1e-6 centred at the null"
-)
-expect_equal(
-    tbf01(t = 2.5, n = 100, plocation = 0.05, pscale = 1e-4,
-          type = "one.sample", log = TRUE),
-    -1.09562667675191, tolerance = 1e-9,
-    info = "tbf01 should resolve a narrow prior away from the null"
-)
-expect_equal(
-    tbf01(t = 0, n = 1e4, pscale = 1e-5, type = "one.sample", log = TRUE),
-    0.000797702907876618, tolerance = 1e-6,
-    info = "tbf01 should resolve a narrow prior at a large sample size"
-)
-
-## At an extreme t the likelihood peak is far from the prior, and the heavy
-## prior tail beyond it is a negligible piece of the direct integral. That piece
-## must not fail at the tolerance scaled for narrow priors (the Bayes factor
-## then fell back to quadrature: log BF01 -13.6 instead of -494 at t = -1e12,
-## and ptbf01 became about ten times slower). Beyond its maximum the Bayes
-## factor decreases with |t|.
-heavy_extreme <- tbf01(
-    t = c(1e4, 1e8, 1e12, -1e12), n1 = 10, n2 = 13,
-    plocation = 2.41468008980155, pscale = 0.254380572902165,
-    pdf = 1.90000312660144, type = "two.sample", log = TRUE
-)
-expect_true(all(is.finite(heavy_extreme)) && all(diff(heavy_extreme[1:3]) < 0),
-            info = "tbf01 should decrease with t at extreme t-statistics")
-expect_equal(heavy_extreme[3], heavy_extreme[4], tolerance = 1e-6,
-             info = "tbf01 should be symmetric at an extreme t far from the prior")
 
 ## Two-sided shifted informed priors with data in the opposite direction. Here
 ## stats::dt(t, df, ncp) is noise where t and ncp have opposite signs, which

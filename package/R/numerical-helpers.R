@@ -185,38 +185,6 @@
     }
 })
 
-.bfpwr_gauss_hermite <- local({
-    ## Cache nodes by order, like .bfpwr_gauss_legendre: the rule depends only
-    ## on its order, and the noncentral-t densities of one Bayes factor
-    ## integral reuse it for every integrand evaluation.
-    cache <- new.env(parent = emptyenv())
-
-    function(n) {
-        key <- as.character(n)
-        if (exists(key, envir = cache, inherits = FALSE)) {
-            return(get(key, envir = cache, inherits = FALSE))
-        }
-
-        ## Physicists' Gauss-Hermite rule for the weight exp(-x^2) on the real
-        ## line, built with the Golub-Welsch algorithm as above. The Jacobi
-        ## matrix has zero diagonal and off-diagonal sqrt(i/2) (i = 1, ...,
-        ## n - 1). Its eigenvalues are the nodes, and the squared first-row
-        ## eigenvector entries times integral exp(-x^2) dx = sqrt(pi) are the
-        ## weights, so that sum(w * f(x)) approximates the integral of
-        ## exp(-x^2) f(x) over the real line.
-        i <- seq_len(n - 1)
-        beta <- sqrt(i/2)
-        J <- matrix(0, nrow = n, ncol = n)
-        J[cbind(i, i + 1)] <- beta
-        J[cbind(i + 1, i)] <- beta
-        eig <- eigen(J, symmetric = TRUE)
-        o <- order(eig$values)
-        ans <- list(x = eig$values[o], w = sqrt(pi)*eig$vectors[1, o]^2)
-        assign(key, ans, envir = cache)
-        ans
-    }
-})
-
 .bfpwr_gauss_laguerre <- local({
     ## Keep only the most recent rule: within one Bayes factor integral and
     ## one critical-value search the shape (t degrees of freedom + 1) is fixed,

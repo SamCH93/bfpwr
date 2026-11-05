@@ -169,20 +169,3 @@ expect_equal(length(rule_3_n16$x), 16,
              info = "a new order should not return the cached rule")
 expect_equal(length(bfpwr:::.bfpwr_gauss_laguerre(shape = 3, n = 8)$x), 8,
              info = "returning to the earlier order should recompute it")
-
-## Physicists' Gauss-Hermite rule (weight exp(-x^2)): symmetric nodes and the
-## even moments sqrt(pi), sqrt(pi)/2, 3 sqrt(pi)/4, 15 sqrt(pi)/8; the rule is
-## cached by order.
-hermite <- bfpwr:::.bfpwr_gauss_hermite(64)
-expect_equal(length(hermite$x), 64, info = "Gauss-Hermite rule should have the requested number of nodes")
-expect_equal(hermite$x, -rev(hermite$x), tolerance = 1e-12,
-             info = "Gauss-Hermite nodes should be symmetric")
-for (moment in list(c(0, 1), c(2, 1/2), c(4, 3/4), c(6, 15/8))) {
-    expect_equal(sum(hermite$w*hermite$x^moment[1]), moment[2]*sqrt(pi),
-                 tolerance = 1e-12,
-                 info = "Gauss-Hermite rule should reproduce the even moments of exp(-x^2)")
-}
-expect_identical(bfpwr:::.bfpwr_gauss_hermite(64), hermite,
-                 info = "a repeated Gauss-Hermite call should return the cached rule")
-expect_equal(length(bfpwr:::.bfpwr_gauss_hermite(16)$x), 16,
-             info = "another order should give another rule")
