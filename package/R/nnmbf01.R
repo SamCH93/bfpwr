@@ -1,6 +1,7 @@
 nnmbf01. <- function(k, power, usd, null = 0, psd, dpm, dpsd,
                      nrange = c(1, 10^5), lower.tail = TRUE, integer = TRUE,
-                     ...) {
+                     ...,
+                     alternative = c("two.sided", "less", "greater")) {
     ## input checks
     stopifnot(
         length(k) == 1,
@@ -51,14 +52,23 @@ nnmbf01. <- function(k, power, usd, null = 0, psd, dpm, dpsd,
     )
 
 
+    alternative <- match.arg(alternative)
+
     ## define function for numerical root-finding
     rootFun <- function(n) {
         pnmbf01(k = k, n = n, usd = usd, null = null, psd = psd, dpm = dpm,
-                dpsd = dpsd, lower.tail = lower.tail) - power
+                dpsd = dpsd, lower.tail = lower.tail, alternative = alternative) - power
     }
 
     ## determine sample size numerically
-    n <- searchN(rootFun = rootFun, nrange = nrange, ... = ...)
+    ## A nonmonotone power curve can cross the target more than once, and the
+    ## search may then return a later crossing. The first integer crossing is
+    ## found by nbf01seq() with type = "moment", looks = 1 and
+    ## search = "exhaustive": for H1 (lower.tail = TRUE) with k < 1, set
+    ## k1 = k, k0 = 1/k, target = "H1"; for H0 (lower.tail = FALSE) with k > 1,
+    ## set k1 = 1/k, k0 = k, target = "H0". Set nrange explicitly there because
+    ## the defaults differ.
+    n <- searchN(rootFun = rootFun, nrange = nrange, peak = TRUE, ...)
     if (integer) return(ceiling(n))
     else return(n)
 }
@@ -72,10 +82,28 @@ nnmbf01. <- function(k, power, usd, null = 0, psd, dpm, dpsd,
 #'
 #' @inheritParams pnmbf01
 #' @inheritParams nbf01
+#' @param alternative Direction of the alternative hypothesis, one of
+#'     \code{"two.sided"} (default), \code{"less"}, or \code{"greater"}.
+#'     For a one-sided alternative, the normal moment analysis prior is
+#'     restricted to values below \code{null} (\code{"less"}) or above
+#'     \code{null} (\code{"greater"}) and renormalized. The point null
+#'     hypothesis is unchanged; \code{psd} is the scale before truncation.
+#'     Must be specified by name: unnamed arguments after \code{integer} are
+#'     passed to \code{stats::uniroot}.
 #'
 #' @inherit pbf01 details
 #'
 #' @inherit nbf01 return
+#'
+#' @note A warning message will be displayed in case that the specified target
+#'     power is not achievable under the specified analysis and design priors.
+#'     The normal design prior remains untruncated for one-sided alternatives.
+#'     Power need not increase with sample size; for example, the probability
+#'     of misleading evidence first rises and then falls. If both endpoints of
+#'     \code{nrange} are below the target, the numerical search checks the
+#'     interior maximum. The returned sample size is the smallest at which
+#'     power reaches the target; power may fall below the target again at
+#'     larger sample sizes.
 #'
 #' @author Samuel Pawel
 #'
@@ -86,4 +114,4 @@ nnmbf01. <- function(k, power, usd, null = 0, psd, dpm, dpsd,
 #' @export
 nnmbf01 <- Vectorize(FUN = nnmbf01.,
                      vectorize.args = c("k", "power", "usd", "null", "psd",
-                                        "dpm", "dpsd", "integer"))
+                                        "dpm", "dpsd", "integer", "alternative"))

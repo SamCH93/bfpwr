@@ -18,6 +18,10 @@ ntbf01(
   lower.tail = TRUE,
   integer = TRUE,
   nrange = c(2, 10^4),
+  ratio = 1,
+  drange = "adaptive",
+  tail.eps = getOption("bfpwr.tail.eps", 1e-06),
+  tail.nquad = getOption("bfpwr.tail.nquad", 512),
   ...
 )
 }
@@ -41,9 +45,7 @@ prior)}
 
 \item{alternative}{Direction of the test. Can be either \code{"two.sided"}
 (default), \code{"less"}, or \code{"greater"}. The latter two truncate
-the analysis prior to negative and positive effects, respectively. If set
-to \code{"less"} or \code{"greater"}, the power is only computed based on
-data with effect estimates in the direction of the alternative}
+the analysis prior to effects below and above \code{null}, respectively.}
 
 \item{dpm}{Mean of the normal design prior assigned to the standardized mean
 difference. Defaults to the analysis prior location}
@@ -64,7 +66,30 @@ the next larger integer. Defaults to \code{TRUE}}
 \item{nrange}{Sample size search range over which numerical search is
 performed. Defaults to \code{c(2, 10^4)}}
 
-\item{...}{Other arguments passed to \code{stats::uniroot}}
+\item{ratio}{Allocation ratio \code{n2 / n1} for two-sample designs.
+Candidate group-2 sample sizes are \code{ceiling(n1 * ratio)}. Ignored
+for one-sample and paired designs.}
+
+\item{drange}{Standardized mean difference search range over which the
+critical values are searched for. Can be either set to a numerical range
+or to \code{"adaptive"} (default) which determines the range in an
+adaptive way from the other input parameters}
+
+\item{tail.eps}{One-sided adaptive power-boundary searches stop once the
+remaining predictive probability in the searched tail is at most this
+value. If a fixed-\code{n} power evaluation reaches that cutoff before
+finding a boundary, the returned 0/1 tail probability has omitted mass
+bounded by \code{tail.eps}. Smaller values search farther. Defaults to
+\code{1e-6}}
+
+\item{tail.nquad}{Number of Gauss-Legendre quadrature nodes used by
+\code{\link{tbf01}} for stable wrong-tail one-sided calculations. Larger
+values are more accurate but slower. Defaults to \code{512}.}
+
+\item{...}{Optional numerical controls passed to \code{\link{ptbf01}} and
+to the \code{stats::uniroot} sample-size search. The fixed-design
+critical-value range \code{drange} is handled explicitly and is not
+passed to the sample-size search.}
 }
 \value{
 The required sample size to achieve the specified power
@@ -73,6 +98,17 @@ The required sample size to achieve the specified power
 This function computes the required sample size to obtain a
     \eqn{t}-test Bayes factor (\link{tbf01}) more extreme than a threshold
     \code{k} with a specified target power.
+}
+\note{
+A warning message will be displayed in case that the specified target
+    power is not achievable under the specified analysis and design priors.
+    The normal design prior remains untruncated for one-sided alternatives.
+    Power need not increase with sample size; for example, the probability
+    of misleading evidence first rises and then falls. If both endpoints of
+    \code{nrange} are below the target, the numerical search checks the
+    interior maximum. The returned sample size is the smallest at which
+    power reaches the target; power may fall below the target again at
+    larger sample sizes.
 }
 \examples{
  ## example from Schönbrodt and Wagenmakers (2018, p.135)
@@ -86,5 +122,5 @@ This function computes the required sample size to obtain a
 \link{ptbf01}, \link{powertbf01}, \link{tbf01}
 }
 \author{
-Samuel Pawel
+Samuel Pawel, František Bartoš
 }

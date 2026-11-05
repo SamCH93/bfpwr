@@ -1,3 +1,272 @@
+library(tinytest)
+library(bfpwr)
+
+source("helper-extended-tests.R", local = TRUE)
+if (!bfpwr_run_extended_tests()) {
+    exit_file(bfpwr_extended_skip_message(
+        "t BF power-boundary checks are extended"
+    ))
+}
+
+## Tests ptbf01 adaptive boundary selection, impossible-boundary handling,
+## shifted-null recentering, and small tail probabilities. Manuscript source:
+## tBF/power example in paper/bfssd.Rnw 1481-1530; edge cases are regressions.
+
+## Regression test for adaptive root selection in one-sided t-test designs.
+## This fractional n occurs in the default plot grid for nlim = c(10, 10000).
+regression_n <- 9596.363636363636
+common_args <- list(n = regression_n, null = 0, plocation = 0, pscale = 0.707,
+                    pdf = 1, type = "two.sample", dpm = 0, dpsd = 0)
+
+greater_adaptive <- suppressWarnings(
+    do.call(ptbf01, c(list(k = 1/10, alternative = "greater"), common_args))
+)
+greater_adaptive_precise <- suppressWarnings(
+    do.call(ptbf01, c(list(k = 1/10, alternative = "greater",
+                           tail.eps = 1e-8), common_args))
+)
+greater_positive_range <- suppressWarnings(
+    do.call(ptbf01, c(list(k = 1/10, alternative = "greater", drange = c(0, 2)),
+                      common_args))
+)
+expect_true(is.finite(greater_adaptive) && greater_adaptive < 0.01,
+            info = "greater one-sided adaptive search should not select the lower root")
+expect_true(abs(greater_adaptive_precise - greater_positive_range) < 5e-6,
+            info = "greater one-sided adaptive search with small tail.eps should match positive-side search")
+
+less_adaptive <- suppressWarnings(
+    do.call(ptbf01, c(list(k = 1/10, alternative = "less"), common_args))
+)
+less_adaptive_precise <- suppressWarnings(
+    do.call(ptbf01, c(list(k = 1/10, alternative = "less",
+                           tail.eps = 1e-8), common_args))
+)
+less_negative_range <- suppressWarnings(
+    do.call(ptbf01, c(list(k = 1/10, alternative = "less", drange = c(-2, 0)),
+                      common_args))
+)
+expect_true(is.finite(less_adaptive) && less_adaptive < 0.01,
+            info = "less one-sided adaptive search should not select the upper root")
+expect_true(abs(less_adaptive_precise - less_negative_range) < 5e-6,
+            info = "less one-sided adaptive search with small tail.eps should match negative-side search")
+
+h0_adaptive <- suppressWarnings(
+    do.call(ptbf01, c(list(k = 10, alternative = "greater", lower.tail = FALSE),
+                      common_args))
+)
+h0_positive_range <- suppressWarnings(
+    do.call(ptbf01, c(list(k = 10, alternative = "greater", lower.tail = FALSE,
+                           drange = c(0, 2)), common_args))
+)
+expect_true(is.finite(h0_adaptive) && h0_adaptive > 0.9 && h0_adaptive < 1,
+            info = "greater one-sided H0 power should remain on the positive root")
+expect_true(abs(h0_adaptive - h0_positive_range) < 5e-4,
+            info = "greater one-sided H0 adaptive search should match positive-side search")
+
+limit_warning <- NULL
+impossible_h0 <- withCallingHandlers(
+    ptbf01(k = 10, n = 5, plocation = 0, pscale = 0.707, pdf = 1,
+           type = "two.sample", alternative = "greater",
+           dpm = 0, dpsd = 0, lower.tail = FALSE),
+    warning = function(w) {
+        limit_warning <<- conditionMessage(w)
+        invokeRestart("muffleWarning")
+    }
+)
+expect_equal(impossible_h0, 0,
+             info = "one-sided ptbf01 should return zero H0 probability when threshold is not reachable")
+expect_true(grepl("Adaptive t power-boundary search reached", limit_warning,
+                  fixed = TRUE),
+            info = "one-sided ptbf01 should warn when adaptive boundary search reaches its limit")
+expect_true(grepl("absolute error <= 1e-06", limit_warning, fixed = TRUE),
+            info = "one-sided ptbf01 search-limit warning should report the tail-eps error bound")
+
+wide_tail_limit <- bfpwr:::.bfpwr_one_sided_tail_limit(
+    direction = 1, origin = 0, step_scale = 1/sqrt(1e8),
+    mean = 0, sd = sqrt(1 + 1/1e8), tail.eps = 1e-3
+)
+expect_true(wide_tail_limit$search_limit > 256,
+            info = "predictive-tail search limit should replace the old fixed cap")
+expect_equal(wide_tail_limit$tail_probability, 1e-3, tolerance = 1e-12,
+             info = "predictive-tail search limit should match requested tail.eps")
+
+power_obj <- suppressWarnings(
+    powertbf01(n = 5, k = 10, plocation = 0, pscale = 0.707, pdf = 1,
+               type = "two.sample", alternative = "greater",
+               dpm = 0, dpsd = 0, tail.eps = 1e-2, tail.nquad = 64)
+)
+expect_equal(power_obj$tail.eps, 1e-2,
+             info = "powertbf01 should store the fixed-design tail.eps control")
+expect_equal(power_obj$tail.nquad, 64,
+             info = "powertbf01 should store the fixed-design tail.nquad control")
+
+## Regression cases for one-sided H0 roots that previously trusted a fast
+## wrong-tail scout root. Reference values are certified by tbf01() below.
+wrong_tail_tcrit_cases <- data.frame(
+    n = c(28, 41),
+    expected_tcrit = c(26.089665, 7.588086)
+)
+tcrit_search_limit <- bfpwr:::.bfpwr_one_sided_tail_limits(
+    origin = 0, step_scale = 1, mean = 0, sd = 20, tail.eps = 1e-6
+)
+for (i in seq_len(nrow(wrong_tail_tcrit_cases))) {
+    n <- wrong_tail_tcrit_cases$n[i]
+    crit <- suppressWarnings(
+        bfpwr:::tcrit(k = 30, n1 = n, n2 = n,
+                      plocation = 0, pscale = 1/sqrt(2), pdf = 1,
+                      type = "two.sample", alternative = "less",
+                      trange = "adaptive",
+                      search_limit = tcrit_search_limit)
+    )
+    residual <- suppressWarnings(
+        tbf01(t = crit, n1 = n, n2 = n,
+              plocation = 0, pscale = 1/sqrt(2), pdf = 1,
+              type = "two.sample", alternative = "less",
+              log = TRUE) - log(30)
+    )
+
+    expect_equal(
+        as.numeric(crit), wrong_tail_tcrit_cases$expected_tcrit[i],
+        tolerance = 0.05,
+        info = paste("less one-sided H0 tcrit should stay near the exact wrong-tail root at n =", n)
+    )
+    expect_true(
+        is.finite(residual) && abs(residual) < 1e-4,
+        info = paste("less one-sided H0 tcrit should satisfy BF01 = 30 at n =", n)
+    )
+}
+
+## For nonzero nulls, one-sided H0 evidence must be computed after recentering
+## the analysis prior around the tested null.
+shifted_args <- list(n = 100, n1 = 100, n2 = 110, null = 0.2,
+                     plocation = 0.5, pscale = 0.35, pdf = 30,
+                     type = "two.sample", dpm = 0, dpsd = 0,
+                     alternative = "greater")
+shifted_h0 <- suppressWarnings(
+    do.call(ptbf01, c(list(k = 30, lower.tail = FALSE), shifted_args))
+)
+neff <- 1 / (1 / shifted_args$n1 + 1 / shifted_args$n2)
+se <- 1 / sqrt(neff)
+root_fun <- function(est) {
+    tbf01(t = (est - shifted_args$null) / se,
+          n1 = shifted_args$n1,
+          n2 = shifted_args$n2,
+          plocation = shifted_args$plocation - shifted_args$null,
+          pscale = shifted_args$pscale,
+          pdf = shifted_args$pdf,
+          type = shifted_args$type,
+          alternative = shifted_args$alternative,
+          log = TRUE) - log(30)
+}
+upper_root <- suppressWarnings(stats::uniroot(root_fun, c(-0.5, -0.2))$root)
+shifted_h0_expected <- stats::pnorm(upper_root, mean = shifted_args$dpm,
+                                    sd = se)
+expect_true(is.finite(shifted_h0) && shifted_h0 > 0.001,
+            info = "greater one-sided shifted-null H0 probability should not collapse to zero")
+expect_true(abs(shifted_h0 - shifted_h0_expected) < 1e-5,
+            info = "greater one-sided shifted-null H0 probability should use recentered critical value")
+shifted_h1 <- suppressWarnings(
+    do.call(ptbf01, c(list(k = 30, lower.tail = TRUE), shifted_args))
+)
+expect_equal(shifted_h0 + shifted_h1, 1, tolerance = 1e-12,
+             info = "greater one-sided shifted-null H0/H1 probabilities should complement")
+
+twosided_adaptive <- suppressWarnings(
+    do.call(ptbf01, c(list(k = 1/10, alternative = "two.sided"), common_args))
+)
+twosided_wide_range <- suppressWarnings(
+    do.call(ptbf01, c(list(k = 1/10, alternative = "two.sided", drange = c(-2, 2)),
+                      common_args))
+)
+expect_true(is.finite(twosided_adaptive) && twosided_adaptive > 0 &&
+                twosided_adaptive < 0.01,
+            info = "two-sided adaptive search should use finite lower and upper roots")
+expect_true(abs(twosided_adaptive - twosided_wide_range) < 5e-6,
+            info = "two-sided adaptive search should match a bracketing two-root search")
+
+## Shifted informed two-sided priors can maximize BF01 away from the null.
+## The adaptive search must not declare k impossible just because BF01(null) < k.
+informed_two_sided_args <- list(k = 30, n = 25, plocation = 0.6,
+                                pscale = 0.15, pdf = 10,
+                                type = "one.sample",
+                                alternative = "two.sided",
+                                dpm = -0.5, dpsd = 0)
+informed_two_sided_h0 <- suppressWarnings(
+    do.call(ptbf01, c(informed_two_sided_args, list(lower.tail = FALSE)))
+)
+informed_se <- 1 / sqrt(informed_two_sided_args$n)
+informed_root_fun <- function(est) {
+    tbf01(t = est / informed_se,
+          n1 = informed_two_sided_args$n,
+          n2 = informed_two_sided_args$n,
+          plocation = informed_two_sided_args$plocation,
+          pscale = informed_two_sided_args$pscale,
+          pdf = informed_two_sided_args$pdf,
+          type = informed_two_sided_args$type,
+          alternative = informed_two_sided_args$alternative,
+          log = TRUE) - log(informed_two_sided_args$k)
+}
+informed_lower <- suppressWarnings(
+    stats::uniroot(informed_root_fun, c(-1.1, -0.8))$root
+)
+informed_upper <- suppressWarnings(
+    stats::uniroot(informed_root_fun, c(-0.3, 0))$root
+)
+informed_expected <- stats::pnorm(informed_upper,
+                                  mean = informed_two_sided_args$dpm,
+                                  sd = informed_se) -
+    stats::pnorm(informed_lower,
+                 mean = informed_two_sided_args$dpm,
+                 sd = informed_se)
+expect_true(is.finite(informed_two_sided_h0) && informed_two_sided_h0 > 0.9,
+            info = "two-sided informed-prior H0 probability should not collapse to zero")
+expect_equal(informed_two_sided_h0, informed_expected, tolerance = 1e-5,
+             info = "two-sided informed-prior ptbf01 should match explicit roots")
+
+## Both critical roots can lie on one side of the split suggested by a normal
+## approximation when the informed prior is shifted and heavy tailed.
+heavy_tail_args <- list(
+    k = 18.1241087146303, n1 = 10, n2 = 13,
+    plocation = 2.41468008980155, pscale = 0.254380572902165,
+    pdf = 1.90000312660144, type = "two.sample",
+    alternative = "two.sided", dpm = 0, dpsd = 0,
+    lower.tail = FALSE
+)
+heavy_tail_adaptive <- suppressWarnings(do.call(ptbf01, heavy_tail_args))
+heavy_tail_numeric <- suppressWarnings(do.call(
+    ptbf01, c(heavy_tail_args, list(drange = c(-20, 20)))
+))
+heavy_tail_roots <- suppressWarnings(
+    bfpwr:::tcrit(
+        k = heavy_tail_args$k, n1 = heavy_tail_args$n1,
+        n2 = heavy_tail_args$n2, plocation = heavy_tail_args$plocation,
+        pscale = heavy_tail_args$pscale, pdf = heavy_tail_args$pdf,
+        type = heavy_tail_args$type, alternative = heavy_tail_args$alternative
+    )
+)
+heavy_tail_residuals <- tbf01(
+    t = heavy_tail_roots, n1 = heavy_tail_args$n1, n2 = heavy_tail_args$n2,
+    plocation = heavy_tail_args$plocation, pscale = heavy_tail_args$pscale,
+    pdf = heavy_tail_args$pdf, type = heavy_tail_args$type,
+    alternative = heavy_tail_args$alternative, log = TRUE
+) - log(heavy_tail_args$k)
+expect_equal(
+    heavy_tail_adaptive, heavy_tail_numeric, tolerance = 1e-5,
+    info = "adaptive two-sided t power should find both shifted heavy-tail roots"
+)
+expect_true(
+    length(heavy_tail_roots) == 2 && max(abs(heavy_tail_residuals)) < 5e-5,
+    info = "shifted heavy-tail t critical values should satisfy BF01 = k"
+)
+
+tiny_upper_tail <- suppressWarnings(
+    ptbf01(k = 3, n = 1000, plocation = 0, pscale = 1/sqrt(2), pdf = 1,
+           dpm = 0.5, dpsd = 0, type = "two.sample",
+           alternative = "two.sided", lower.tail = FALSE, drange = c(-2, 2))
+)
+expect_equal(tiny_upper_tail, 1.384599e-20, tolerance = 1e-6,
+             info = "ptbf01 should compute very small upper-tail probabilities directly")
+
 ## ## do not run these tests for the moment, because they are there to verify
 ## ## the power with simulation which takes a long time to run
 

@@ -84,7 +84,7 @@ binbf01. <- function(x, n, p0 = 0.5, type = c("point", "direction"), a = 1,
 #' @param x Number of successes
 #' @param n Number of trials
 #' @param p0 Tested binomial proportion. Defaults to \code{0.5}
-#' @param type Type of test. Can be \code{"point"} or \code{"directional"}.
+#' @param type Type of test. Can be \code{"point"} or \code{"direction"}.
 #'     Defaults to \code{"point"}
 #' @param a Number of successes parameter of the beta prior distribution.
 #'     Defaults to \code{1}

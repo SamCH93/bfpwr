@@ -1,4 +1,5 @@
-pnmbf01. <- function(k, n, usd, null = 0, psd, dpm, dpsd, lower.tail = TRUE) {
+pnmbf01. <- function(k, n, usd, null = 0, psd, dpm, dpsd, lower.tail = TRUE,
+                     alternative = c("two.sided", "less", "greater")) {
     ## input checks
     stopifnot(
         length(k) == 1,
@@ -39,6 +40,23 @@ pnmbf01. <- function(k, n, usd, null = 0, psd, dpm, dpsd, lower.tail = TRUE) {
         !is.na(lower.tail)
     )
 
+    alternative <- match.arg(alternative)
+
+    if (alternative != "two.sided") {
+        se <- usd/sqrt(n)
+        critical <- zcrit(k = k, se = se, null = null, tau = psd,
+                          type = "moment", alternative = alternative)
+        scale <- max(se, dpsd)
+        seScaled <- se/scale
+        dpScaled <- dpsd/scale
+        meanDiff <- null - dpm
+        meanScaled <- if (is.finite(meanDiff)) meanDiff/scale else
+            null/scale - dpm/scale
+        Z <- (meanScaled + seScaled*critical)/sqrt(seScaled^2 + dpScaled^2)
+        tail <- alternative == "less"
+        return(stats::pnorm(Z, lower.tail = if (lower.tail) tail else !tail))
+    }
+
     ## variance of the data based on the design prior
     v <- usd^2/n + dpsd^2
 
@@ -47,15 +65,25 @@ pnmbf01. <- function(k, n, usd, null = 0, psd, dpm, dpsd, lower.tail = TRUE) {
         (1 + usd^2/(n*psd^2))/(1 + n*dpsd^2/usd^2)
     A <- (dpm - null)/sqrt(v)
     if (Y < 0) {
-        pow <- 1
+        logpow <- 0
+        logcomp <- -Inf
     } else {
-        pow <- stats::pnorm(-sqrt(Y) - A) + stats::pnorm(-sqrt(Y) + A)
+        lower <- -sqrt(Y) - A
+        upper <- sqrt(Y) - A
+        ## BF01 <= k is the union of two normal tails; its complement is
+        ## the interval between the roots.
+        logpow <- .bfpwr_logspace_sum(c(
+            stats::pnorm(q = lower, log.p = TRUE),
+            stats::pnorm(q = upper, lower.tail = FALSE, log.p = TRUE)
+        ))
+        logpow <- min(0, logpow)
+        logcomp <- .bfpwr_lpnorm_interval(lower = lower, upper = upper)
     }
 
     if (lower.tail == TRUE) {
-        return(pow)
+        return(exp(logpow))
     } else {
-        return(1 - pow)
+        return(exp(logcomp))
     }
 }
 
@@ -66,6 +94,7 @@ pnmbf01. <- function(k, n, usd, null = 0, psd, dpm, dpsd, lower.tail = TRUE) {
 #'     moment prior Bayes factor (\link{nmbf01}) more extreme than a threshold
 #'     \code{k} with a specified sample size.
 #'
+#' @inheritParams nmbf01
 #' @inheritParams pbf01
 #' @param psd Spread of the normal moment prior assigned to the parameter under
 #'     the alternative in the analysis. The modes of the prior are located at
@@ -74,6 +103,8 @@ pnmbf01. <- function(k, n, usd, null = 0, psd, dpm, dpsd, lower.tail = TRUE) {
 #' @param dpsd Standard deviation of the normal design prior assigned to the
 #'     parameter. Set to 0 to obtain a point prior at the design prior mean
 #'
+#' @note The normal design prior is not truncated, including for one-sided
+#'     analysis priors.
 #' @inherit pbf01 details
 #'
 #' @inherit pbf01 return
@@ -83,10 +114,10 @@ pnmbf01. <- function(k, n, usd, null = 0, psd, dpm, dpsd, lower.tail = TRUE) {
 #' @seealso \link{nmbf01}, \link{nnmbf01}, \link{powernmbf01}
 #'
 #' @examples
-#' ## point desing prior (psd = 0)
+#' ## point design prior (dpsd = 0)
 #' pnmbf01(k = 1/10, n = 200, usd = 2, null = 0, psd = 0.5/sqrt(2), dpm = 0.5, dpsd = 0)
 #'
-#' ## normal design prior to incorporate parameter uncertainty (psd > 0)
+#' ## normal design prior to incorporate parameter uncertainty (dpsd > 0)
 #' pnmbf01(k = 1/10, n = 200, usd = 2, null = 0, psd = 0.5/sqrt(2), dpm = 0.5, dpsd = 0.25)
 #'
 #' ## design prior is the null hypothesis (dpm = 0, dpsd = 0)

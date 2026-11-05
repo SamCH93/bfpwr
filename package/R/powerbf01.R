@@ -11,8 +11,11 @@
 #'     directly compute the sample size for a fixed power) and \link{pbf01} (to
 #'     directly compute the power for a fixed sample size) may also be useful
 #'     because they can be used for other data and parameter types.
+#'     The sample-size tolerance \code{tol} is used only when a numerical
+#'     search is required; an analytical solution does not use it.
 #'
 #' @inherit nbf01 note
+#' @inheritParams bf01
 #'
 #' @param k Bayes factor threshold. Defaults to \code{1/10}, Jeffreys' threshold
 #'     for 'strong evidence' against the null hypothesis
@@ -42,6 +45,9 @@
 #'     performed (only taken into account when \code{n} is \code{NULL}).
 #'     Defaults to \code{c(1, 10^5)}
 #'
+#' @param tol Numerical tolerance for sample-size root searches. Defaults to
+#'     \code{getOption("bfpwr.tol", 1e-8)}.
+#'
 #' @return Object of class \code{"power.bftest"}, a list of the arguments
 #'     (including the computed one) augmented with \code{method} and \code{note}
 #'     elements
@@ -57,10 +63,16 @@
 #' ## determine sample size
 #' powerbf01(power = 0.99, pm = 0, psd = 1, dpm = 0.5, dpsd = 0)
 #'
+#' ## one-sided alternative with a half-normal analysis prior
+#' powerbf01(power = 0.8, pm = 0, psd = 1, dpm = 0.5, dpsd = 0,
+#'           alternative = "greater")
+#'
 #' @export
 powerbf01 <- function(n = NULL, power = NULL, k = 1/10, sd = 1, null = 0, pm,
                       psd, type = c("two.sample", "one.sample", "paired"),
-                      dpm = pm, dpsd = psd, nrange = c(1, 10^5)) {
+                      dpm = pm, dpsd = psd, nrange = c(1, 10^5),
+                      alternative = c("two.sided", "less", "greater"),
+                      tol = getOption("bfpwr.tol", 1e-8)) {
     ## input checks
     if (is.null(n) && is.null(power)) {
         stop("exactly one of 'n' and 'power' must be NULL")
@@ -119,6 +131,7 @@ powerbf01 <- function(n = NULL, power = NULL, k = 1/10, sd = 1, null = 0, pm,
         nrange[2] > nrange[1]
     )
     type <- match.arg(type)
+    alternative <- match.arg(alternative)
 
     ## determine unit variance
     if (type == "two.sample") {
@@ -131,17 +144,20 @@ powerbf01 <- function(n = NULL, power = NULL, k = 1/10, sd = 1, null = 0, pm,
     if (is.null(n)) {
         n <- nbf01(k = k, power = power, usd = sqrt(uv), null = null, pm = pm,
                    psd = psd, dpm = dpm, dpsd = dpsd, nrange = nrange,
-                   integer = FALSE, analytical = TRUE)
+                   integer = FALSE, analytical = TRUE, alternative = alternative,
+                   tol = tol)
     } else {
         ## determine power
         power <- pbf01(k = k, n = n, usd = sqrt(uv), null = null, pm = pm,
-                       psd = psd, dpm = dpm, dpsd = dpsd, lower.tail = TRUE)
+                       psd = psd, dpm = dpm, dpsd = dpsd, lower.tail = TRUE,
+                       alternative = alternative)
     }
 
     ## return object
     structure(list(n = n, power = power, sd = sd, null = null, pm = pm,
                    psd = psd, dpm = dpm, dpsd = dpsd, k = k, nrange = nrange,
-                   type = type, test = "z"),
+                   type = type, test = "z", alternative = alternative,
+                   tol = tol),
               class = "power.bftest")
 
 }
@@ -159,7 +175,7 @@ powerbf01 <- function(n = NULL, power = NULL, k = 1/10, sd = 1, null = 0, pm,
 #' @note Function adapted from \code{stats:::print.power.htest} written by Peter
 #'     Dalgaard
 #'
-#' @author Samuel Pawel
+#' @author Samuel Pawel, František Bartoš
 #'
 #' @seealso \link{powerbf01}
 #'
@@ -205,8 +221,14 @@ print.power.bftest <- function(x, digits = getOption("digits"), ...) {
         }
         method <- paste("One-sample", testtype, method)
     } else {
+        ratio <- if (is.null(x$ratio)) 1 else x$ratio
+        nNote <- if (x$test == "t" && ratio != 1) {
+            "n is sample size in group 1; group 2 = ceiling(n * allocation ratio)"
+        } else {
+            "n is number of *observations per group*"
+        }
         note <- paste(note,
-                      "n is number of *observations per group*",
+                      nNote,
                       "sd is standard deviation of one observation (assumed equal in both groups)",
                       sep = "\n      ")
         method <- paste("Two-sample", method)
@@ -222,18 +244,36 @@ print.power.bftest <- function(x, digits = getOption("digits"), ...) {
         names(printx) <- c("n", "power", "sd", "null", "analysis prior mean",
                            "analysis prior sd", "design prior mean",
                            "design prior sd", "BF threshold k")
+        if (!is.null(x$alternative) && x$alternative != "two.sided") {
+            printx$alternative <- x$alternative
+            if (x$psd > 0) {
+                note <- paste(note, "prior parameters are before truncation",
+                              sep = "\n      ")
+            }
+        }
     } else if (x$test == "nm") {
         printx <- x[c("n", "power", "sd", "null", "psd", "dpm", "dpsd", "k")]
         names(printx) <- c("n", "power", "sd", "null", "analysis prior spread",
                            "design prior mean", "design prior sd",
                            "BF threshold k")
+        if (!is.null(x$alternative) && x$alternative != "two.sided") {
+            printx$alternative <- x$alternative
+            note <- paste(note, "prior parameters are before truncation",
+                          sep = "\n      ")
+        }
     } else if (x$test == "t") {
         printx <- x[c("n", "power", "sd", "null", "alternative", "plocation",
                       "pscale", "pdf", "dpm", "dpsd", "k")]
+        if (!is.null(x$ratio) && x$ratio != 1) {
+            printx$ratio <- x$ratio
+        }
         names(printx) <- c("n", "power", "sd", "null", "alternative",
                            "analysis prior location", "analysis prior scale",
                            "analysis prior df", "design prior mean",
-                           "design prior sd", "BF threshold k")
+                           "design prior sd", "BF threshold k",
+                           if (!is.null(x$ratio) && x$ratio != 1) {
+                               "allocation ratio"
+                           })
     } else {
         ## binomial test
         if (is.na(x$dp)) {
@@ -276,7 +316,7 @@ print.power.bftest <- function(x, digits = getOption("digits"), ...) {
 #' @return Plots power curves (if specified) and invisibly returns a list of
 #'     data frames containing the data underlying the power curves
 #'
-#' @author Samuel Pawel
+#' @author Samuel Pawel, František Bartoš
 #'
 #' @seealso \link{powerbf01}, \link{powertbf01}, \link{powernmbf01}
 #'
@@ -312,9 +352,11 @@ plot.power.bftest <- function(x, nlim = c(2, 500), ngrid = 100, type = "l",
         !is.na(nullplot)
     )
 
+    tol <- if (is.null(x$tol)) getOption("bfpwr.tol", 1e-8) else x$tol
 
     if (x$test == "z") {
         ## determine unit standard deviation
+        alternative <- if (is.null(x$alternative)) "two.sided" else x$alternative
         if (x$type == "two.sample") {
             usd <- sqrt(2)*x$sd
         } else {
@@ -323,16 +365,19 @@ plot.power.bftest <- function(x, nlim = c(2, 500), ngrid = 100, type = "l",
         powFun <- function(k, n, lower.tail = TRUE) {
             pbf01(k = k, n = n, usd = usd, null = x$null, pm = x$pm,
                   psd = x$psd, dpm = x$dpm, dpsd = x$dpsd,
-                  lower.tail = lower.tail)
+                  lower.tail = lower.tail, alternative = alternative)
         }
         powNullFun <- function(k, n, lower.tail = TRUE) {
             pbf01(k = k, n = n, usd = usd, null = x$null, pm = x$pm, psd = x$psd,
-                  dpm = x$null, dpsd = 0, lower.tail = lower.tail)
+                  dpm = x$null, dpsd = 0, lower.tail = lower.tail,
+                  alternative = alternative)
         }
         nH0 <- nbf01(k = 1/x$k, power = x$power, usd = usd, null = x$null,
-                     pm = x$pm, psd = x$psd, dpm = x$null, dpsd = x$null,
-                     lower.tail = FALSE)
+                     pm = x$pm, psd = x$psd, dpm = x$null, dpsd = 0,
+                     lower.tail = FALSE, nrange = x$nrange,
+                     alternative = alternative, tol = tol)
     } else if (x$test == "nm") {
+        alternative <- if (is.null(x$alternative)) "two.sided" else x$alternative
         ## determine unit standard deviation
         if (x$type == "two.sample") {
             usd <- sqrt(2)*x$sd
@@ -341,32 +386,52 @@ plot.power.bftest <- function(x, nlim = c(2, 500), ngrid = 100, type = "l",
         }
         powFun <- function(k, n, lower.tail = TRUE) {
             pnmbf01(k = k, n = n, usd = usd, null = x$null, psd = x$psd,
-                    dpm = x$dpm, dpsd = x$dpsd, lower.tail = lower.tail)
+                    dpm = x$dpm, dpsd = x$dpsd, lower.tail = lower.tail,
+                    alternative = alternative)
         }
         powNullFun <- function(k, n, lower.tail = TRUE) {
             pnmbf01(k = k, n = n, usd = usd, null = x$null, psd = x$psd,
-                    dpm = x$null, dpsd = 0, lower.tail = lower.tail)
+                    dpm = x$null, dpsd = 0, lower.tail = lower.tail,
+                    alternative = alternative)
         }
         nH0 <- nnmbf01(k = 1/x$k, power = x$power, usd = usd, null = x$null,
-                       psd = x$psd, dpm = x$null, dpsd = x$null,
-                       lower.tail = FALSE)
+                       psd = x$psd, dpm = x$null, dpsd = 0,
+                       lower.tail = FALSE, nrange = x$nrange, tol = tol,
+                       alternative = alternative)
     } else if (x$test == "t") {
+        tail.eps <- if (is.null(x$tail.eps)) {
+            getOption("bfpwr.tail.eps", 1e-6)
+        } else x$tail.eps
+        tail.nquad <- if (is.null(x$tail.nquad)) {
+            getOption("bfpwr.tail.nquad", 512)
+        } else {
+            x$tail.nquad
+        }
+        ratio <- if (is.null(x$ratio)) 1 else x$ratio
+        drange <- if (is.null(x$drange)) "adaptive" else x$drange
+        numerical <- x$numerical
+        ptPowFun <- function(k, n, dpm, dpsd, lower.tail = TRUE) {
+            n2 <- if (x$type == "two.sample") ceiling(n*ratio) else n
+            do.call(ptbf01, c(list(k = k, n = n, n1 = n, n2 = n2, null = x$null,
+                   plocation = x$plocation, pscale = x$pscale, pdf = x$pdf,
+                   alternative = x$alternative, type = x$type, dpm = dpm,
+                   dpsd = dpsd, lower.tail = lower.tail, drange = drange,
+                   tail.eps = tail.eps, tail.nquad = tail.nquad), numerical))
+        }
         powFun <- function(k, n, lower.tail = TRUE) {
-            ptbf01(k = k, n = n, null = x$null, plocation = x$plocation,
-                   pscale = x$pscale, pdf = x$pdf, alternative = x$alternative,
-                   type = x$type, dpm = x$dpm, dpsd = x$dpsd,
-                   lower.tail = lower.tail)
+            ptPowFun(k = k, n = n, dpm = x$dpm, dpsd = x$dpsd,
+                     lower.tail = lower.tail)
         }
         powNullFun <- function(k, n, lower.tail = TRUE) {
-            ptbf01(k = k, n = n, null = x$null, plocation = x$plocation,
-                   pscale = x$pscale, pdf = x$pdf, alternative = x$alternative,
-                   type = x$type, dpm = x$null, dpsd = 0,
-                   lower.tail = lower.tail)
+            ptPowFun(k = k, n = n, dpm = x$null, dpsd = 0,
+                     lower.tail = lower.tail)
         }
-        nH0 <- ntbf01(k = 1/x$k, power = x$power, null = x$null,
+        nH0 <- do.call(ntbf01, c(list(k = 1/x$k, power = x$power, null = x$null,
                       plocation = x$plocation, pscale = x$pscale, pdf = x$pdf,
                       alternative = x$alternative, type = x$type, dpm = x$null,
-                      dpsd = 0, lower.tail = FALSE)
+                      dpsd = 0, lower.tail = FALSE, nrange = x$nrange,
+                      ratio = ratio, drange = drange, tail.eps = tail.eps,
+                      tail.nquad = tail.nquad), numerical))
     } else {
         ## binomial test
         powFun <- function(k, n, lower.tail = TRUE) {
@@ -382,7 +447,8 @@ plot.power.bftest <- function(x, nlim = c(2, 500), ngrid = 100, type = "l",
             }
             nH0 <- nbinbf01(k = 1/x$k, power = x$power, p0 = x$p0,
                             type = x$type, a = x$a, b = x$b, dp = NA, da = x$a,
-                            db = x$b, dl = 0, du = x$p0, lower.tail = FALSE)
+                            db = x$b, dl = 0, du = x$p0, lower.tail = FALSE,
+                            nrange = x$nrange, tol = tol)
         } else {
             powNullFun <- function(k, n, lower.tail = TRUE) {
                 pbinbf01(k = k, n = n, p0 = x$p0, type = x$type, a = x$a,
@@ -390,12 +456,20 @@ plot.power.bftest <- function(x, nlim = c(2, 500), ngrid = 100, type = "l",
             }
             nH0 <- nbinbf01(k = 1/x$k, power = x$power, p0 = x$p0,
                             type = x$type, a = x$a, b = x$b, dp = x$p0,
-                            lower.tail = FALSE)
+                            lower.tail = FALSE, nrange = x$nrange, tol = tol)
         }
     }
 
 
     ## compute power curves
+    if (x$test == "t" && x$type == "two.sample") {
+        ratio <- if (is.null(x$ratio)) 1 else x$ratio
+        minN <- max(2, floor(1/ratio) + 1)
+        nlim[1] <- max(nlim[1], minN)
+        if (nlim[2] <= nlim[1]) {
+            stop("'nlim' contains no valid two-sample allocation")
+        }
+    }
     nseq <- seq(from =  nlim[1], to = nlim[2], length.out = round(ngrid))
     pow <- powFun(k = x$k, n = nseq)
     powNull <- powNullFun(k = x$k, n = nseq)
@@ -420,7 +494,12 @@ plot.power.bftest <- function(x, nlim = c(2, 500), ngrid = 100, type = "l",
         if (x$type == "one.sample" | x$test == "binomial") {
             xlab <-  bquote("Sample size" ~ italic(n))
         } else if (x$type == "two.sample") {
-            xlab <-  bquote("Sample size per group" ~ italic(n))
+            ratio <- if (is.null(x$ratio)) 1 else x$ratio
+            if (x$test == "t" && ratio != 1) {
+                xlab <-  bquote("Group 1 sample size" ~ italic(n))
+            } else {
+                xlab <-  bquote("Sample size per group" ~ italic(n))
+            }
         } else {
             xlab <-  bquote("Number of pairs" ~ italic(n))
         }

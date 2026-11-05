@@ -17,7 +17,8 @@ powerbinbf01(
   db = b,
   dl = 0,
   du = 1,
-  nrange = c(1, 10^4)
+  nrange = c(1, 10^4),
+  tol = getOption("bfpwr.tol", 1e-08)
 )
 }
 \arguments{
@@ -32,7 +33,7 @@ for 'strong evidence' against the null hypothesis}
 
 \item{p0}{Tested binomial proportion. Defaults to \code{0.5}}
 
-\item{type}{Type of test. Can be \code{"point"} or \code{"directional"}.
+\item{type}{Type of test. Can be \code{"point"} or \code{"direction"}.
 Defaults to \code{"point"}}
 
 \item{a}{Number of successes parameter of the beta analysis prior
@@ -65,6 +66,9 @@ distribution. Is only taken into account if \code{dp = NA}. Defaults to
 \item{nrange}{Sample size search range over which numerical search is
 performed (only taken into account when \code{n} is \code{NULL}).
 Defaults to \code{c(1, 10^3)}}
+
+\item{tol}{Numerical tolerance for sample-size root searches. Defaults to
+\code{getOption("bfpwr.tol", 1e-8)}.}
 }
 \value{
 Object of class \code{"power.bftest"}, a list of the arguments

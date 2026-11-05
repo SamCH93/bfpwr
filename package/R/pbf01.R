@@ -1,5 +1,6 @@
 pbf01. <- function(k, n, usd, null = 0, pm, psd, dpm = pm, dpsd = psd,
-                   lower.tail = TRUE) {
+                   lower.tail = TRUE,
+                   alternative = c("two.sided", "less", "greater")) {
     ## input checks
     stopifnot(
         length(k) == 1,
@@ -44,32 +45,62 @@ pbf01. <- function(k, n, usd, null = 0, pm, psd, dpm = pm, dpsd = psd,
         !is.na(lower.tail)
     )
 
+    alternative <- match.arg(alternative)
+    .bf01_check_alternative(alternative, pm = pm, psd = psd, null = null)
+
     ## variance of the data based on the design prior
     v <- usd^2/n + dpsd^2
 
     ## point prior in analysis
     if (psd == 0) {
-        Z <- (usd^2*log(k)/n/(null - pm) + (null + pm)/2 - dpm)/sqrt(v)
-        if (sign(null - pm) >= 0) {
-            tail <- TRUE
+        if (pm == null) {
+            ## The null and point alternative are the same model, so BF01 is
+            ## identically one for every possible estimate.
+            logpow <- if (k >= 1) 0 else -Inf
+            logcomp <- if (k < 1) 0 else -Inf
         } else {
-            tail <- FALSE
+            Z <- (usd^2*log(k)/n/(null - pm) +
+                  (null + pm)/2 - dpm)/sqrt(v)
+            if (sign(null - pm) >= 0) {
+                tail <- TRUE
+            } else {
+                tail <- FALSE
+            }
+            ## Keep both requested tail and complement stable for extreme designs.
+            logpow <- stats::pnorm(q = Z, mean = 0, sd = 1,
+                                   lower.tail = tail, log.p = TRUE)
+            logcomp <- stats::pnorm(q = Z, mean = 0, sd = 1,
+                                    lower.tail = !tail, log.p = TRUE)
         }
-        pow <- stats::pnorm(q = Z, mean = 0, sd = 1, lower.tail = tail)
     } else {
-        ## normal prior in the analysis
-        X <- (log(1 + n*psd^2/usd^2) + (null - pm)^2/psd^2 - log(k^2))*
-            (1 + usd^2/n/psd^2)*usd^2/n/v
-        if (X < 0) {
-            pow <- 1
+        ## Share the stable BF boundary calculation with sequential designs.
+        se <- usd/sqrt(n)
+        critical <- zcrit(k = k, se = se, null = null, mu = pm, tau = psd,
+                          type = "normal", alternative = alternative)
+        if (alternative != "two.sided") {
+            Z <- (null - dpm + se*critical)/sqrt(v)
+            tail <- alternative == "less"
+            logpow <- stats::pnorm(Z, lower.tail = tail, log.p = TRUE)
+            logcomp <- stats::pnorm(Z, lower.tail = !tail, log.p = TRUE)
+        } else if (any(is.nan(critical))) {
+            logpow <- 0
+            logcomp <- -Inf
         } else {
-            M <- (dpm - null - usd^2/n/psd^2*(null - pm))/sqrt(v)
-            pow <- stats::pnorm(q = -sqrt(X) - M) + stats::pnorm(q = -sqrt(X) + M)
+            lower <- (null - dpm + se*critical[1])/sqrt(v)
+            upper <- (null - dpm + se*critical[2])/sqrt(v)
+            ## BF01 <= k is the union of two normal tails; its complement is
+            ## the interval between the roots.
+            logpow <- .bfpwr_logspace_sum(c(
+                stats::pnorm(q = lower, log.p = TRUE),
+                stats::pnorm(q = upper, lower.tail = FALSE, log.p = TRUE)
+            ))
+            logpow <- min(0, logpow)
+            logcomp <- .bfpwr_lpnorm_interval(lower = lower, upper = upper)
         }
     }
 
-    if (lower.tail) return(pow)
-    else return(1 - pow)
+    if (lower.tail) return(exp(logpow))
+    else return(exp(logcomp))
 }
 
 
@@ -79,6 +110,7 @@ pbf01. <- function(k, n, usd, null = 0, pm, psd, dpm = pm, dpsd = psd,
 #'     factor (\link{bf01}) more extreme than a threshold \code{k} with a
 #'     specified sample size.
 #'
+#' @inheritParams bf01
 #' @param k Bayes factor threshold
 #' @param n Sample size
 #' @param usd Unit standard deviation, the (approximate) standard error of the
@@ -109,10 +141,13 @@ pbf01. <- function(k, n, usd, null = 0, pm, psd, dpm = pm, dpsd = psd,
 #'     \code{sd}\sqrt{2}}{usd = sd*sqrt(2)}. See the vignette for more
 #'     information.
 #'
+#' @note For a one-sided alternative, the normal design prior remains
+#'     untruncated; truncation applies only to the analysis prior.
+#'
 #' @return The probability that the Bayes factor is less or greater (depending
 #'     on the specified \code{lower.tail}) than the specified threshold \code{k}
 #'
-#' @author Samuel Pawel
+#' @author Samuel Pawel, František Bartoš
 #'
 #' @seealso \link{nbf01}, \link{powerbf01}, \link{bf01}
 #'

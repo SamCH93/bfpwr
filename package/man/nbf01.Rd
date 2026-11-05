@@ -17,6 +17,7 @@ nbf01(
   lower.tail = TRUE,
   integer = TRUE,
   analytical = TRUE,
+  alternative = c("two.sided", "less", "greater"),
   ...
 )
 }
@@ -59,7 +60,16 @@ the next larger integer. Defaults to \code{TRUE}}
 \item{analytical}{Logical indicating whether analytical (if available) or
 numerical method should be used. Defaults to \code{TRUE}}
 
-\item{...}{Other arguments passed to \code{stats::uniroot}}
+\item{alternative}{Direction of the alternative hypothesis, one of
+\code{"two.sided"} (default), \code{"less"}, or \code{"greater"}.
+For a one-sided alternative, the normal analysis prior is restricted to
+values below \code{null} (\code{"less"}) or above \code{null}
+(\code{"greater"}) and renormalized. \code{pm} and \code{psd} describe
+the normal distribution before truncation. A point prior
+(\code{psd = 0}) must lie strictly on the specified side of \code{null}.}
+
+\item{...}{Other arguments passed to \code{stats::uniroot}. The sample-size
+root tolerance defaults to \code{tol = 1e-8} and can be overridden.}
 }
 \value{
 The required sample size to achieve the specified power
@@ -83,6 +93,13 @@ It is assumed that the standard error of the future parameter
 \note{
 A warning message will be displayed in case that the specified target
     power is not achievable under the specified analysis and design priors.
+    The normal design prior remains untruncated for one-sided alternatives.
+    Power need not increase with sample size; for example, the probability
+    of misleading evidence first rises and then falls. If both endpoints of
+    \code{nrange} are below the target, the numerical search checks the
+    interior maximum. The returned sample size is the smallest at which
+    power reaches the target; power may fall below the target again at
+    larger sample sizes.
 }
 \examples{
 ## point alternative (analytical and numerical solution available)

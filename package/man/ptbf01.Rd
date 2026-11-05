@@ -19,6 +19,8 @@ ptbf01(
   alternative = c("two.sided", "less", "greater"),
   lower.tail = TRUE,
   drange = "adaptive",
+  tail.eps = getOption("bfpwr.tail.eps", 1e-06),
+  tail.nquad = getOption("bfpwr.tail.nquad", 512),
   ...
 )
 }
@@ -55,9 +57,7 @@ the design prior mean. Defaults to the analysis prior scale}
 
 \item{alternative}{Direction of the test. Can be either \code{"two.sided"}
 (default), \code{"less"}, or \code{"greater"}. The latter two truncate
-the analysis prior to negative and positive effects, respectively. If set
-to \code{"less"} or \code{"greater"}, the power is only computed based on
-data with effect estimates in the direction of the alternative}
+the analysis prior to effects below and above \code{null}, respectively.}
 
 \item{lower.tail}{Logical indicating whether Pr(\eqn{\mathrm{BF}_{01}}{BF01}
 \eqn{\leq}{<=} \code{k}) (\code{TRUE}) or Pr(\eqn{\mathrm{BF}_{01}}{BF01}
@@ -69,7 +69,30 @@ critical values are searched for. Can be either set to a numerical range
 or to \code{"adaptive"} (default) which determines the range in an
 adaptive way from the other input parameters}
 
-\item{...}{Other arguments passed to \code{stats::uniroot}}
+\item{tail.eps}{One-sided adaptive searches stop once the remaining
+predictive probability in the searched tail is at most this value. If no
+boundary is found before that point, the boundary-free probability
+implied by the searched side is returned and the omitted tail probability
+is bounded by \code{tail.eps}. Smaller values search farther and can
+recover extremely remote boundaries at additional computational cost.
+Defaults to \code{1e-6}}
+
+\item{tail.nquad}{Number of Gauss-Legendre quadrature nodes used by
+\code{\link{tbf01}} for stable wrong-tail one-sided calculations. Larger
+values are more accurate but slower. Defaults to \code{512}.}
+
+\item{...}{Optional numerical controls for all boundary searches.
+\code{rel.tol} (default \code{1e-8}), \code{abs.tol} (default
+\code{rel.tol}), and \code{subdivisions} (default \code{1000}),
+together with \code{stop.on.error} and \code{keep.xy}, are passed to
+\code{stats::integrate} for BF evaluation. Root searches use
+\code{tol} (default \code{1e-8}), \code{maxiter}, \code{trace}, and
+\code{check.conv} from \code{stats::uniroot}. One-sided scouting uses
+a looser integral unless \code{rel.tol} is supplied; returned roots are
+checked against the final integral with the requested accuracy.
+Session defaults can be changed with \link{bfpwrOptions}.
+These controls reduce numerical error within the normal predictive
+approximation; they do not remove that approximation.}
 }
 \value{
 The probability that the Bayes factor is less or greater (depending
@@ -78,7 +101,12 @@ The probability that the Bayes factor is less or greater (depending
 \description{
 This function computes the probability of obtaining a
     \eqn{t}-test Bayes factor (\link{tbf01}) more extreme than a threshold
-    \code{k} with a specified sample size.
+    \code{k} with a specified sample size. The future standardized estimate
+    is modeled with its known-variance normal distribution. Thus, although
+    the analysis Bayes factor uses the finite-sample \eqn{t} distribution,
+    the returned power is an asymptotic approximation rather than exact
+    noncentral-\eqn{t} power; differences can be material at small sample
+    sizes.
 }
 \examples{
 ## example from Schönbrodt and Wagenmakers (2018, p. 135)
@@ -91,12 +119,13 @@ ptbf01(k = 1/6, n = 146, dpm = 0.5, dpsd = 0)
 ptbf01(k = 6, n = 146, dpm = 0, dpsd = 0, lower.tail = FALSE)
 
 ## one-sample test
-ptbf01(k = 1/6, n = 146, dpm = 0.5, dpsd = 0, alternative = "greater", type = "one.sample")
+ptbf01(k = 1/6, n = 146, dpm = 0.5, dpsd = 0, alternative = "greater",
+       type = "one.sample")
 
 }
 \seealso{
 \link{tbf01}, \link{ntbf01}, \link{powertbf01}
 }
 \author{
-Samuel Pawel
+Samuel Pawel, František Bartoš
 }

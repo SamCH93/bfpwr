@@ -26,7 +26,7 @@ pbinbf01(
 
 \item{p0}{Tested binomial proportion. Defaults to \code{0.5}}
 
-\item{type}{Type of test. Can be \code{"point"} or \code{"directional"}.
+\item{type}{Type of test. Can be \code{"point"} or \code{"direction"}.
 Defaults to \code{"point"}}
 
 \item{a}{Number of successes parameter of the beta analysis prior
@@ -76,7 +76,7 @@ a <- 1
 b <- 1
 p0 <- 3/4
 k <- 10
-nseq <- seq(1, 1000, length.out = 100)
+nseq <- seq(1, 1000, length.out = 50)
 powH0 <- pbinbf01(k = k, n = nseq, p0 = p0, type = "point", a = a, b = b,
                   dp = p0, lower.tail = FALSE)
 plot(nseq, powH0, type = "s", xlab = "n", ylab = "Power")

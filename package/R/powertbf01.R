@@ -12,15 +12,27 @@
 #'
 #' @inheritParams ptbf01
 #' @inheritParams powerbf01
+#' @param n Sample size. For two-sample designs with unequal allocation,
+#'     \code{n} is the group-1 sample size and group 2 is evaluated as
+#'     \code{ceiling(n * ratio)}. Has to be \code{NULL} if \code{power} is
+#'     specified. Defaults to \code{NULL}
 #' @param k Bayes factor threshold. Defaults to \code{1/10}, Jeffreys' threshold
 #'     for 'strong evidence' against the null hypothesis
 #' @param nrange Sample size search range over which numerical search is
 #'     performed (only taken into account when \code{n} is \code{NULL}).
 #'     Defaults to \code{c(2, 10^4)}
+#' @param ratio Allocation ratio \code{n2 / n1} for two-sample designs.
+#'     Candidate group-2 sample sizes are \code{ceiling(n1 * ratio)}. Ignored
+#'     for one-sample and paired designs.
+#'
+#' @param ... Numerical controls inherited from \code{\link{ptbf01}}, also
+#'     used by \code{\link{ntbf01}} when finding a sample size. Saved in the
+#'     returned object and reused when plotting power curves.
 #'
 #' @inherit powerbf01 return
+#' @inherit ntbf01 note
 #'
-#' @author Samuel Pawel
+#' @author Samuel Pawel, František Bartoš
 #'
 #' @seealso \link{plot.power.bftest}, \link{ptbf01}, \link{ntbf01}, \link{tbf01}
 #'
@@ -36,9 +48,12 @@ powertbf01 <- function(n = NULL, power = NULL, k = 1/10, null = 0,
                        plocation = 0, pscale = 1/sqrt(2), pdf = 1,
                        type = c("two.sample", "one.sample", "paired"),
                        alternative = c("two.sided", "less", "greater"),
-                       dpm = plocation, dpsd = pscale, nrange = c(2, 10^4)) {
+                       dpm = plocation, dpsd = pscale, nrange = c(2, 10^4),
+                       ratio = 1, drange = "adaptive",
+                       tail.eps = getOption("bfpwr.tail.eps", 1e-6),
+                       tail.nquad = getOption("bfpwr.tail.nquad", 512), ...) {
     ## input checks
-    if (is.null(n) && is.null(power)) {
+    if (is.null(n) == is.null(power)) {
         stop("exactly one of 'n' and 'power' must be NULL")
     }
     if (is.null(n)) {
@@ -87,29 +102,59 @@ powertbf01 <- function(n = NULL, power = NULL, k = 1/10, null = 0,
         length(dpsd) == 1,
         is.numeric(dpsd),
         is.finite(dpsd),
-        0 <= dpsd
+        0 <= dpsd,
+
+        length(ratio) == 1,
+        is.numeric(ratio),
+        is.finite(ratio),
+        ratio > 0,
+
+        .tbf01_valid_drange(drange),
+
+        length(tail.eps) == 1,
+        is.numeric(tail.eps),
+        is.finite(tail.eps),
+        tail.eps > 0,
+        tail.eps < 0.5,
+
+        .tbf01_valid_tail_nquad(tail.nquad)
     )
     type <- match.arg(type)
     alternative <- match.arg(alternative)
+    numerical <- c(.bfpwr_uniroot_dots(list(...)),
+                   .bfpwr_integrate_dots(list(...)))
 
     ## determine sample size
     if (is.null(n)) {
-        n <- ntbf01(k = k, power = power, null = null, plocation = plocation,
+        n <- do.call(ntbf01, c(list(
+                    k = k, power = power, null = null, plocation = plocation,
                     pscale = pscale, pdf = pdf, type = type,
                     alternative = alternative, dpm = dpm, dpsd = dpsd,
-                    integer = FALSE)
+                    integer = FALSE, nrange = nrange, ratio = ratio,
+                    drange = drange, tail.eps = tail.eps,
+                    tail.nquad = tail.nquad), numerical))
     } else {
         ## determine power
-        power <- ptbf01(k = k, n = n, null = null, plocation = plocation,
-                        pscale = pscale, pdf = pdf, type = type,
-                        alternative = alternative, dpm = dpm, dpsd = dpsd)
+        n2 <- if (type == "two.sample") ceiling(n*ratio) else n
+        if (type == "two.sample" && n2 <= 1) {
+            stop("'n' and 'ratio' imply group-2 sample size <= 1")
+        }
+        power <- do.call(ptbf01, c(list(
+                        k = k, n = n, n1 = n, n2 = n2, null = null,
+                        plocation = plocation, pscale = pscale, pdf = pdf,
+                        type = type, alternative = alternative, dpm = dpm,
+                        dpsd = dpsd, drange = drange, tail.eps = tail.eps,
+                        tail.nquad = tail.nquad), numerical))
     }
 
     ## return object
     structure(list(n = n, power = power, sd = 1, null = null,
                    alternative = alternative, plocation = plocation,
                    pscale = pscale, pdf = pdf, dpm = dpm, dpsd = dpsd, k = k,
-                   nrange = nrange, type = type, test = "t"),
+                   nrange = nrange, ratio = ratio, drange = drange,
+                   tail.eps = tail.eps,
+                   tail.nquad = tail.nquad, numerical = numerical,
+                   type = type, test = "t"),
               class = "power.bftest")
 
 }

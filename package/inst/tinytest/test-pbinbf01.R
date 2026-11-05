@@ -1,3 +1,44 @@
+library(tinytest)
+library(bfpwr)
+
+## Tests pbinbf01 stability with tiny truncated-beta design mass and tail
+## complementarity. No bfssd manuscript formula covers binomial BF power; binary
+## outcomes are listed as future work in paper/bfssd.Rnw 1854-1856.
+
+res <- pbinbf01(k = 1/10, n = 20, p0 = 0.5, da = 2000, db = 1,
+                dl = 0, du = 0.5)
+
+expect_true(is.finite(res) && res >= 0 && res <= 1,
+            info = "pbinbf01 should handle tiny truncated beta design mass")
+
+expect_equal(
+    res + pbinbf01(k = 1/10, n = 20, p0 = 0.5, da = 2000, db = 1,
+                   dl = 0, du = 0.5, lower.tail = FALSE),
+    1, tolerance = 1e-12,
+    info = "pbinbf01 lower and upper tails should be complementary"
+)
+
+## Bayes-factor equality is part of the event BF01 <= k. Verify the discrete
+## boundary directly instead of relying on a rounded continuous root.
+for (type in c("point", "direction")) {
+    n <- 17
+    p0 <- 0.37
+    design_p <- 0.61
+    boundary_x <- if (type == "point") 4 else 10
+    k <- binbf01(x = boundary_x, n = n, p0 = p0, type = type,
+                 a = 1.3, b = 2.1)
+    bfs <- binbf01(x = 0:n, n = n, p0 = p0, type = type,
+                   a = 1.3, b = 2.1)
+    expected <- sum(stats::dbinom(0:n, size = n, prob = design_p)[bfs <= k])
+
+    expect_equal(
+        pbinbf01(k = k, n = n, p0 = p0, type = type, a = 1.3, b = 2.1,
+                 dp = design_p),
+        expected, tolerance = 1e-13,
+        info = paste(type, "pbinbf01 should include exact integer BF boundaries")
+    )
+}
+
 ## do not run these tests for the moment, because they are there to verify
 ## the power with simulation which takes a long time to run
 

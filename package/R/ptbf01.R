@@ -2,7 +2,9 @@ ptbf01. <- function(k, n, n1 = n, n2 = n, null = 0, plocation = 0,
                     pscale = 1/sqrt(2), pdf = 1, dpm = plocation, dpsd = pscale,
                     type = c("two.sample", "one.sample", "paired"),
                     alternative = c("two.sided", "less", "greater"),
-                    lower.tail = TRUE, drange = "adaptive", ...) {
+                    lower.tail = TRUE, drange = "adaptive",
+                    tail.eps = getOption("bfpwr.tail.eps", 1e-6),
+                    tail.nquad = getOption("bfpwr.tail.nquad", 512), ...) {
     ## input checks
     stopifnot(
         length(k) == 1,
@@ -24,7 +26,7 @@ ptbf01. <- function(k, n, n1 = n, n2 = n, null = 0, plocation = 0,
         is.numeric(null),
         is.finite(null),
 
-         length(plocation) == 1,
+        length(plocation) == 1,
         is.numeric(plocation),
         is.finite(plocation),
 
@@ -51,9 +53,15 @@ ptbf01. <- function(k, n, n1 = n, n2 = n, null = 0, plocation = 0,
         is.logical(lower.tail),
         !is.na(lower.tail),
 
-        (is.numeric(drange) && length(drange) == 2 && all(is.finite(drange)) &&
-         drange[2] > drange[1]) || (is.character(drange) && length(drange) == 1 &&
-                                    !is.na(drange) && drange == "adaptive")
+        length(tail.eps) == 1,
+        is.numeric(tail.eps),
+        is.finite(tail.eps),
+        tail.eps > 0,
+        tail.eps < 0.5,
+
+        .tbf01_valid_tail_nquad(tail.nquad),
+
+        .tbf01_valid_drange(drange)
     )
     type <- match.arg(type)
     alternative <- match.arg(alternative)
@@ -67,40 +75,56 @@ ptbf01. <- function(k, n, n1 = n, n2 = n, null = 0, plocation = 0,
 
     ## determine df and effective sample size
     if (type == "two.sample") {
+        df <- n1 + n2 - 2
         neff <- 1/(1/n1 + 1/n2)
     } else {
+        df <- n1 - 1
         neff <- n1
     }
 
     ## determine effect estimate region where BF < k for specified sample size
+    dots <- list(...)
+    .bfpwr_validate_controls(dots)
+    integrateDots <- .bfpwr_integrate_dots(dots = dots)
+    searchDots <- .bfpwr_integrate_dots(dots = dots,
+                                        rel.tol.default = 1e-2)
+    rootDots <- .bfpwr_uniroot_dots(dots = dots)
     se <- 1/sqrt(neff) # standard error of SMD assuming variance is known
     estsd <- sqrt(se^2 + dpsd^2) # standard deviation of SMD under design prior
     rootFun <- function(est) {
-        tbf01(t = (est - null)/se, n1 = n1, n2 = n2, plocation = plocation,
-              pscale = pscale, pdf = pdf, type = type,
-              alternative = alternative, log = TRUE) - log(k)
+        ## tbf01() tests against zero, so shift the analysis prior by null.
+        do.call(tbf01, c(list(t = (est - null)/se, n1 = n1, n2 = n2,
+              plocation = plocation - null, pscale = pscale, pdf = pdf,
+              type = type, alternative = alternative, log = TRUE,
+              tail.nquad = tail.nquad), integrateDots)) - log(k)
+    }
+    rootFunSearch <- function(est) {
+        do.call(tbf01, c(list(
+            t = (est - null)/se, n1 = n1, n2 = n2,
+            plocation = plocation - null, pscale = pscale, pdf = pdf,
+            type = type, alternative = alternative, log = TRUE,
+            tail.nquad = tail.nquad
+        ), searchDots)) - log(k)
+    }
+    region <- .tbf01_prior_region(plocation = plocation - null,
+                                  pscale = pscale, pdf = pdf,
+                                  alternative = alternative)
+    ## For boundary bracketing, use the fast direct integral as a scout. Any
+    ## candidate root is certified against the stable BF path before use.
+    rootFunFast <- function(est) {
+        do.call(.tbf01_log_fast, c(list(
+            t = (est - null)/se, df = df, neff = neff,
+            plocation = plocation - null, pscale = pscale,
+            pdf = pdf, region = region
+        ), searchDots)) - log(k)
     }
 
     if (alternative == "two.sided") {
-        if (k > 1) {
-            ## check whether BF > k > 1 is achievable for given sample size
-            ## maximum BF is obtained when est = null
-            maxBF <- exp(rootFun(null) + log(k))
-            if (is.nan(maxBF)) return(NaN)
-            if (maxBF < k) {
-                if (lower.tail == FALSE) {
-                    return(0)
-                } else {
-                    return(1)
-                }
-            }
-        }
-
         ## guess search range based on search range from z-test BF
         ## TODO improve robustness of adaptive strategy
         if (!is.numeric(drange) && drange == "adaptive") {
             suppressWarnings({
-                X <- (log(1 + neff*pscale^2) + (null - plocation)^2/pscale^2 - log(k^2))*
+                X <- (log(1 + neff*pscale^2) + (null - plocation)^2/pscale^2 - 2*log(k))*
                     (1 + 1/neff/pscale^2)/neff
                 sqrtX <- sqrt(X)
                 if (is.nan(sqrtX)) sqrtX <- 0.3
@@ -121,84 +145,219 @@ ptbf01. <- function(k, n, n1 = n, n2 = n, null = 0, plocation = 0,
             searchIntLow <- c(drange[1], meant)
             searchIntUp <- c(meant, drange[2])
         }
-        ## search for critical values
-        upper <- try(stats::uniroot(f = rootFun, interval = searchIntUp,
-                                    extendInt = "yes", ... = ...)$root,
-                     silent = TRUE)
-        lower <- try(stats::uniroot(f = rootFun, interval = searchIntLow,
-                                    extendInt = "yes", ... = ...)$root,
-                     silent = TRUE)
+        proposedSplit <- searchIntLow[2]
+        ## For centered priors the maximum is known, so use it as the split
+        ## without evaluating the BF unless an H0 threshold may be impossible.
+        ## For shifted priors, first try the inexpensive approximate split. If
+        ## it does not produce a certified pair, locate the actual maximum and
+        ## repeat the root searches from that reliable split.
+        maxInt <- c(searchIntLow[1], searchIntUp[2])
+        centered <- plocation == null
+        if (centered && null > maxInt[1] && null < maxInt[2]) {
+            searchIntLow <- c(maxInt[1], null)
+            searchIntUp <- c(null, maxInt[2])
+        }
 
-        ## compute power
-        if (inherits(upper, "try-error")) {
-            powup <- 0
-            uperr <- TRUE
-        } else {
-            powup <- stats::pnorm(q = upper, mean = dpm, sd = estsd, lower.tail = FALSE)
-            uperr <- FALSE
-        }
-        if (inherits(lower, "try-error")) {
-            powlow <- 0
-            lowerr <- TRUE
-        } else {
-            powlow <- stats::pnorm(q = lower, mean = dpm, sd = estsd, lower.tail = TRUE)
-            lowerr <- FALSE
-        }
-        if ((uperr == TRUE) && (lowerr == TRUE)) {
-            warning("Numerical problems finding critical value")
-            pow <- NaN
-        } else {
-            pow <- powup + powlow
-        }
-    } else {
-        ## one-sided alternatives
-        if (k > 1) {
-            ## find maximum BF to see whether BF = k is possible
-            opt <- stats::optim(par = null, fn = rootFun, control = list(fnscale = -1),
-                                method = "BFGS")
-            if (opt$convergence != 0) {
-                warning("numerical problems finding maximum BF")
-                return(NaN)
-            } else {
-                if (opt$value < 0) {
-                    ## maximum BF is smaller than k
-                    if (lower.tail == TRUE) {
-                        return(1)
-                    } else {
-                        return(0)
-                    }
+        if (centered && k > 1) {
+            maximumValue <- .bfpwr_root_value(f = rootFun, x = null)
+            if (is.finite(maximumValue) && maximumValue < 0) {
+                if (lower.tail == FALSE) {
+                    return(0)
+                } else {
+                    return(1)
                 }
             }
         }
 
-        if (!is.numeric(drange) && drange == "adaptive") {
-            ## extend the search range if critical value not contained
-            searchRange <- c(null - 0.1, null + 0.1)
-            crit <- try(stats::uniroot(f = rootFun, interval = searchRange,
-                                       extendInt = "yes", ... = ...)$root,
-                        silent = TRUE)
+        roots <- .bfpwr_two_sided_root_pair(
+            f = rootFun, lowerInterval = searchIntLow,
+            upperInterval = searchIntUp,
+            split = if (centered) NULL else proposedSplit,
+            dots = rootDots
+        )
+        if (!centered && !roots$valid) {
+            opt <- .bfpwr_two_sided_maximum(f = rootFun, interval = maxInt)
+            if (!is.null(opt) && opt$objective < 0) {
+                if (lower.tail == FALSE) {
+                    return(0)
+                } else {
+                    return(1)
+                }
+            }
+            if (!is.null(opt) && opt$maximum > maxInt[1] &&
+                opt$maximum < maxInt[2]) {
+                searchIntLow <- c(maxInt[1], opt$maximum)
+                searchIntUp <- c(opt$maximum, maxInt[2])
+                roots <- .bfpwr_two_sided_root_pair(
+                    f = rootFun, lowerInterval = searchIntLow,
+                    upperInterval = searchIntUp, dots = rootDots
+                )
+            }
+        }
+        for (w in roots$warnings) warning(w)
+        upper <- roots$upper
+        lower <- roots$lower
+
+        ## compute power
+        if (inherits(upper, "try-error")) {
+            logpowup <- -Inf
+            uperr <- TRUE
         } else {
-            crit <- try(stats::uniroot(f = rootFun, interval = drange,
-                                       extendInt = "no", ... = ...)$root,
-                        silent = TRUE)
+            logpowup <- stats::pnorm(q = upper, mean = dpm, sd = estsd,
+                                      lower.tail = FALSE, log.p = TRUE)
+            uperr <- FALSE
+        }
+        if (inherits(lower, "try-error")) {
+            logpowlow <- -Inf
+            lowerr <- TRUE
+        } else {
+            logpowlow <- stats::pnorm(q = lower, mean = dpm, sd = estsd,
+                                       lower.tail = TRUE, log.p = TRUE)
+            lowerr <- FALSE
+        }
+        if ((uperr == TRUE) && (lowerr == TRUE)) {
+            warning("Numerical problems finding critical value")
+            logpow <- NaN
+            logcomp <- NaN
+        } else {
+            ## BF01 <= k is the union of the two normal tails; the complement
+            ## is the interval between any roots that were found.
+            logpow <- min(0, .bfpwr_logspace_sum(c(logpowup, logpowlow)))
+            if (!uperr && !lowerr) {
+                logcomp <- .bfpwr_lpnorm_interval(lower = lower, upper = upper,
+                                                  mean = dpm, sd = estsd)
+            } else if (!uperr) {
+                logcomp <- stats::pnorm(q = upper, mean = dpm, sd = estsd,
+                                         lower.tail = TRUE, log.p = TRUE)
+            } else {
+                logcomp <- stats::pnorm(q = lower, mean = dpm, sd = estsd,
+                                         lower.tail = FALSE, log.p = TRUE)
+            }
+        }
+    } else {
+        ## one-sided alternatives
+        if (!is.numeric(drange) && drange == "adaptive") {
+            f0 <- .bfpwr_root_value(f = rootFun, x = null)
+            if (is.finite(f0) && f0 != 0) {
+                tailLimits <- .bfpwr_one_sided_tail_limits(
+                    origin = null, step_scale = se,
+                    mean = dpm, sd = estsd, tail.eps = tail.eps
+                )
+                search <- do.call(.bfpwr_one_sided_adaptive_root, c(list(
+                    certify_fun = rootFun, search_fun = rootFunSearch,
+                    scout_fun = rootFunFast, alternative = alternative,
+                    origin = null,
+                    step_scale = se, try_opposite = FALSE,
+                    scout_tolerance = rootDots$tol,
+                    search_limit = tailLimits
+                ), rootDots))
+                crit <- search$root
+                searchLimit <- search$search_limit
+                searchLimitEst <- search$limit
+                searchLimitTail <- search$tail_probability
+                searchStatus <- search$status
+                if (inherits(crit, "try-error")) {
+                    if (identical(searchStatus, "impossible")) {
+                        crit <- structure(
+                            "BF01 = k appears unattainable",
+                            class = c("bfpwr_ptbf01_impossible",
+                                      "try-error")
+                        )
+                    } else if (search$search_limit_reached) {
+                        crit <- structure(
+                            "predictive tail cutoff reached",
+                            class = c("bfpwr_ptbf01_search_limit",
+                                      "try-error")
+                        )
+                    } else {
+                        crit <- structure(
+                            "root not bracketed before tail cutoff",
+                            class = "try-error"
+                        )
+                    }
+                }
+            } else if (is.finite(f0) && f0 == 0) {
+                crit <- null
+            } else {
+                crit <- structure("non-finite root start", class = "try-error")
+            }
+        } else {
+            crit <- try(do.call(stats::uniroot, c(list(
+                f = rootFun, interval = drange, extendInt = "no"
+            ), rootDots))$root, silent = TRUE)
         }
         if (inherits(crit, "try-error")) {
-            warning("Numerical problems finding critical value")
-            pow <- NaN
+            if (!is.numeric(drange) && drange == "adaptive" &&
+                exists("f0", inherits = FALSE) && is.finite(f0) &&
+                (inherits(crit, "bfpwr_ptbf01_search_limit") ||
+                 inherits(crit, "bfpwr_ptbf01_impossible"))) {
+                if (exists("searchLimitEst", inherits = FALSE)) {
+                    fLimit <- if (searchLimit <= 0) {
+                        f0
+                    } else {
+                        .bfpwr_root_value(f = rootFun,
+                                          x = searchLimitEst)
+                    }
+                } else {
+                    fLimit <- NaN
+                }
+                if (!is.finite(fLimit) || f0*fLimit <= 0) {
+                    warning("Numerical problems finding critical value")
+                    logpow <- NaN
+                    logcomp <- NaN
+                } else {
+                    if (inherits(crit, "bfpwr_ptbf01_impossible")) {
+                        warning(paste0(
+                            "BF01 = k appears unattainable for this ",
+                            "one-sided t test; returning the boundary-free ",
+                            "approximation implied by the search."
+                        ))
+                    } else {
+                        warning(paste0(
+                            "Adaptive t power-boundary search reached ",
+                            "predictive tail probability <= ",
+                            format(tail.eps),
+                            " without bracketing BF01 = k; returning the ",
+                            "boundary-free approximation implied by the ",
+                            "search (absolute error <= ",
+                            format(min(tail.eps, searchLimitTail)),
+                            "). Pass a numeric 'drange' interval to search ",
+                            "exact bounds."
+                        ))
+                    }
+                ## No crossing was found within the finite scan. The sign at
+                ## the null determines whether all searched values are successes.
+                    if (f0 < 0) {
+                        logpow <- 0
+                        logcomp <- -Inf
+                    } else {
+                        logpow <- -Inf
+                        logcomp <- 0
+                    }
+                }
+            } else {
+                warning("Numerical problems finding critical value")
+                logpow <- NaN
+                logcomp <- NaN
+            }
         } else {
             if (alternative == "greater") {
-                pow <- stats::pnorm(q = crit, mean = dpm, sd = estsd,
-                                    lower.tail = FALSE)
+                logpow <- stats::pnorm(q = crit, mean = dpm, sd = estsd,
+                                        lower.tail = FALSE, log.p = TRUE)
+                logcomp <- stats::pnorm(q = crit, mean = dpm, sd = estsd,
+                                         lower.tail = TRUE, log.p = TRUE)
             } else {
-                pow <- stats::pnorm(q = crit, mean = dpm, sd = estsd,
-                                    lower.tail = TRUE)
+                logpow <- stats::pnorm(q = crit, mean = dpm, sd = estsd,
+                                        lower.tail = TRUE, log.p = TRUE)
+                logcomp <- stats::pnorm(q = crit, mean = dpm, sd = estsd,
+                                         lower.tail = FALSE, log.p = TRUE)
             }
         }
 
     }
 
-    if (lower.tail == TRUE) return(pow)
-    else return(1 - pow)
+    if (lower.tail == TRUE) return(exp(logpow))
+    else return(exp(logcomp))
 }
 
 
@@ -206,7 +365,12 @@ ptbf01. <- function(k, n, n1 = n, n2 = n, null = 0, plocation = 0,
 #'
 #' @description This function computes the probability of obtaining a
 #'     \eqn{t}-test Bayes factor (\link{tbf01}) more extreme than a threshold
-#'     \code{k} with a specified sample size.
+#'     \code{k} with a specified sample size. The future standardized estimate
+#'     is modeled with its known-variance normal distribution. Thus, although
+#'     the analysis Bayes factor uses the finite-sample \eqn{t} distribution,
+#'     the returned power is an asymptotic approximation rather than exact
+#'     noncentral-\eqn{t} power; differences can be material at small sample
+#'     sizes.
 #'
 #' @inheritParams tbf01
 #' @inheritParams pbf01
@@ -214,9 +378,7 @@ ptbf01. <- function(k, n, n1 = n, n2 = n, null = 0, plocation = 0,
 #'     Defaults to \code{0}
 #' @param alternative Direction of the test. Can be either \code{"two.sided"}
 #'     (default), \code{"less"}, or \code{"greater"}. The latter two truncate
-#'     the analysis prior to negative and positive effects, respectively. If set
-#'     to \code{"less"} or \code{"greater"}, the power is only computed based on
-#'     data with effect estimates in the direction of the alternative
+#'     the analysis prior to effects below and above \code{null}, respectively.
 #' @param dpm Mean of the normal design prior assigned to the standardized mean
 #'     difference. Defaults to the analysis prior location
 #' @param dpsd Standard deviation of the normal design prior assigned to the
@@ -226,11 +388,32 @@ ptbf01. <- function(k, n, n1 = n, n2 = n, null = 0, plocation = 0,
 #'     critical values are searched for. Can be either set to a numerical range
 #'     or to \code{"adaptive"} (default) which determines the range in an
 #'     adaptive way from the other input parameters
-#' @param ... Other arguments passed to \code{stats::uniroot}
+#' @param tail.eps One-sided adaptive searches stop once the remaining
+#'     predictive probability in the searched tail is at most this value. If no
+#'     boundary is found before that point, the boundary-free probability
+#'     implied by the searched side is returned and the omitted tail probability
+#'     is bounded by \code{tail.eps}. Smaller values search farther and can
+#'     recover extremely remote boundaries at additional computational cost.
+#'     Defaults to \code{1e-6}
+#' @param tail.nquad Number of Gauss-Legendre quadrature nodes used by
+#'     \code{\link{tbf01}} for stable wrong-tail one-sided calculations. Larger
+#'     values are more accurate but slower. Defaults to \code{512}.
+#' @param ... Optional numerical controls for all boundary searches.
+#'     \code{rel.tol} (default \code{1e-8}), \code{abs.tol} (default
+#'     \code{rel.tol}), and \code{subdivisions} (default \code{1000}),
+#'     together with \code{stop.on.error} and \code{keep.xy}, are passed to
+#'     \code{stats::integrate} for BF evaluation. Root searches use
+#'     \code{tol} (default \code{1e-8}), \code{maxiter}, \code{trace}, and
+#'     \code{check.conv} from \code{stats::uniroot}. One-sided scouting uses
+#'     a looser integral unless \code{rel.tol} is supplied; returned roots are
+#'     checked against the final integral with the requested accuracy.
+#'     Session defaults can be changed with \link{bfpwrOptions}.
+#'     These controls reduce numerical error within the normal predictive
+#'     approximation; they do not remove that approximation.
 #'
 #' @inherit pbf01 return
 #'
-#' @author Samuel Pawel
+#' @author Samuel Pawel, František Bartoš
 #'
 #' @seealso \link{tbf01}, \link{ntbf01}, \link{powertbf01}
 #'
@@ -245,13 +428,14 @@ ptbf01. <- function(k, n, n1 = n, n2 = n, null = 0, plocation = 0,
 #' ptbf01(k = 6, n = 146, dpm = 0, dpsd = 0, lower.tail = FALSE)
 #'
 #' ## one-sample test
-#' ptbf01(k = 1/6, n = 146, dpm = 0.5, dpsd = 0, alternative = "greater", type = "one.sample")
+#' ptbf01(k = 1/6, n = 146, dpm = 0.5, dpsd = 0, alternative = "greater",
+#'        type = "one.sample")
 #'
 #' @export
 ptbf01 <- Vectorize(FUN = ptbf01.,
                     vectorize.args = c("k", "n", "n1", "n2", "null",
                                        "plocation", "pscale", "pdf", "type",
-                                       "alternative", "dpm", "dpsd", "type",
+                                       "alternative", "dpm", "dpsd",
                                        "lower.tail"))
 
 ## ## verify with simulation

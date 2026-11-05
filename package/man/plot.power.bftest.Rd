@@ -53,5 +53,5 @@ plot(power1, nlim = c(1, 1000))
 \link{powerbf01}, \link{powertbf01}, \link{powernmbf01}
 }
 \author{
-Samuel Pawel
+Samuel Pawel, František Bartoš
 }

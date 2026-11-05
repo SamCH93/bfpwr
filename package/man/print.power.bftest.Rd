@@ -35,5 +35,5 @@ powerbf01(power = 0.95, pm = 1, psd = 0, dpm = 0.8, dpsd = 0, type = "paired")
 \link{powerbf01}
 }
 \author{
-Samuel Pawel
+Samuel Pawel, František Bartoš
 }
