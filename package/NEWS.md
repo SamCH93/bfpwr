@@ -1,34 +1,21 @@
 # bfpwr 0.3
 
-- add `bfpwrOptions()` to inspect and change session numerical settings;
-  explicit arguments take precedence and saved designs retain their controls
-- find attainable fixed-design sample sizes when power peaks inside the search
-  range, as probabilities of misleading evidence do; handle empty adaptive
-  stopping intervals, including infinite bounds
+- new contributor František Bartoš (<https://orcid.org/0000-0002-0018-5573>)
+- add `dirbf01()` to compute directional z-test Bayes factors
 - add point-null one-sided z-tests with truncated normal analysis priors via
-  `alternative = "less"` or `"greater"`, including fixed and sequential
-  power and sample-size calculations
-- add one-sided normal moment priors for fixed and sequential Bayes factor
-  power and sample-size calculations, with stable log Bayes factors
+  `alternative = "less"` or `"greater"`
+- add one-sided normal moment priors via `alternative = "less"` or `"greater"`
 - add sequential Bayes factor designs for z-tests and t-tests via `pbf01seq()`
   and `ptbf01seq()`, with stopping probabilities, expected sample sizes,
-  summaries, and plots; sequential calculations use 10,000 integration points
-  by default, with accuracy adjustable through `ngrid`
-- vectorize predictive covariance calculations and reuse integration setup
-  across planned looks in sequential z-test and t-test designs
+  summaries, and plots
 - add sequential power and sample-size calculations via `nbf01seq()`,
   `ntbf01seq()`, `powerbf01seq()`, and `powertbf01seq()`
-- add `dirbf01()` to compute directional z-test Bayes factors
+- add `bfpwrOptions()` to inspect and change session numerical settings
 - improve numerical accuracy of small probabilities in `pbf01()` and
   `pnmbf01()`; fix `pbf01()` for very narrow normal priors and point
   alternatives identical to the null hypothesis
 - improve numerical stability of one-sided `tbf01()` when observations strongly
-  oppose the alternative hypothesis; avoid unreliable tail scouting and retain
-  certified boundary-search statuses and requested root tolerances
-- tighten numerical integration and root-search defaults for fixed designs;
-  allow overriding sample-size `tol` in all fixed-design power wrappers and
-  t-test integration controls through `powertbf01()`, retaining them in plots;
-  sequential t-test boundary controls can be set with `bf.control`
+  oppose the alternative hypothesis
 - fix two-sided `ptbf01()` power and critical-value searches for shifted
   informed priors, including heavy-tailed priors
 - add `tail.eps` to control the tail-probability cutoff in one-sided adaptive
@@ -36,9 +23,7 @@
   tradeoff in one-sided t Bayes factor calculations (defaults: `1e-6` and 512)
 - correct `pbinbf01()` power calculations for discrete binomial outcomes,
   including equality at the Bayes factor threshold
-- fix default test-type handling in binomial sample-size calculations
-- new contributor František Bartoš (<https://orcid.org/0000-0002-0018-5573>)
-- 
+
 # bfpwr 0.1.7
 
 - added functions `pbinbf01seq` and `powerbinbf01seq` for sequential two-stage
