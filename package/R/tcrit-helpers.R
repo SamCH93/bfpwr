@@ -178,29 +178,54 @@
 ## must also bracket it. Together with the opposite crossing directions passed
 ## to uniroot(), this certifies that the two searches found different crossings
 ## without requiring another Bayes-factor evaluation between the roots.
+## A side can be excluded from the search (searchLower = FALSE or searchUpper =
+## FALSE) when the caller knows that f does not cross zero there; that side is
+## then recorded as an empty side, a try-error of class
+## "bfpwr_two_sided_no_crossing", and does not invalidate the pair as long as
+## the other side has a root. The defaults search both sides.
 .bfpwr_two_sided_root_pair <- function(f, lowerInterval, upperInterval,
-                                       split = NULL, dots = list()) {
+                                       split = NULL, dots = list(),
+                                       searchLower = TRUE,
+                                       searchUpper = TRUE) {
     ## Keep trial warnings with this pair so a corrected split or an
     ## unattainable-maximum result can discard diagnostics from rejected roots.
     warnings <- list()
+    noCrossing <- function() {
+        structure("no crossing", class = c("bfpwr_two_sided_no_crossing",
+                                           "try-error"))
+    }
     withCallingHandlers({
-        lower <- try(do.call(stats::uniroot, c(list(
-            f = f, interval = lowerInterval, extendInt = "upX"
-        ), dots))$root, silent = TRUE)
-        upper <- try(do.call(stats::uniroot, c(list(
-            f = f, interval = upperInterval, extendInt = "downX"
-        ), dots))$root, silent = TRUE)
+        lower <- if (searchLower) {
+            try(do.call(stats::uniroot, c(list(
+                f = f, interval = lowerInterval, extendInt = "upX"
+            ), dots))$root, silent = TRUE)
+        } else {
+            noCrossing()
+        }
+        upper <- if (searchUpper) {
+            try(do.call(stats::uniroot, c(list(
+                f = f, interval = upperInterval, extendInt = "downX"
+            ), dots))$root, silent = TRUE)
+        } else {
+            noCrossing()
+        }
     }, warning = function(w) {
         warnings[[length(warnings) + 1L]] <<- w
         invokeRestart("muffleWarning")
     })
 
-    valid <- !inherits(lower, "try-error") &&
-        !inherits(upper, "try-error") &&
-        is.finite(lower) && is.finite(upper) && lower < upper
+    lowerFound <- !inherits(lower, "try-error") && is.finite(lower)
+    upperFound <- !inherits(upper, "try-error") && is.finite(upper)
+    lowerEmpty <- inherits(lower, "bfpwr_two_sided_no_crossing")
+    upperEmpty <- inherits(upper, "bfpwr_two_sided_no_crossing")
+    valid <- (lowerFound || lowerEmpty) && (upperFound || upperEmpty) &&
+        !(lowerEmpty && upperEmpty)
+    if (valid && lowerFound && upperFound) {
+        valid <- lower < upper
+    }
     if (valid && !is.null(split)) {
         valid <- length(split) == 1 && is.finite(split) &&
-            lower < split && split < upper
+            (!lowerFound || lower < split) && (!upperFound || split < upper)
     }
 
     list(lower = lower, upper = upper, valid = valid, warnings = warnings)

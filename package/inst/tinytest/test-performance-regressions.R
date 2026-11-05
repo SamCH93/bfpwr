@@ -194,6 +194,35 @@ expect_equal(
     info = "one-sided JZS true-null ntbf01 example returns the stabilized sample size"
 )
 
+## Two-sided t-test sample-size searches at small n: the same-sign noncentral-t
+## density used to be NaN for |t| above about 6.5e4 (sending every Bayes factor
+## to the slow quadrature fallback), and the root searches extended to the
+## overflow range where the Bayes factor never reaches k on a side; the two
+## searches below took 45 s and 176 s instead of about 1 s and 2.5 s.
+n_t_two_sided <- bfpwr_expect_elapsed_under(
+    "ntbf01 two-sided JZS one-sample sample-size search",
+    seconds = 10,
+    expr = ntbf01(k = 1/10, power = 0.8, type = "one.sample", dpm = 0.5,
+                  dpsd = 0)
+)
+expect_equal(
+    as.numeric(n_t_two_sided),
+    62,
+    info = "two-sided JZS one-sample ntbf01 example returns the expected sample size"
+)
+
+n_t_informed <- bfpwr_expect_elapsed_under(
+    "ntbf01 two-sided informed one-sample sample-size search",
+    seconds = 30,
+    expr = ntbf01(k = 1/3, power = 0.8, type = "one.sample", plocation = 0.3,
+                  pscale = 0.1, pdf = 3, dpm = 0.3, dpsd = 0.1)
+)
+expect_equal(
+    as.numeric(n_t_informed),
+    114,
+    info = "two-sided informed one-sample ntbf01 example returns the expected sample size"
+)
+
 n_bin <- bfpwr_expect_elapsed_under(
     "nbinbf01 directional binomial sample-size search",
     seconds = 15,
