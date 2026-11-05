@@ -1,34 +1,17 @@
-## function to compute critical value for which we get a directional binomial
-## BF01(x) <= k for x = xcrit, xcrit + 1, ..., n
-xcritbinbf01. <- function(k, n, p0 = 0.5, a = 1, b = 1) {
-
-    ## BF as a function of the data
-    logbf <- function(x) {
-        binbf01(x = x, n = n, p0 = p0, type = "direction", a = a, b = b,
-                log = TRUE)
+## Smallest count xcrit in 0:n for which the directional binomial BF01(x) <= k,
+## i.e., BF01 <= k for x = xcrit, xcrit + 1, ..., n (the directional BF01
+## decreases with x). Returns n + 1 if BF01 > k for all possible counts.
+xcritbinbf01 <- function(k, n, p0 = 0.5, a = 1, b = 1) {
+    below <- .binbf01_below_threshold(k = k, n = n, p0 = p0, type = "direction",
+                                      a = a, b = b)
+    if (below(0)) {
+        return(0)
     }
-
-    ## compute minBF01 (x = n) and maxBF01 (x = 0)
-    minlogBF <- logbf(x = n)
-    maxlogBF <- logbf(x = 0)
-
-    if (maxlogBF <= log(k)) {
-        ## is BF below threshold k for any possible data value?
-        xcrit <- 0
-    } else if (minlogBF > log(k)) {
-        ## is BF above threshold k for any possible data value?
-        xcrit <- NaN
-    } else {
-        ## find the critical value with root-finding
-        rootFun <- function(x) logbf(x) - log(k)
-        res <- stats::uniroot(f = rootFun, lower = 0, upper = n)$root
-        xcrit <- ceiling(res)
+    if (!below(n)) {
+        return(n + 1)
     }
-
-    ## return critical value
-    return(xcrit)
+    .binbf01_first_below(below = below, lower = 0, upper = n)
 }
-xcritbinbf01 <- Vectorize(FUN = xcritbinbf01.)
 
 #' @title Power calculations for binomial Bayes factor with two-stage designs
 #'
@@ -107,11 +90,6 @@ pbinbf01seq <- function(n1, n2, k = 1/10, kf = 1/k, p0 = 0.5,
             is.finite(dp),
             0 < dp, dp < 1
             )
-        ## predictive PMF under the point design prior
-        predpmf <- function(x1, x2, n1, n2) {
-            stats::dbinom(x = x1, size = n1, prob = dp) *
-                stats::dbinom(x = x2, size = n2, prob = dp)
-        }
     } else {
         ## Beta design prior
         stopifnot(
@@ -135,69 +113,31 @@ pbinbf01seq <- function(n1, n2, k = 1/10, kf = 1/k, p0 = 0.5,
             is.finite(du),
             dl < du, du <= 1
         )
-        ## predictive PMF under the truncated Beta design prior
-        predpmf. <- function(x1, x2, n1, n2) {
-            exp(lchoose(n1, x1) + lchoose(n2, x2) +
-                lbeta(da + x1 + x2, db + n1 + n2 - x1 - x2) -
-                lbeta(da, db)) *
-                diff(stats::pbeta(q = c(dl, du), shape1 = da + x1 + x2,
-                                  shape2 = db + n1 + n2 - x1 - x2)) /
-                diff(stats::pbeta(q = c(dl, du), shape1 = da, shape2 = db))
-        }
-        predpmf <- Vectorize(FUN = predpmf.)
     }
 
-
-    ## ## probability to stop at interim Pr(interim stage BF01 >= kf)
-    ## pinterim <- pbinbf01(k = kf, n = n1, p0 = p0, type = type, a = a, b = b,
-    ##                      dp = dp, da = da, db = db, dl = dl, du = du,
-    ##                      lower.tail = FALSE)
-
-    ## probability of Pr(final stage BF01 <= k) when no interim analysis
-    pfinal <- pbinbf01(k = k, n = n2, p0 = p0, type = type, a = a, b = b,
-                       dp = dp, da = da, db = db, dl = dl, du = du,
-                       lower.tail = TRUE)
-
-    if (type == "direction") {
-        ## determine critical values where BF01 <= k at interim/final stages for
-        ## efficacy/futility thresholds
-        xcrit1f <- xcritbinbf01(k = kf, n = n1, p0 = p0, a = a, b = b)
-        xcrit2 <- xcritbinbf01(k = k, n = n2, p0 = p0, a = a, b = b)
-
-        ## ## should be the same as pfinal
-        ## sum(predpmf(x = seq(xcrit2, n2), n = n2))
-
-        if (xcrit1f == 0) {
-            ## BF01 is always below futility threshold kf at interim
-            pcorrect <- 0
-        } else {
-            ## probability to stop for futility at interim and for efficacy at final
-            pcorrect <- sum(sapply(X = seq(0, xcrit1f - 1), FUN = function(x1i) {
-                if (xcrit2 - x1i > n2 - n1) {
-                    ## final stage BF01 <= k is not possible anymore when x1 = x1i
-                    return(0)
-                } else {
-                    x2j <- seq(xcrit2 - x1i, n2 - n1)
-                    sum(predpmf(x1 = x1i, x2 = x2j, n1 = n1, n2 = n2 - n1))
-                }
-            }))
-        }
-    } else {
-        ## TODO implement for point null hypothesis BF
-        stop("types other than 'direction' are currently not implemented")
+    ## BF01 <= kf (continue) at the interim stage if x1 >= xcrit1f and
+    ## BF01 <= k (efficacy) at the final stage if x1 + x2 >= xcrit2. The
+    ## critical value is n + 1 if the event is impossible.
+    xcrit1f <- xcritbinbf01(k = kf, n = n1, p0 = p0, a = a, b = b)
+    xcrit2 <- xcritbinbf01(k = k, n = n2, p0 = p0, a = a, b = b)
+    if (xcrit2 > n2 || xcrit1f > n1) {
+        return(0)
     }
 
-    ## adjust unconditional probability
-    padj <- pfinal - pcorrect
-
-    return(padj)
-
-    ## ## return object
-    ## structure(list(power = padj, n1 = n1, n2 = n2, p0 = p0, type = type, a = a,
-    ##                b = b, dp = dp, da = da, db = db, dl = dl, du = du, k = k,
-    ##                kf = kf, type = type, test = "binomial"),
-    ##           class = "power.bftestseq")
-
+    ## Pr(continue at interim and efficacy at final) is the sum over the final
+    ## total s = x1 + x2 >= xcrit2 of Pr(S = s) Pr(X1 >= xcrit1f | S = s). Given
+    ## S = s, the n1 interim observations are a sample without replacement from
+    ## the n2 exchangeable observations with s successes, so X1 | S = s is
+    ## hypergeometric whatever the success probability, which makes this valid
+    ## for point and for (truncated) Beta design priors. Everything is computed
+    ## on the log scale.
+    s <- xcrit2:n2
+    logpfinal <- .binbf01_pred_logpmf(x = s, n = n2, dp = dp, da = da, db = db,
+                                      dl = dl, du = du)
+    logpcont <- stats::phyper(q = xcrit1f - 1, m = n1, n = n2 - n1, k = s,
+                              lower.tail = FALSE, log.p = TRUE)
+    logp <- min(0, .bfpwr_logspace_sum(logpfinal + logpcont))
+    exp(logp)
 }
 
 ## plotcritvals <- function(n1, n2, k, kf, a, b, p0, type = "direction") {
