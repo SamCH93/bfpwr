@@ -9,9 +9,7 @@
   `alternative = "less"` or `"greater"`, including fixed and sequential
   power and sample-size calculations
 - add one-sided normal moment priors for fixed and sequential Bayes factor
-  power and sample-size calculations, with stable log Bayes factors; pass
-  `alternative` to `nnmbf01()` by name, because unnamed arguments after
-  `integer` are still passed to `stats::uniroot()` (e.g., a positional `tol`)
+  power and sample-size calculations, with stable log Bayes factors
 - add sequential Bayes factor designs for z-tests and t-tests via `pbf01seq()`
   and `ptbf01seq()`, with stopping probabilities, expected sample sizes,
   summaries, and plots; sequential calculations use 10,000 integration points

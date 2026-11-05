@@ -104,10 +104,7 @@ pnmbf01. <- function(k, n, usd, null = 0, psd, dpm, dpsd, lower.tail = TRUE,
 #'     parameter. Set to 0 to obtain a point prior at the design prior mean
 #'
 #' @note The normal design prior is not truncated, including for one-sided
-#'     analysis priors. One-sided Bayes factor boundaries are found by
-#'     numerical root-finding on the one-sided log Bayes factor, which is
-#'     monotone in the estimate; \code{\link{pbf01seq}} uses the same
-#'     boundaries at each look.
+#'     analysis priors.
 #' @inherit pbf01 details
 #'
 #' @inherit pbf01 return
