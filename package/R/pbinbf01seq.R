@@ -13,7 +13,7 @@ xcritbinbf01 <- function(k, n, p0 = 0.5, a = 1, b = 1) {
     .binbf01_first_below(below = below, lower = 0, upper = n)
 }
 
-#' @title Power calculations for binomial Bayes factor with two-stage designs
+#' @title Probability of final-stage efficacy in two-stage binomial Bayes factor designs
 #'
 #' @description Compute probability that binomial Bayes factor (\link{binbf01})
 #'     is equal or below a threshold at final stage, taking into account that
@@ -22,8 +22,9 @@ xcritbinbf01 <- function(k, n, p0 = 0.5, a = 1, b = 1) {
 #'
 #' @inheritParams pbinbf01
 #' @inheritParams powerbf01
-#' @param n1 Sample size at interim stage
-#' @param n2 Sample size at final stage
+#' @param n1 Number of observations at the interim stage
+#' @param n2 Total number of observations at the final stage (including the
+#'     \code{n1} interim observations)
 #' @param k Bayes factor threshold for evidence for efficacy. Defaults to
 #'     \code{1/10}, Jeffreys' threshold for 'strong evidence' against the null
 #'     hypothesis

@@ -2,7 +2,7 @@
 % Please edit documentation in R/pbinbf01seq.R
 \name{pbinbf01seq}
 \alias{pbinbf01seq}
-\title{Power calculations for binomial Bayes factor with two-stage designs}
+\title{Probability of final-stage efficacy in two-stage binomial Bayes factor designs}
 \usage{
 pbinbf01seq(
   n1,
@@ -21,9 +21,10 @@ pbinbf01seq(
 )
 }
 \arguments{
-\item{n1}{Sample size at interim stage}
+\item{n1}{Number of observations at the interim stage}
 
-\item{n2}{Sample size at final stage}
+\item{n2}{Total number of observations at the final stage (including the
+\code{n1} interim observations)}
 
 \item{k}{Bayes factor threshold for evidence for efficacy. Defaults to
 \code{1/10}, Jeffreys' threshold for 'strong evidence' against the null

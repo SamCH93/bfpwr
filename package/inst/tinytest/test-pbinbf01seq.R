@@ -168,3 +168,77 @@ expect_error(powerbinbf01seq(n1 = 5, n2 = 10, kf = NA, dp = 0.5),
 expect_error(powerbinbf01seq(n1 = 5, n2 = 10, type = "point", dp = 0.5),
              pattern = "direction",
              info = "powerbinbf01seq should only accept type = \"direction\"")
+
+## powerbinbf01seq: the expected sample sizes weight the interim and final
+## sample sizes with the probabilities of stopping for futility, the names of
+## the returned object are unique, and the probability to continue and reach
+## efficacy cannot exceed the probability not to stop for futility.
+for (dp in c(0.4, NA)) {
+    res <- powerbinbf01seq(n1 = 12, n2 = 30, k = 1/10, kf = 3, p0 = 0.2,
+                           dp = dp, dl = 0.2, du = 1)
+    label <- if (is.na(dp)) "truncated beta design prior" else "point design prior"
+    expect_true(inherits(res, "power.bftestseq"),
+                info = paste(label, "should return a power.bftestseq object"))
+    expect_true(!anyDuplicated(names(res)),
+                info = paste(label, "should return uniquely named elements"))
+    expect_equal(res$nexp, res$pintfut*12 + (1 - res$pintfut)*30,
+                 tolerance = 1e-14, info = paste(label, "nexp identity"))
+    expect_equal(res$nexp0, res$pintfut0*12 + (1 - res$pintfut0)*30,
+                 tolerance = 1e-14, info = paste(label, "nexp0 identity"))
+    expect_equal(res$pintfut,
+                 pbinbf01(k = 3, n = 12, p0 = 0.2, type = "direction", dp = dp,
+                          dl = 0.2, du = 1, lower.tail = FALSE),
+                 tolerance = 1e-14,
+                 info = paste(label, "pintfut should be the interim futility probability"))
+    expect_equal(res$pfineff,
+                 pbinbf01seq(n1 = 12, n2 = 30, k = 1/10, kf = 3, p0 = 0.2,
+                             dp = dp, dl = 0.2, du = 1),
+                 tolerance = 1e-14,
+                 info = paste(label, "pfineff should be the two-stage probability"))
+    expect_true(res$pfineff <= 1 - res$pintfut + 1e-12 &&
+                res$pfineff0 <= 1 - res$pintfut0 + 1e-12,
+                info = paste(label, "pfineff cannot exceed 1 - pintfut"))
+}
+
+## At kf = 1 and p0 = 0.5 with a flat analysis prior, BF01 = 1 exactly for
+## x = n/2, which the floating-point predicate classifies as BF01 > 1 in
+## pbinbf01() and pbinbf01seq() alike, so that the two stay coherent.
+res <- powerbinbf01seq(n1 = 12, n2 = 24, k = 1/10, kf = 1, p0 = 0.5, dp = 0.7)
+expect_true(res$pfineff <= 1 - res$pintfut + 1e-12,
+            info = "interim ties should be classified alike in both functions")
+expect_equal(res$pfineff,
+             ref_pbinbf01seq(n1 = 12, n2 = 24, k = 1/10, kf = 1, p0 = 0.5,
+                             dp = 0.7),
+             tolerance = 1e-12,
+             info = "pfineff at the interim tie should match the enumeration")
+
+## print method: the object is returned unchanged, and the output uses the
+## thresholds in the table and in the labels.
+for (dp in c(0.4, NA)) {
+    res <- powerbinbf01seq(n1 = 12, n2 = 30, k = 1/10, kf = 3, p0 = 0.2,
+                           dp = dp, dl = 0.2, du = 1)
+    out <- capture.output(printed <- print(res))
+    expect_identical(printed, res,
+                     info = "print should return the object unchanged")
+    expect_true(is.numeric(printed$k) && is.numeric(printed$kf),
+                info = "print should not turn the thresholds into strings")
+    condition <- if (is.na(dp)) "design prior" else "p = 0.4"
+    expect_true(
+        any(grepl("BF efficacy threshold k = 1/10", out, fixed = TRUE)) &&
+        any(grepl("BF futility threshold kf = 3", out, fixed = TRUE)),
+        info = "print should show the thresholds"
+    )
+    expect_true(
+        any(grepl(paste0("Pr(BF01 > 3 at interim | ", condition, ")"), out,
+                  fixed = TRUE)) &&
+        any(grepl("Pr(BF01 <= 1/10 at final | p = 0.2)", out, fixed = TRUE)),
+        info = "print labels should state the events of the design"
+    )
+    expect_true(
+        any(grepl("NOTE: BF oriented in favor of H0 (BF01 < 1 indicates evidence for H1 over H0)",
+                  out, fixed = TRUE)),
+        info = "print should show the note on a single line"
+    )
+    expect_false(any(grepl("Plot power", out, fixed = TRUE)),
+                 info = "print should not suggest a power plot")
+}
