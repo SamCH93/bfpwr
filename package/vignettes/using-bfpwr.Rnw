@@ -267,7 +267,7 @@ can be cast into this framework. The documentation of both functions
 \begingroup
 \renewcommand{\arraystretch}{1.3} % Default value: 1
 \begin{table}[!h]
-  \centering
+  {\centering
   \caption{Different types of parameter estimates $\hat{\theta}$ with
     approximate standard error
     $\sigma_{\scriptscriptstyle \hat{\theta}}/\sqrt{n}$ and corresponding
@@ -289,15 +289,62 @@ can be cast into this framework. The documentation of both functions
     Continuous & Standardized mean difference & Sample size per group & $\sqrt{2}$ \\
     Continuous & $z$-transformed correlation & Sample size minus 3 & 1 \\
     Binary & Log odds ratio & Total number of events & 2 \\
+    %% Binary & Log rate ratio & Sample size per group & $?^{\,*}$\\
+    %% Binary & Log odds ratio & Sample size per group & $\sqrt{1/(\pi_0(1 - \pi_0)) + 1/(\pi_1(1 - \pi_1))}^{\,*}$ \\
+    %% Binary & Risk difference & Sample size per group & $\sqrt{\pi_0(1 - \pi_0) + \pi_1(1 - \pi_1)}^{\,*}$ \\
     Binary & Arcsine square root difference & Sample size per group & $1/\sqrt{2}$ \\
     Survival & Log hazard ratio & Total number of events & 2 \\
     Count & Log rate ratio & Total count & 2 \\
-
     \bottomrule
     \end{tabular}
+}
+
+%% {\footnotesize * $\pi_1 = \mathrm{expit}(\mathrm{logit}(\pi_0) + \theta)$ where
+%%   $\theta$ is the assumed log odds ratio, $\pi_1 = \exp(\log(\pi_0) + \theta)$
+%%   where $\theta$ is the assumed log risk ratio, and $\pi_1 = \pi_0 + \theta$
+%%   where $\theta$ is the assumed risk difference. When there is uncertainty about
+%%   $\theta$, encoded by a normal design prior $\theta \sim \mathrm{N}(\mu_d,
+%%   \tau_d^2)$, one can substitute $\theta = \mu_d$ as a plug-in approximation.
+%%   The approximation $\sigma_{\hat{\theta}} = 2$ for the log odds ratio mentioned
+%%   in \citet{PawelHeld2025} with $n$ interpreted as total number of events
+%%   originates from a rare event assumptions \citep{Spiegelhalter2004} but can be
+%%   inaccurate for other settings, which is why it is recommended to use the
+%%   approximations shown here.}
 \end{table}
 \endgroup
 
+
+<< "logOR-unit-variance", echo = FALSE, eval = FALSE>>=
+set.seed(42)
+
+## simulate and check variance approximation
+p0 <- 0.4
+dpm <- 1
+dpsd <- 0.2
+nsim <- 100000
+n <- 50
+y0 <- rbinom(nsim, size = n, prob = p0)
+logORtrue <- rnorm(nsim, dpm, dpsd)
+p1true <- plogis(qlogis(p0) + logORtrue)
+y1 <- rbinom(nsim, size = n, prob = p1true)
+a <- y1
+b <- n - y1
+c <- y0
+d <- n - y0
+logORsim <- log(a*d/(b*c))
+logORsimSE <- sqrt(1/a + 1/b + 1/c + 1/d)
+## ## plotting logORs
+## hist(logORsim)
+## abline(v = dpm, lty = 2)
+## empirical variance
+var(logORsim[is.finite(logORsim)])
+## more exact
+(1/(p0*(1 - p0)) + 2*(exp(0.5*dpsd^2)*cosh(qlogis(p0) + dpm) + 1))/n +
+    dpsd^2
+## approximation
+p1median <- plogis(qlogis(p0) + dpm)
+(1/(p0*(1 - p0)) +  1/(p1median*(1 - p1median)))/n + dpsd^2
+@
 
 \section{\textit{t}-test Bayes factor}
 \label{sec:ttest}
