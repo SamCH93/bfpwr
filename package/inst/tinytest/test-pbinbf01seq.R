@@ -7,8 +7,11 @@ library(bfpwr)
 ## where x1 and x2 are the successes among the first n1 and the remaining
 ## n2 - n1 observations. No bfssd manuscript formula covers binomial BF power;
 ## the reference is therefore the exhaustive enumeration of all (x1, x2) pairs
-## with the same floating-point predicate on the log Bayes factors as
-## pbinbf01(), weighted with the predictive masses under the design prior.
+## with the same predicate on the log Bayes factors as pbinbf01() (a tolerance of
+## 1e-10 on the log scale counts mathematical ties), weighted with the
+## predictive masses under the design prior.
+
+tie_tol <- 1e-10
 
 ref_pbinbf01seq <- function(n1, n2, k, kf, p0 = 0.5, type = "direction",
                             a = 1, b = 1, dp = NA, da = a, db = b, dl = 0,
@@ -20,7 +23,7 @@ ref_pbinbf01seq <- function(n1, n2, k, kf, p0 = 0.5, type = "direction",
                       b = b, log = TRUE)
     logbf2 <- binbf01(x = s, n = n2, p0 = p0, type = "direction", a = a,
                       b = b, log = TRUE)
-    event <- logbf1 <= log(kf) & logbf2 <= log(k)
+    event <- logbf1 <= log(kf) + tie_tol & logbf2 <= log(k) + tie_tol
     if (!is.na(dp)) {
         logp <- dbinom(g$x1, size = n1, prob = dp, log = TRUE) +
             dbinom(g$x2, size = n2 - n1, prob = dp, log = TRUE)
@@ -201,9 +204,16 @@ for (dp in c(0.4, NA)) {
 }
 
 ## At kf = 1 and p0 = 0.5 with a flat analysis prior, BF01 = 1 exactly for
-## x = n/2, which the floating-point predicate classifies as BF01 > 1 in
-## pbinbf01() and pbinbf01seq() alike, so that the two stay coherent.
+## x = n/2, whose floating-point value is 1 + 1e-15. The tie counts as
+## reaching kf (tolerance 1e-10 on the log scale) in pbinbf01() and
+## pbinbf01seq() alike, so that the two stay coherent: BF01 > 1 only for
+## x1 <= 5.
 res <- powerbinbf01seq(n1 = 12, n2 = 24, k = 1/10, kf = 1, p0 = 0.5, dp = 0.7)
+expect_equal(res$pintfut, stats::pbinom(5, size = 12, prob = 0.7),
+             tolerance = 1e-12,
+             info = "pintfut at the interim tie should exclude x1 = n1/2")
+expect_equal(res$pintfut, 0.038600843058, tolerance = 1e-10,
+             info = "pintfut at the interim tie should be 0.0386008")
 expect_true(res$pfineff <= 1 - res$pintfut + 1e-12,
             info = "interim ties should be classified alike in both functions")
 expect_equal(res$pfineff,
@@ -211,6 +221,8 @@ expect_equal(res$pfineff,
                              dp = 0.7),
              tolerance = 1e-12,
              info = "pfineff at the interim tie should match the enumeration")
+expect_equal(res$pfineff, 0.7224538968, tolerance = 1e-9,
+             info = "pfineff at the interim tie should be 0.7224539")
 
 ## print method: the object is returned unchanged, and the output uses the
 ## thresholds in the table and in the labels.

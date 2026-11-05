@@ -1,10 +1,17 @@
 ## Shared pieces of the fixed (pbinbf01) and two-stage (pbinbf01seq) binomial
 ## power calculations. Input validation stays in the callers.
 
+## Tolerance on the log scale: BF01 within a relative 1e-10 of the threshold k
+## counts as reaching it. Mathematical ties are common in binomial designs
+## (e.g., BF01 = 1 at x = n/2 for p0 = 0.5 and a symmetric analysis prior), yet
+## the floating-point log Bayes factor of such a tie can be off by 1e-15 (1 +
+## 1e-15 instead of 1), which would put the count on the wrong side of k.
+.binbf01_tie_tol <- 1e-10
+
 ## Predicate "BF01(x) <= k" for the integer counts x of a sample of size n. The
-## comparison is made on the log scale with floating point arithmetic.
+## comparison is made on the log scale, with the tolerance above.
 .binbf01_below_threshold <- function(k, n, p0, type, a, b) {
-    logk <- log(k)
+    logk <- log(k) + .binbf01_tie_tol
     function(x) {
         binbf01(x = x, n = n, p0 = p0, type = type, a = a, b = b,
                 log = TRUE) <= logk

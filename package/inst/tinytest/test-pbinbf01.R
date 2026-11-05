@@ -39,6 +39,48 @@ for (type in c("point", "direction")) {
     )
 }
 
+## Mathematical ties count as reaching the threshold. For p0 = 0.5, a flat
+## analysis prior and n = 12, the directional BF01 is exactly 1 at x = 6 (the
+## posterior is symmetric), but its floating-point value is 1 + 1e-15. So
+## BF01 > 1 happens for x <= 5 only.
+tie_n <- 12
+tie_dp <- 0.7
+expect_equal(
+    pbinbf01(k = 1, n = tie_n, p0 = 0.5, type = "direction", dp = tie_dp,
+             lower.tail = FALSE),
+    stats::pbinom(5, size = tie_n, prob = tie_dp), tolerance = 1e-12,
+    info = "pbinbf01 should not count a tie BF01 = k as BF01 > k"
+)
+expect_equal(
+    pbinbf01(k = 1, n = tie_n, p0 = 0.5, type = "direction", dp = tie_dp,
+             lower.tail = FALSE),
+    0.038600843058, tolerance = 1e-10,
+    info = "pbinbf01 upper tail at the tie k = 1 should be 0.0386008"
+)
+expect_equal(
+    pbinbf01(k = 1, n = tie_n, p0 = 0.5, type = "direction", dp = tie_dp),
+    1 - stats::pbinom(5, size = tie_n, prob = tie_dp), tolerance = 1e-12,
+    info = "pbinbf01 should count a tie BF01 = k as BF01 <= k"
+)
+
+## The tolerance is a relative 1e-10 on the Bayes factor, not a coarse
+## rounding: a threshold a relative 1e-6 below the tie excludes x = 6, one
+## 1e-12 below still includes it.
+expect_equal(
+    pbinbf01(k = 1 - 1e-6, n = tie_n, p0 = 0.5, type = "direction",
+             dp = tie_dp),
+    stats::pbinom(6, size = tie_n, prob = tie_dp, lower.tail = FALSE),
+    tolerance = 1e-12,
+    info = "a threshold clearly below the tie should exclude it"
+)
+expect_equal(
+    pbinbf01(k = 1 - 1e-12, n = tie_n, p0 = 0.5, type = "direction",
+             dp = tie_dp),
+    stats::pbinom(5, size = tie_n, prob = tie_dp, lower.tail = FALSE),
+    tolerance = 1e-12,
+    info = "a threshold within the tolerance of the tie should include it"
+)
+
 ## do not run these tests for the moment, because they are there to verify
 ## the power with simulation which takes a long time to run
 
