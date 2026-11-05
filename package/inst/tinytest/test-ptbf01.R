@@ -207,10 +207,10 @@ informed_root_fun <- function(est) {
           log = TRUE) - log(informed_two_sided_args$k)
 }
 informed_lower <- suppressWarnings(
-    stats::uniroot(informed_root_fun, c(-1.1, -0.8))$root
+    stats::uniroot(informed_root_fun, c(-1.1, -0.8), tol = 1e-10)$root
 )
 informed_upper <- suppressWarnings(
-    stats::uniroot(informed_root_fun, c(-0.3, 0))$root
+    stats::uniroot(informed_root_fun, c(-0.3, 0), tol = 1e-10)$root
 )
 informed_expected <- stats::pnorm(informed_upper,
                                   mean = informed_two_sided_args$dpm,
