@@ -30,7 +30,19 @@
 powerbinbf01seq <- function(n1, n2, k = 1/10, kf = 1/k, p0 = 0.5,
                             type = c("direction"), a = 1, b = 1, dp = NA,
                             da = a, db = b, dl = 0, du = 1) {
+    type <- match.arg(arg = type)
 
+    ## probability to stop at final for efficacy (this checks all arguments)
+    pfineff <- pbinbf01seq(n1 = n1, n2 = n2, k = k, kf = kf, p0 = p0,
+                           type = type, a = a, b = b, dp = dp, da = da, db = db,
+                           dl = dl, du = du)
+
+    ## n1 and n2 have to be integers
+    n1 <- ceiling(n1)
+    n2 <- ceiling(n2)
+
+    pfineff0 <- pbinbf01seq(n1 = n1, n2 = n2, k = k, kf = kf, p0 = p0,
+                            type = type, a = a, b = b, dp = p0)
 
     ## probability to stop at interim for futility
     pintfut <- pbinbf01(n = n1, k = kf, p0 = p0, type = type, a = a, b = b,
@@ -38,13 +50,6 @@ powerbinbf01seq <- function(n1, n2, k = 1/10, kf = 1/k, p0 = 0.5,
                         lower.tail = FALSE)
     pintfut0 <- pbinbf01(n = n1, k = kf, p0 = p0, type = type, a = a, b = b,
                          dp = p0, lower.tail = FALSE)
-
-    ## probability to stop at final for efficacy
-    pfineff <- pbinbf01seq(n1 = n1, n2 = n2, k = k, kf = kf, p0 = p0,
-                           type = type, a = a, b = b, dp = dp, da = da, db = db,
-                           dl = dl, du = du)
-    pfineff0 <- pbinbf01seq(n1 = n1, n2 = n2, k = k, kf = kf, p0 = p0,
-                            type = type, a = a, b = b, dp = p0)
 
     ## expected sample size
     nexp <- pintfut*n1 + (1 - pintfut)*n2

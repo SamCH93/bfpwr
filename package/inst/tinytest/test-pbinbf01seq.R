@@ -120,3 +120,51 @@ expect_equal(
     tolerance = 1e-12,
     info = "pbinbf01seq with a huge kf should equal pbinbf01"
 )
+
+## Fractional numbers of observations are rounded up once and the rounded
+## sizes are used everywhere, including the expected sample sizes.
+expect_equal(
+    pbinbf01seq(n1 = 10.1, n2 = 20.1, p0 = 0.2, dp = 0.4),
+    pbinbf01seq(n1 = 11, n2 = 21, p0 = 0.2, dp = 0.4),
+    tolerance = 1e-14,
+    info = "pbinbf01seq should round n1 and n2 up"
+)
+res <- powerbinbf01seq(n1 = 10.1, n2 = 20.1, p0 = 0.2, dp = 0.4)
+expect_identical(c(res$n1, res$n2), c(11, 21),
+                 info = "powerbinbf01seq should store the rounded sizes")
+expect_equal(res$nexp, res$pintfut*11 + (1 - res$pintfut)*21,
+             tolerance = 1e-14,
+             info = "nexp should use the rounded sizes")
+expect_equal(res$nexp0, res$pintfut0*11 + (1 - res$pintfut0)*21,
+             tolerance = 1e-14,
+             info = "nexp0 should use the rounded sizes")
+
+## The interim stage has to come before the final stage after rounding.
+expect_error(
+    pbinbf01seq(n1 = 10.2, n2 = 10.8, dp = 0.5), pattern = "n1 < n2",
+    info = "pbinbf01seq should require n1 < n2 after rounding"
+)
+expect_error(
+    powerbinbf01seq(n1 = 10.2, n2 = 10.8, dp = 0.5), pattern = "n1 < n2",
+    info = "powerbinbf01seq should require n1 < n2 after rounding"
+)
+
+## Argument checks give informative errors.
+expect_error(pbinbf01seq(n1 = 5, n2 = 10, kf = -1, dp = 0.5), pattern = "kf",
+             info = "negative kf should be rejected")
+expect_error(pbinbf01seq(n1 = 5, n2 = 10, kf = NA, dp = 0.5), pattern = "kf",
+             info = "missing kf should be rejected")
+expect_error(pbinbf01seq(n1 = 5, n2 = 10, k = -1, dp = 0.5), pattern = "0 < k",
+             info = "negative k should be rejected")
+expect_error(pbinbf01seq(n1 = 5, n2 = 10, p0 = 1, dp = 0.5), pattern = "p0",
+             info = "p0 = 1 should be rejected")
+expect_error(pbinbf01seq(n1 = 5, n2 = 10, a = 0, dp = 0.5), pattern = "0 < a",
+             info = "a = 0 should be rejected")
+expect_error(pbinbf01seq(n1 = 5, n2 = 10, b = NA, dp = 0.5), pattern = "b",
+             info = "missing b should be rejected")
+expect_error(powerbinbf01seq(n1 = 5, n2 = 10, kf = NA, dp = 0.5),
+             pattern = "kf",
+             info = "powerbinbf01seq should check kf")
+expect_error(powerbinbf01seq(n1 = 5, n2 = 10, type = "point", dp = 0.5),
+             pattern = "direction",
+             info = "powerbinbf01seq should only accept type = \"direction\"")

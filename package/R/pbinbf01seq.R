@@ -74,13 +74,41 @@ pbinbf01seq <- function(n1, n2, k = 1/10, kf = 1/k, p0 = 0.5,
         length(n2) == 1,
         is.numeric(n2),
         is.finite(n2),
-        0 < n2, n1 < n2
+        0 < n2,
+
+        length(k) == 1,
+        is.numeric(k),
+        is.finite(k),
+        0 < k,
+
+        length(kf) == 1,
+        is.numeric(kf),
+        is.finite(kf),
+        0 < kf,
+
+        length(p0) == 1,
+        is.numeric(p0),
+        is.finite(p0),
+        0 < p0, p0 < 1,
+
+        length(a) == 1,
+        is.numeric(a),
+        is.finite(a),
+        0 < a,
+
+        length(b) == 1,
+        is.numeric(b),
+        is.finite(b),
+        0 < b,
+
+        length(dp) == 1
     )
     type <- match.arg(arg = type)
 
-    ## n1 and n2 have to be integers
+    ## n1 and n2 have to be integers, and the interim stage has to come first
     n1 <- ceiling(n1)
     n2 <- ceiling(n2)
+    stopifnot(n1 < n2)
 
     if (!is.na(dp)) {
         ## point design prior
