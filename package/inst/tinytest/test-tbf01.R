@@ -467,6 +467,11 @@ expect_equal(
     -1.01104902, tolerance = 1e-8,
     info = "tbf01 should agree with the Mathematica value at n = 2"
 )
+expect_equal(
+    tbf01(t = -538.9, n = 2, type = "one.sample", log = TRUE),
+    -1.681741962695, tolerance = 1e-8,
+    info = "tbf01 should be accurate for an extreme negative t at n = 2"
+)
 n2_extreme <- tbf01(t = c(6e4, 7e4, 1e5), n = 2, type = "one.sample",
                     log = TRUE)
 expect_true(all(is.finite(n2_extreme)) && all(diff(n2_extreme) < 0),
