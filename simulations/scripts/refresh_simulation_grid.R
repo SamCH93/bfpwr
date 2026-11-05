@@ -7,6 +7,9 @@ source(file.path(dirname(script), "..", "R", "one-sided-z.R"))
 
 args <- parse_args()
 root <- repo_root()
+moment_root <- if (!arg_flag(args, "skip-report")) {
+    resolve_moment_root(root, arg_value(args, "moment-root"))
+}
 corpus_root <- normalizePath(arg_value(args, "corpus-root",
     file.path(root, "simulations", "corpus", "v1")), winslash = "/", mustWork = TRUE)
 if (!is.null(args$ngrid)) {
@@ -236,10 +239,11 @@ validate("validate_fixture_suite.R",
 validate("refresh_search_validation.R",
          c("--corpus-root", corpus_root, "--validation-dir",
            file.path(results_root, "search-validation")))
-if (!arg_flag(args, "skip-report")) {
+if (!is.null(moment_root)) {
     run_rscript(file.path(root, "simulations", "scripts",
                           "render_simulation_verification_background.R"),
-                c("--corpus-root", corpus_root, "--results-root", results_root))
+                c("--corpus-root", corpus_root, "--results-root", results_root,
+                  "--moment-root", moment_root))
 }
 if (length(validation_errors) > 0L) {
     stop(paste(validation_errors, collapse = "\n"), call. = FALSE)

@@ -6,6 +6,9 @@ source(file.path(repo_root(), "simulations", "R", "one-sided-z.R"))
 
 args <- parse_args()
 root <- repo_root()
+moment_root <- if (!arg_flag(args, "skip-report")) {
+    resolve_moment_root(root, arg_value(args, "moment-root"))
+}
 corpus_root <- normalizePath(arg_value(args, "corpus-root",
     file.path(root, "simulations", "corpus", "v1")), winslash = "/", mustWork = TRUE)
 package_root <- normalizePath(arg_value(args, "package-root", root),
@@ -81,10 +84,10 @@ for (kind in c("curves", "agreement")) {
     bfpwr_sim_one_sided_z_plot(bundle, kind)
     grDevices::dev.off()
 }
-if (!arg_flag(args, "skip-report")) {
+if (!is.null(moment_root)) {
     run_rscript(file.path(root, "simulations", "scripts",
                           "render_simulation_verification_background.R"),
-                c("--corpus-root", corpus_root))
+                c("--corpus-root", corpus_root, "--moment-root", moment_root))
 }
 
 validation_errors <- bfpwr_sim_one_sided_z_failures(bundle)

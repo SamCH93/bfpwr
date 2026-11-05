@@ -7,7 +7,7 @@
 
 .bfseq_z_one_critical <- function(type, psd, alternative) {
     type == "directional" ||
-        (type == "normal" && (psd == 0 || alternative != "two.sided"))
+        (type == "normal" && psd == 0) || alternative != "two.sided"
 }
 
 ## Collect per-look standard errors and BF critical values in the shape needed
@@ -41,13 +41,17 @@
 ## Integrate the predictive distribution over the H1 and H0 stopping regions
 ## for a single stage.
 .bfseq_stage_stop_probabilities <- function(regions, se, null = 0, dpm, dpsd,
-                                            dots) {
-    pars <- predpars(se = se, null = null, dpm = dpm, dpsd = dpsd)
-    probabilities <- do.call(.bfseq_intstage,
-                   c(list(regions = regions,
-                          mean = pars$mean,
-                          sigma = pars$sigma),
-                     dots))
+                                            dots, evalRegions = NULL) {
+    if (is.null(evalRegions)) {
+        pars <- predpars(se = se, null = null, dpm = dpm, dpsd = dpsd)
+        probabilities <- do.call(.bfseq_intstage,
+                       c(list(regions = regions,
+                              mean = pars$mean,
+                              sigma = pars$sigma),
+                         dots))
+    } else {
+        probabilities <- evalRegions(regions = regions, i = length(se))
+    }
     pH1 <- probabilities[["H1"]]
     pH0 <- probabilities[["H0"]]
     if (!is.numeric(pH1) || length(pH1) != 1 || !is.finite(pH1) ||
@@ -61,11 +65,50 @@
     list(pH1 = pH1, pH0 = pH0)
 }
 
+## A known full schedule shares predictive parameters and leading prefixes of
+## its Cholesky factor and deterministic grid across all stage integrations.
+## This evaluator belongs to one design call; adaptive callbacks keep their
+## existing stage-by-stage setup. Integration formals match .bfseq_intstage
+## so raw controls retain R's partial and positional argument matching.
+.bfseq_region_evaluator <- function(pars, method = "lpmvnorm",
+                                    ngrid = getOption("bfpwr.ngrid", 10000), ...) {
+    .bfseq_validate_integration(method = method, ngrid = ngrid)
+    ngrid <- as.integer(ngrid)
+    controls <- list(...)
+    m <- length(pars$mean)
+    Ct <- w <- NULL
+    if (m > 1 && method == "lpmvnorm") {
+        C <- t(chol(pars$sigma))
+        Ct <- mvtnorm::ltMatrices(C[lower.tri(C, diag = TRUE)], diag = TRUE)
+        w <- withr::with_seed(seed = 42, code = {
+            t(qrng::ghalton(n = ngrid, d = m - 1))
+        })
+    }
+    function(regions, i) {
+        looks <- seq_len(i)
+        vapply(regions, function(stageregions) {
+            do.call(.bfseq_intstage_sum,
+                    c(list(stageregions = stageregions,
+                           mean = pars$mean[looks],
+                           sigma = pars$sigma[looks, looks, drop = FALSE],
+                           method = method, ngrid = ngrid,
+                           cholFactor = if (i > 1 && method == "lpmvnorm") {
+                               Ct[, looks]
+                           } else NULL,
+                           w = if (i > 1 && method == "lpmvnorm") {
+                               w[seq_len(i - 1), , drop = FALSE]
+                           } else NULL),
+                      controls))
+        }, numeric(1))
+    }
+}
+
 ## Full stage calculation from raw boundary objects: reshape boundaries,
 ## construct stopping regions, then integrate them.
 .bfseq_stage_probabilities_from_bounds <- function(bounds, oneCritical, strict,
                                                    direction, null = 0, dpm,
-                                                   dpsd, dots) {
+                                                   dpsd, dots,
+                                                   evalRegions = NULL) {
     boundaries <- .bfseq_boundary_data(bounds = bounds,
                                        oneCritical = oneCritical)
     regions <- .bfseq_stage_regions(boundaries = boundaries,
@@ -74,7 +117,7 @@
                                     direction = direction)
     .bfseq_stage_stop_probabilities(regions = regions, se = boundaries$se,
                                     null = null, dpm = dpm, dpsd = dpsd,
-                                    dots = dots)
+                                    dots = dots, evalRegions = evalRegions)
 }
 
 ## First two moments of the stopping sample size under the stage-wise stopping
@@ -116,6 +159,10 @@
     bounds <- lapply(seq_along(se), getBoundary)
     boundaries <- .bfseq_boundary_data(bounds = bounds,
                                        oneCritical = oneCritical)
+    evalRegions <- if (is.null(evalStage)) {
+        pars <- predpars(se = boundaries$se, null = null, dpm = dpm, dpsd = dpsd)
+        do.call(.bfseq_region_evaluator, c(list(pars = pars), dots))
+    } else NULL
     stages <- lapply(seq_along(se), function(i) {
         if (!is.null(evalStage)) {
             return(evalStage(i = i, bounds = bounds[seq_len(i)]))
@@ -123,7 +170,7 @@
         .bfseq_stage_probabilities_from_bounds(
             bounds = bounds[seq_len(i)], oneCritical = oneCritical,
             strict = strict, direction = regionDirection, null = null, dpm = dpm,
-            dpsd = dpsd, dots = dots
+            dpsd = dpsd, dots = dots, evalRegions = evalRegions
         )
     })
     pH1 <- vapply(stages, `[[`, numeric(1), "pH1")
@@ -156,7 +203,7 @@
 .bfseq_build_t_design <- function(k1, k0, bounds, dpm, dpsd, plocation,
                                   pscale, pdf, alternative, type, trange,
                                   strict, tail.eps, tail.nquad, dots,
-                                  evalStage = NULL) {
+                                  evalStage = NULL, pars = NULL) {
     oneCritical <- alternative != "two.sided"
     integration <- .bfseq_integration_settings(dots)
     integration$bf.control <- .bfpwr_t_boundary_controls(dots)
@@ -167,6 +214,12 @@
                                        oneCritical = oneCritical)
     n1 <- vapply(bounds, `[[`, numeric(1), "n1")
     n2 <- vapply(bounds, `[[`, numeric(1), "n2")
+    evalRegions <- if (is.null(evalStage)) {
+        if (is.null(pars)) {
+            pars <- predpars(se = boundaries$se, dpm = dpm, dpsd = dpsd)
+        }
+        do.call(.bfseq_region_evaluator, c(list(pars = pars), probabilityDots))
+    } else NULL
     stages <- lapply(seq_along(bounds), function(i) {
         if (!is.null(evalStage)) {
             return(evalStage(i = i, bounds = bounds[seq_len(i)]))
@@ -174,7 +227,7 @@
         .bfseq_stage_probabilities_from_bounds(
             bounds = bounds[seq_len(i)], oneCritical = oneCritical,
             strict = strict, direction = regionDirection, dpm = dpm,
-            dpsd = dpsd, dots = probabilityDots
+            dpsd = dpsd, dots = probabilityDots, evalRegions = evalRegions
         )
     })
     pH1 <- vapply(stages, `[[`, numeric(1), "pH1")

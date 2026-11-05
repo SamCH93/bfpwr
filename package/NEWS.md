@@ -8,10 +8,14 @@
 - add point-null one-sided z-tests with truncated normal analysis priors via
   `alternative = "less"` or `"greater"`, including fixed and sequential
   power and sample-size calculations
+- add one-sided normal moment priors for fixed and sequential Bayes factor
+  power and sample-size calculations, with stable log Bayes factors
 - add sequential Bayes factor designs for z-tests and t-tests via `pbf01seq()`
   and `ptbf01seq()`, with stopping probabilities, expected sample sizes,
   summaries, and plots; sequential calculations use 10,000 integration points
   by default, with accuracy adjustable through `ngrid`
+- vectorize predictive covariance calculations and reuse integration setup
+  across planned looks in sequential z-test and t-test designs
 - add sequential power and sample-size calculations via `nbf01seq()`,
   `ntbf01seq()`, `powerbf01seq()`, and `powertbf01seq()`
 - add `dirbf01()` to compute directional z-test Bayes factors

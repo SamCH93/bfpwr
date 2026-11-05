@@ -4,7 +4,17 @@
 \alias{pnmbf01}
 \title{Cumulative distribution function of the normal moment prior Bayes factor}
 \usage{
-pnmbf01(k, n, usd, null = 0, psd, dpm, dpsd, lower.tail = TRUE)
+pnmbf01(
+  k,
+  n,
+  usd,
+  null = 0,
+  psd,
+  dpm,
+  dpsd,
+  lower.tail = TRUE,
+  alternative = c("two.sided", "less", "greater")
+)
 }
 \arguments{
 \item{k}{Bayes factor threshold}
@@ -30,6 +40,13 @@ parameter. Set to 0 to obtain a point prior at the design prior mean}
 \eqn{\leq}{<=} \code{k}) (\code{TRUE}) or Pr(\eqn{\mathrm{BF}_{01}}{BF01}
 \eqn{>} \code{k}) (\code{FALSE}) should be computed. Defaults to
 \code{TRUE}}
+
+\item{alternative}{Direction of the alternative hypothesis, one of
+\code{"two.sided"} (default), \code{"less"}, or \code{"greater"}.
+For a one-sided alternative, the normal moment analysis prior is
+restricted to values below \code{null} (\code{"less"}) or above
+\code{null} (\code{"greater"}) and renormalized. The point null
+hypothesis is unchanged; \code{psd} is the scale before truncation.}
 }
 \value{
 The probability that the Bayes factor is less or greater (depending
@@ -51,11 +68,15 @@ It is assumed that the standard error of the future parameter
     \code{sd}\sqrt{2}}{usd = sd*sqrt(2)}. See the vignette for more
     information.
 }
+\note{
+The normal design prior is not truncated, including for one-sided
+    analysis priors.
+}
 \examples{
-## point desing prior (psd = 0)
+## point design prior (dpsd = 0)
 pnmbf01(k = 1/10, n = 200, usd = 2, null = 0, psd = 0.5/sqrt(2), dpm = 0.5, dpsd = 0)
 
-## normal design prior to incorporate parameter uncertainty (psd > 0)
+## normal design prior to incorporate parameter uncertainty (dpsd > 0)
 pnmbf01(k = 1/10, n = 200, usd = 2, null = 0, psd = 0.5/sqrt(2), dpm = 0.5, dpsd = 0.25)
 
 ## design prior is the null hypothesis (dpm = 0, dpsd = 0)

@@ -128,13 +128,10 @@ for (alternative in c("less", "greater")) {
     expect_true(is.list(plot(design, plot = FALSE, zplot = TRUE)))
 }
 
-## Directional composite hypotheses and moment priors keep their existing
-## meaning; these are not point-null one-sided normal designs.
-for (type in c("directional", "moment")) {
-    expect_error(pbf01seq(k1 = 0.1, se = 0.2, pm = 0, psd = 1,
-        dpm = 0.5, type = type, alternative = "greater"), "normal analysis prior")
-    expect_error(nbf01seq(k1 = 0.1, power = 0.8, pm = 0, psd = 1,
-        dpm = 0.5, type = type, alternative = "greater"), "normal analysis prior")
-}
+## Directional composite hypotheses retain their existing meaning.
+expect_error(pbf01seq(k1 = 0.1, se = 0.2, pm = 0, psd = 1,
+    dpm = 0.5, type = "directional", alternative = "greater"), "normal analysis prior")
+expect_error(nbf01seq(k1 = 0.1, power = 0.8, pm = 0, psd = 1,
+    dpm = 0.5, type = "directional", alternative = "greater"), "normal analysis prior")
 expect_error(pbf01seq(k1 = 0.1, se = 0.2, pm = 0, psd = 0,
                       alternative = "greater"), "point prior")

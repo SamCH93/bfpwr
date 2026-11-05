@@ -61,7 +61,8 @@ Defaults to \code{1}.}
 
 \item{bftype}{Type of z-test Bayes factor. One of \code{"normal"},
 \code{"directional"}, or \code{"moment"}. Defaults to \code{"normal"}.
-One-sided \code{alternative} values require \code{bftype = "normal"}.}
+One-sided \code{alternative} values support \code{bftype = "normal"}
+and \code{bftype = "moment"}.}
 
 \item{dpm}{Mean of the normal design prior}
 
@@ -115,10 +116,10 @@ candidates and stopping at terminal invalid candidates. Ignored when
 
 \item{alternative}{Direction of the alternative hypothesis, one of
 \code{"two.sided"} (default), \code{"less"}, or \code{"greater"}.
-For a one-sided alternative, the normal analysis prior is restricted to
-values below \code{null} (\code{"less"}) or above \code{null}
-(\code{"greater"}) and renormalized. \code{pm} and \code{psd} describe
-the normal distribution before truncation. A point prior
+For normal and moment priors, one-sided alternatives truncate and
+renormalize the analysis prior below or above \code{null}, respectively,
+while retaining the point null hypothesis. Prior parameters describe
+the distribution before truncation. A normal point prior
 (\code{psd = 0}) must lie strictly on the specified side of \code{null}.}
 
 \item{...}{Additional arguments passed to \code{\link{pbf01seq}}.}
@@ -153,6 +154,10 @@ powerbf01seq(power = 0.8, k1 = 1/5, k0 = 5, pm = 0, psd = 1,
 ## point null versus a positive half-normal alternative
 powerbf01seq(power = 0.8, pm = 0, psd = 1, dpm = 0.5, dpsd = 0,
              alternative = "greater", looks = 3, nrange = c(2, 200))
+
+## point null versus a positive normal moment alternative
+powerbf01seq(n = 100, psd = 0.5/sqrt(2), dpm = 0.5, dpsd = 0,
+             bftype = "moment", alternative = "greater", looks = 3)
 
 }
 \seealso{

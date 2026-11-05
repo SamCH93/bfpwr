@@ -256,6 +256,11 @@ print.power.bftest <- function(x, digits = getOption("digits"), ...) {
         names(printx) <- c("n", "power", "sd", "null", "analysis prior spread",
                            "design prior mean", "design prior sd",
                            "BF threshold k")
+        if (!is.null(x$alternative) && x$alternative != "two.sided") {
+            printx$alternative <- x$alternative
+            note <- paste(note, "prior parameters are before truncation",
+                          sep = "\n      ")
+        }
     } else if (x$test == "t") {
         printx <- x[c("n", "power", "sd", "null", "alternative", "plocation",
                       "pscale", "pdf", "dpm", "dpsd", "k")]
@@ -372,6 +377,7 @@ plot.power.bftest <- function(x, nlim = c(2, 500), ngrid = 100, type = "l",
                      lower.tail = FALSE, nrange = x$nrange,
                      alternative = alternative, tol = tol)
     } else if (x$test == "nm") {
+        alternative <- if (is.null(x$alternative)) "two.sided" else x$alternative
         ## determine unit standard deviation
         if (x$type == "two.sample") {
             usd <- sqrt(2)*x$sd
@@ -380,15 +386,18 @@ plot.power.bftest <- function(x, nlim = c(2, 500), ngrid = 100, type = "l",
         }
         powFun <- function(k, n, lower.tail = TRUE) {
             pnmbf01(k = k, n = n, usd = usd, null = x$null, psd = x$psd,
-                    dpm = x$dpm, dpsd = x$dpsd, lower.tail = lower.tail)
+                    dpm = x$dpm, dpsd = x$dpsd, lower.tail = lower.tail,
+                    alternative = alternative)
         }
         powNullFun <- function(k, n, lower.tail = TRUE) {
             pnmbf01(k = k, n = n, usd = usd, null = x$null, psd = x$psd,
-                    dpm = x$null, dpsd = 0, lower.tail = lower.tail)
+                    dpm = x$null, dpsd = 0, lower.tail = lower.tail,
+                    alternative = alternative)
         }
         nH0 <- nnmbf01(k = 1/x$k, power = x$power, usd = usd, null = x$null,
                        psd = x$psd, dpm = x$null, dpsd = 0,
-                       lower.tail = FALSE, nrange = x$nrange, tol = tol)
+                       lower.tail = FALSE, nrange = x$nrange, tol = tol,
+                       alternative = alternative)
     } else if (x$test == "t") {
         tail.eps <- if (is.null(x$tail.eps)) {
             getOption("bfpwr.tail.eps", 1e-6)

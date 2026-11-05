@@ -41,6 +41,8 @@ vignettes/*.pdf
 /simulations/downloads/
 /simulations/logs/
 /simulations/figure/
+/simulations/scripts/__pycache__/
+/output/pdf/
 /simulations/registry/manifests/*.csv
 !/simulations/registry/manifests/package-verification-cases.csv
 

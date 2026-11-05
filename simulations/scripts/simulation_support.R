@@ -180,6 +180,17 @@ arg_flag <- function(args, name) {
     isTRUE(args[[name]])
 }
 
+resolve_moment_root <- function(root, moment_root = NULL) {
+    if (is.null(moment_root)) moment_root <- file.path(root, "simulations/corpus/moment-v2")
+    bundle <- file.path(moment_root, "verification.rds")
+    if (!file.exists(bundle) || dir.exists(bundle)) {
+        stop("The pooled report requires a saved moment verification.rds bundle at ", bundle,
+             ". Supply --moment-root with the assembled results. Calculation entry points ",
+             "can use --skip-report to run without rendering.", call. = FALSE)
+    }
+    normalizePath(moment_root, winslash = "/", mustWork = TRUE)
+}
+
 ensure_dir <- function(path) {
     if (!dir.exists(path)) {
         dir.create(path, recursive = TRUE, showWarnings = FALSE)
@@ -189,7 +200,7 @@ ensure_dir <- function(path) {
 
 run_rscript <- function(script, args = character()) {
     status <- system2(file.path(R.home("bin"), "Rscript"),
-                      c(script, args))
+                      shQuote(c(script, args)))
     if (!identical(status, 0L)) {
         stop("Rscript failed with exit code ", status, ": ", script,
              call. = FALSE)

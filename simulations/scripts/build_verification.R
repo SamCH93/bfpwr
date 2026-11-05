@@ -33,6 +33,9 @@ append_arg <- function(args, flag, value) {
 main <- function() {
     args <- parse_args()
     root <- repo_root()
+    moment_root <- if (!arg_flag(args, "skip-report")) {
+        resolve_moment_root(root, arg_value(args, "moment-root"))
+    }
     corpus_root <- normalizePath(
         arg_value(args, "corpus-root",
                   file.path(root, "simulations", "corpus", "v1")),
@@ -51,7 +54,6 @@ main <- function() {
     skip_unpack <- arg_flag(args, "skip-unpack")
     skip_recompute <- arg_flag(args, "skip-recompute")
     skip_validation <- arg_flag(args, "skip-validation")
-    skip_report <- arg_flag(args, "skip-report")
     skip_search <- arg_flag(args, "skip-search")
     skip_package_manifest <- arg_flag(args, "skip-package-manifest")
     refresh_manifests <- arg_flag(args, "refresh-manifests")
@@ -208,8 +210,8 @@ main <- function() {
         )
     }
 
-    if (!skip_report) {
-        report_args <- c("--corpus-root", corpus_root)
+    if (!is.null(moment_root)) {
+        report_args <- c("--corpus-root", corpus_root, "--moment-root", moment_root)
         elapsed_step(
             "render simulation verification PDF",
             run_rscript(file.path(root, "simulations", "scripts",

@@ -4,7 +4,14 @@
 \alias{nmbf01}
 \title{Normal moment prior Bayes factor}
 \usage{
-nmbf01(estimate, se, null = 0, psd, log = FALSE)
+nmbf01(
+  estimate,
+  se,
+  null = 0,
+  psd,
+  log = FALSE,
+  alternative = c("two.sided", "less", "greater")
+)
 }
 \arguments{
 \item{estimate}{Parameter estimate}
@@ -20,6 +27,13 @@ the alternative. The modes of the prior are located at
 
 \item{log}{Logical indicating whether the natural logarithm of the Bayes
 factor should be returned. Defaults to \code{FALSE}}
+
+\item{alternative}{Direction of the alternative hypothesis, one of
+\code{"two.sided"} (default), \code{"less"}, or \code{"greater"}.
+For a one-sided alternative, the normal moment analysis prior is
+restricted to values below \code{null} (\code{"less"}) or above
+\code{null} (\code{"greater"}) and renormalized. The point null
+hypothesis is unchanged; \code{psd} is the scale before truncation.}
 }
 \value{
 Bayes factor in favor of the null hypothesis over the alternative
@@ -37,13 +51,16 @@ This function computes the Bayes factor that quantifies the
 \details{
 A normal moment prior has density \eqn{f(x \mid \code{null},
     \code{psd}) = N(x \mid \code{null}, \code{psd}^2) \times (x -
-    \code{null})/ \code{psd}^2}{f(x|\code{null},\code{psd}) =
+    \code{null})^2/ \code{psd}^2}{f(x|\code{null},\code{psd}) =
     N(x|\code{null},\code{psd})*(x - \code{null})^2/\code{psd}^2} with
     \eqn{N(x \mid m, v)}{N(x|m,v)} the normal density with mean \eqn{m} and
     variance \eqn{v} evaluated at \eqn{x}.
 }
 \examples{
 nmbf01(estimate = 0.25, se = 0.05, null = 0, psd = 0.5/sqrt(2)) # mode at 0.5
+
+## positive normal moment alternative
+nmbf01(estimate = 0.25, se = 0.05, psd = 0.5/sqrt(2), alternative = "greater")
 
 }
 \references{
