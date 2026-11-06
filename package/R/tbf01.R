@@ -356,8 +356,7 @@ tbf01. <- function(t, n, n1 = n, n2 = n, plocation = 0, pscale = 1/sqrt(2),
 #'     Extreme wrong-tail one-sided calculations use fixed Gauss-Legendre
 #'     quadrature to avoid noncentral-\eqn{t} underflow. Same-sign
 #'     noncentral-\eqn{t} densities come from \code{stats::dt}, which can be
-#'     inaccurate for extreme \eqn{t}-statistics (very small Bayes factors) and
-#'     for very large sample sizes (degrees of freedom above about 4e5).
+#'     inaccurate for extreme \eqn{t}-statistics (very small Bayes factors).
 #'
 #' @param t \eqn{t}-statistic
 #' @param n Sample size (per group)
