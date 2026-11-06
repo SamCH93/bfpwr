@@ -90,9 +90,14 @@ change score
 \details{
 The Bayes factor is implemented as in equation (5) in Gronau et al.
 (2020), and using suitable truncation in case of one-sided alternatives.
-Most calculations use \code{stats::integrate}. Extreme wrong-tail
-one-sided calculations use fixed Gauss-Legendre quadrature to avoid
-noncentral-\eqn{t} underflow.
+Most calculations use \code{stats::integrate}. Noncentral-\eqn{t}
+densities whose \eqn{t}-statistic and noncentrality parameter have
+opposite signs, where \code{stats::dt} is unreliable, use an exact
+mixture representation evaluated with Gauss-Laguerre quadrature.
+Extreme wrong-tail one-sided calculations use fixed Gauss-Legendre
+quadrature to avoid noncentral-\eqn{t} underflow. Same-sign
+noncentral-\eqn{t} densities come from \code{stats::dt}, which can be
+inaccurate for extreme \eqn{t}-statistics (very small Bayes factors).
 }
 \examples{
 ## analyses from Rouder et al. (2009):

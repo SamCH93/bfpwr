@@ -2,7 +2,7 @@
 % Please edit documentation in R/powerbinbf01seq.R
 \name{powerbinbf01seq}
 \alias{powerbinbf01seq}
-\title{Power calculations for binomial Bayes factor with two-stage designs}
+\title{Design characteristics of two-stage binomial Bayes factor designs}
 \usage{
 powerbinbf01seq(
   n1,
@@ -21,9 +21,10 @@ powerbinbf01seq(
 )
 }
 \arguments{
-\item{n1}{Sample size at interim stage}
+\item{n1}{Number of observations at the interim stage}
 
-\item{n2}{Sample size at final stage}
+\item{n2}{Total number of observations at the final stage (including the
+\code{n1} interim observations)}
 
 \item{k}{Bayes factor threshold for evidence for efficacy. Defaults to
 \code{1/10}, Jeffreys' threshold for 'strong evidence' against the null
@@ -64,16 +65,18 @@ distribution. Is only taken into account if \code{dp = NA}. Defaults to
 \code{1}}
 }
 \value{
-An object of type \code{"power.bftestseq"}, i.e., a list of the
-    arguments, computed probabilities and expected samples sizes, and
-    \code{method} and \code{note} elements
+An object of class \code{"power.bftestseq"}, i.e., a list of the
+    arguments, the probabilities of stopping for futility at the interim
+    stage (\code{pintfut}, \code{pintfut0}) and of efficacy at the final
+    stage (\code{pfineff}, \code{pfineff0}), and the expected sample sizes
+    (\code{nexp}, \code{nexp0}), each under the design prior and under
+    p = p0
 }
 \description{
-Compute design characteristics for two-stage binomial Bayes
-    factor design which stops for futility if the binomial Bayes factor
-    (\link{binbf01}) is equal or below a threshold at final stage, taking
-    into account that the study can stop if it is greater than a specified
-    threshold at interim.
+Compute design characteristics of a two-stage binomial Bayes
+    factor design (\link{binbf01}) that stops for futility at the interim
+    stage if the Bayes factor BF01 is greater than \code{kf}, and declares
+    efficacy at the final stage if BF01 is equal to or below \code{k}.
 }
 \details{
 For some users, the low-level function \link{pbinbf01seq} that is

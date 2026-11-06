@@ -112,7 +112,20 @@
                                    lower.tail = FALSE, log.p = TRUE)
     upper_scale <- .bfpwr_logspace_sub(log_lower_tail, log_upper_tail)
 
-    max(lower_scale, upper_scale, na.rm = TRUE)
+    ## Subtract on the side of the interval: both limits in the upper tail
+    ## (lower limit above the median) leave tiny upper-tail probabilities that
+    ## subtract accurately, whereas the lower-tail difference then cancels 1 - 1
+    ## and returns noise that can exceed the true value (the earlier max() of
+    ## both routes picked it). The other way round for the lower tail. The
+    ## other route is only a fallback if the chosen one is undefined.
+    if (log_lower_tail < log_lower) {
+        chosen <- upper_scale
+        other <- lower_scale
+    } else {
+        chosen <- lower_scale
+        other <- upper_scale
+    }
+    if (is.na(chosen)) other else chosen
 }
 
 .bfpwr_qnorm_logistic_inverse <- function(log_odds) {
@@ -169,5 +182,37 @@
         )
         assign(key, ans, envir = cache)
         ans
+    }
+})
+
+.bfpwr_gauss_laguerre <- local({
+    ## Keep only the most recent rule: within one Bayes factor integral and
+    ## one critical-value search the shape (t degrees of freedom + 1) is fixed,
+    ## while fractional sample sizes would make a full cache grow without bound.
+    cache <- new.env(parent = emptyenv())
+
+    function(shape, n) {
+        last <- cache$last
+        if (!is.null(last) && identical(last$shape, shape) &&
+            identical(last$n, n)) {
+            return(last$rule)
+        }
+
+        ## Generalized Gauss-Laguerre rule for the weight y^(shape - 1) e^(-y)
+        ## on (0, Inf), built with the Golub-Welsch algorithm as above. The
+        ## Jacobi matrix has diagonal 2i + shape (i = 0, ..., n - 1) and
+        ## off-diagonal sqrt(i (i + shape - 1)) (i = 1, ..., n - 1). Squared
+        ## first-row eigenvector entries are the weights normalized to sum to
+        ## one, so sum(w * f(x)) approximates E[f(X)] for X ~ Gamma(shape, 1).
+        i <- seq_len(n - 1)
+        J <- diag(2*(seq_len(n) - 1) + shape, nrow = n)
+        beta <- sqrt(i*(i + shape - 1))
+        J[cbind(i, i + 1)] <- beta
+        J[cbind(i + 1, i)] <- beta
+        eig <- eigen(J, symmetric = TRUE)
+        o <- order(eig$values)
+        rule <- list(x = eig$values[o], w = eig$vectors[1, o]^2)
+        cache$last <- list(shape = shape, n = n, rule = rule)
+        rule
     }
 })

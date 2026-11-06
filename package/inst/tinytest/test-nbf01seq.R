@@ -295,11 +295,13 @@ expect_equal(shiftMomentSearch, fixedMomentSearch,
 shiftSearch <- nbf01seq(k1 = 1/3, k0 = 3, power = 0.4, usd = usd,
                         null = theta0, pm = shiftPm, psd = shiftPsd,
                         dpm = shiftDpm, dpsd = shiftDpsd, looks = 1,
-                        nrange = c(10, 120))
+                        nrange = c(10, 200))
 fixedShiftSearch <- nbf01(k = 1/3, power = 0.4, usd = usd, null = theta0,
                           pm = shiftPm, psd = shiftPsd, dpm = shiftDpm,
-                          dpsd = shiftDpsd, nrange = c(10, 120),
+                          dpsd = shiftDpsd, nrange = c(10, 200),
                           analytical = FALSE)
+expect_true(is.finite(shiftSearch),
+            info = "one-look sequential z sample-size search should find n within nrange")
 expect_equal(shiftSearch, fixedShiftSearch,
              info = "one-look sequential z sample-size search should match fixed nbf01 with nonzero null")
 

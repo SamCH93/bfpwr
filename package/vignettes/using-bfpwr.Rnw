@@ -297,7 +297,7 @@ can be cast into this framework. The documentation of both functions
     Count & Log rate ratio & Total count & 2 \\
     \bottomrule
     \end{tabular}
-}
+\par}
 
 %% {\footnotesize * $\pi_1 = \mathrm{expit}(\mathrm{logit}(\pi_0) + \theta)$ where
 %%   $\theta$ is the assumed log odds ratio, $\pi_1 = \exp(\log(\pi_0) + \theta)$

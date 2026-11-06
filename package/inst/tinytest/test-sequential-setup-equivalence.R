@@ -134,7 +134,8 @@ for (controls in list(list(ngrid = 0), list(ngrid = 1.5),
                       list(method = "unknown"), list(ngrid = NA_real_))) {
     expect_error(do.call(pbf01seq, c(list(k1 = 0.1, se = c(0.3, 0.2),
         pm = 0, psd = 1), controls)))
-    expect_error(do.call(ptbf01seq, c(list(k1 = 0.1, n = c(20, 40)), controls)))
+    expect_error(do.call(ptbf01seq, c(list(k1 = 0.1, k0 = 2, n = c(20, 40)),
+                                      controls)))
 }
 local({
     pars <- bfpwr:::predpars(c(0.3, 0.2), dpm = 0, dpsd = 0.1)
