@@ -58,7 +58,10 @@ should be returned. If \code{TRUE} the required sample size is rounded to
 the next larger integer. Defaults to \code{TRUE}}
 
 \item{analytical}{Logical indicating whether analytical (if available) or
-numerical method should be used. Defaults to \code{TRUE}}
+numerical method should be used. The analytical solution is available
+for point analysis priors (\code{psd = 0}). It does not use
+\code{nrange}; a warning is issued if it lies outside \code{nrange}.
+Defaults to \code{TRUE}}
 
 \item{alternative}{Direction of the alternative hypothesis, one of
 \code{"two.sided"} (default), \code{"less"}, or \code{"greater"}.
