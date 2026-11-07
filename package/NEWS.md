@@ -26,6 +26,9 @@
   tradeoff in one-sided t Bayes factor calculations (defaults: `1e-6` and 512)
 - correct `pbinbf01()` power calculations for discrete binomial outcomes,
   including equality at the Bayes factor threshold
+- warn in `nbf01()` and `powerbf01()` when the analytical sample size for a
+  point analysis prior lies outside `nrange`, which only the numerical search
+  uses
 
 # bfpwr 0.1.7
 
