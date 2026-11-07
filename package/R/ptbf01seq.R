@@ -8,6 +8,14 @@
 #'
 #' @inheritParams ptbf01
 #' @inheritParams pbf01seq
+#' @param plocation \eqn{t} prior location for the standardized mean
+#'     difference, relative to the null value as in \link{tbf01}: there is no
+#'     \code{null} argument, and \code{plocation = 0} centers the prior at the
+#'     null value. For a null standardized mean difference other than 0,
+#'     subtract it from \code{plocation} and \code{dpm}. Defaults to \code{0}
+#' @param dpm Mean of the normal design prior assigned to the standardized mean
+#'     difference, relative to the null value like \code{plocation}. Defaults to
+#'     the analysis prior location
 #' @param trange Critical \eqn{t}-statistic search strategy for the sequential
 #'     stopping boundaries. Can be either \code{"adaptive"} (default) or a
 #'     numeric interval. For one-sided adaptive searches, \code{tail.eps}

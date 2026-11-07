@@ -18,6 +18,9 @@
   oppose the alternative hypothesis
 - fix two-sided `ptbf01()` power and critical-value searches for shifted
   informed priors, including heavy-tailed priors
+- document that `ptbf01()`, `ntbf01()`, and `powertbf01()` take `plocation`
+  and `dpm` on the same scale as `null`, whereas `tbf01()` and the sequential
+  t-test functions take them relative to the null value
 - improve accuracy of `tbf01()` for informed priors when the t-statistic and
   the prior point in opposite directions, where `stats::dt()` with a
   noncentrality parameter is unreliable

@@ -33,7 +33,13 @@ ntbf01(
 \item{null}{Standardized mean difference under the point null hypothesis.
 Defaults to \code{0}}
 
-\item{plocation}{\eqn{t} prior location. Defaults to \code{0}}
+\item{plocation}{\eqn{t} prior location for the standardized mean
+difference, on the same scale as \code{null} and \code{dpm}: the prior
+is centered at \code{plocation}, not at \code{null + plocation}, so
+\code{plocation = null} centers it at the null value. This differs from
+\link{tbf01}, \link{ptbf01seq}, and \link{ntbf01seq}, which have no
+\code{null} argument and take \code{plocation} relative to the null
+value. Defaults to \code{0}}
 
 \item{pscale}{\eqn{t} prior scale. Defaults to \code{1/sqrt(2)}}
 
@@ -48,7 +54,8 @@ prior)}
 the analysis prior to effects below and above \code{null}, respectively.}
 
 \item{dpm}{Mean of the normal design prior assigned to the standardized mean
-difference. Defaults to the analysis prior location}
+difference, on the same scale as \code{null}. Defaults to the analysis
+prior location}
 
 \item{dpsd}{Standard deviation of the normal design prior assigned to the
 standardized mean difference. Set to \code{0} to obtain a point prior at
