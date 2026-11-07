@@ -93,10 +93,28 @@
 .bfpwr_validate_controls <- function(controls, root = TRUE) {
     supported <- c("rel.tol", "abs.tol", "subdivisions", "stop.on.error", "keep.xy")
     if (root) supported <- c(supported, "tol", "maxiter", "trace", "check.conv")
-    if (!is.list(controls) || length(names(controls)) != length(controls) ||
-        any(!names(controls) %in% supported) || anyDuplicated(names(controls))) {
+    ## name the offending arguments, e.g., a misspelled control or an argument
+    ## that only a related function has
+    controlNames <- names(controls)
+    if (is.null(controlNames)) controlNames <- character(length(controls))
+    named <- !is.na(controlNames) & nzchar(controlNames)
+    unsupported <- unique(controlNames[named & !controlNames %in% supported])
+    repeated <- unique(controlNames[named & duplicated(controlNames)])
+    problems <- c(
+        if (any(!named)) "unnamed values",
+        if (length(unsupported)) {
+            paste0("unsupported ", paste0("'", unsupported, "'", collapse = ", "))
+        },
+        if (length(repeated)) {
+            paste0("duplicated ", paste0("'", repeated, "'", collapse = ", "))
+        }
+    )
+    if (!is.list(controls) || length(problems) > 0) {
         stop("numerical controls must have unique, supported names: ",
-             paste(supported, collapse = ", "))
+             paste(supported, collapse = ", "),
+             if (length(problems) > 0) {
+                 paste0(" (found ", paste(problems, collapse = "; "), ")")
+             })
     }
     for (name in names(controls)) {
         value <- controls[[name]]
