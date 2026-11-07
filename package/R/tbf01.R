@@ -364,7 +364,11 @@ tbf01. <- function(t, n, n1 = n, n2 = n, plocation = 0, pscale = 1/sqrt(2),
 #'     with unequal group sizes)
 #' @param n2 Sample size in group 2 (only required for two-sample \eqn{t}-test
 #'     with unequal group sizes)
-#' @param plocation \eqn{t} prior location. Defaults to \code{0}
+#' @param plocation \eqn{t} prior location for the SMD, relative to the null
+#'     value against which the \eqn{t}-statistic is computed
+#'     (\code{plocation = 0} centers the prior at the null value). Defaults to
+#'     \code{0}. Note that \link{ptbf01}, \link{ntbf01}, and \link{powertbf01}
+#'     take \code{plocation} on the same scale as their \code{null} argument
 #' @param pscale \eqn{t} prior scale. Defaults to \code{1/sqrt(2)}
 #' @param pdf \eqn{t} prior degrees of freedom. Defaults to \code{1} (a Cauchy
 #'     prior)

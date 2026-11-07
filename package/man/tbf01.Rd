@@ -30,7 +30,11 @@ with unequal group sizes)}
 \item{n2}{Sample size in group 2 (only required for two-sample \eqn{t}-test
 with unequal group sizes)}
 
-\item{plocation}{\eqn{t} prior location. Defaults to \code{0}}
+\item{plocation}{\eqn{t} prior location for the SMD, relative to the null
+value against which the \eqn{t}-statistic is computed
+(\code{plocation = 0} centers the prior at the null value). Defaults to
+\code{0}. Note that \link{ptbf01}, \link{ntbf01}, and \link{powertbf01}
+take \code{plocation} on the same scale as their \code{null} argument}
 
 \item{pscale}{\eqn{t} prior scale. Defaults to \code{1/sqrt(2)}}
 

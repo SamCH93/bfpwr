@@ -44,7 +44,11 @@ sample size for one-sample and paired tests. Has to be \code{NULL} if
 \item{k0}{Bayes factor threshold in favor of \eqn{H_0}{H0}. Evidence for
 \eqn{H_0}{H0} is obtained when \eqn{\mathrm{BF}_{01} \geq k0}.}
 
-\item{plocation}{\eqn{t} prior location. Defaults to \code{0}}
+\item{plocation}{\eqn{t} prior location for the standardized mean
+difference, relative to the null value as in \link{tbf01}: there is no
+\code{null} argument, and \code{plocation = 0} centers the prior at the
+null value. For a null standardized mean difference other than 0,
+subtract it from \code{plocation} and \code{dpm}. Defaults to \code{0}}
 
 \item{pscale}{\eqn{t} prior scale. Defaults to \code{1/sqrt(2)}}
 
@@ -59,7 +63,8 @@ prior)}
 the analysis prior to effects below and above \code{null}, respectively.}
 
 \item{dpm}{Mean of the normal design prior assigned to the standardized mean
-difference. Defaults to the analysis prior location}
+difference, relative to the null value like \code{plocation}. Defaults to
+the analysis prior location}
 
 \item{dpsd}{Standard deviation of the normal design prior assigned to the
 standardized mean difference. Set to \code{0} to obtain a point prior at
