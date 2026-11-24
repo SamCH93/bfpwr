@@ -71,8 +71,7 @@ root tolerance defaults to \code{tol = 1e-8} and can be overridden.}
 }
 \value{
 The sample size selected by the search, rounded up to an integer,
-    or \code{NaN} with a warning if the search fails as described in
-    Details
+    or \code{NaN} with a warning if the numerical search fails
 }
 \description{
 This function computes the required sample size to obtain a
@@ -110,15 +109,6 @@ Because the number of successes is discrete, binomial power is not
     \link{pbinbf01} shows power over a range of sample sizes. \link{nbf01},
     \link{nnmbf01}, and \link{ntbf01} determine the sample size without
     this check.
-
-    \code{nrange} gives the endpoints of the numerical search. If power at
-    an endpoint is \code{NaN}, power at the lower endpoint already exceeds
-    the target, power at the upper endpoint is below the target, or
-    \code{stats::uniroot} fails, \code{NaN} is returned with a warning, as
-    for the other sample size functions. Because power oscillates, power at
-    the upper endpoint can be below the target even if smaller sample sizes
-    reach it. The returned sample size can exceed the upper endpoint,
-    because it is rounded up and power is checked beyond the crossing.
 }
 \examples{
 ## binomial power oscillates with the sample size: power reaches 0.8 at

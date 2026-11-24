@@ -86,18 +86,8 @@ nbinbf01. <- function(k, power, p0 = 0.5, type = c("point", "direction"), a = 1,
 #'     \link{nnmbf01}, and \link{ntbf01} determine the sample size without
 #'     this check.
 #'
-#'     \code{nrange} gives the endpoints of the numerical search. If power at
-#'     an endpoint is \code{NaN}, power at the lower endpoint already exceeds
-#'     the target, power at the upper endpoint is below the target, or
-#'     \code{stats::uniroot} fails, \code{NaN} is returned with a warning, as
-#'     for the other sample size functions. Because power oscillates, power at
-#'     the upper endpoint can be below the target even if smaller sample sizes
-#'     reach it. The returned sample size can exceed the upper endpoint,
-#'     because it is rounded up and power is checked beyond the crossing.
-#'
 #' @return The sample size selected by the search, rounded up to an integer,
-#'     or \code{NaN} with a warning if the search fails as described in
-#'     Details
+#'     or \code{NaN} with a warning if the numerical search fails
 #'
 #' @references Chernick, M. R., Liu, C. Y. (2002). The saw-toothed behavior of
 #'     power versus sample size and software solutions: Single binomial
