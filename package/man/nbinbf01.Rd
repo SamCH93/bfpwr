@@ -70,14 +70,55 @@ performed. Defaults to \code{c(1, 10^4)}}
 root tolerance defaults to \code{tol = 1e-8} and can be overridden.}
 }
 \value{
-The required sample size to achieve the specified power
+The sample size selected by the search, rounded up to an integer,
+    or \code{NaN} with a warning if the numerical search fails
 }
 \description{
 This function computes the required sample size to obtain a
     binomial Bayes factor (\link{binbf01}) more extreme than a threshold
     \code{k} with a specified target power.
 }
+\details{
+Because the number of successes is discrete, binomial power is not
+    a smooth function of the sample size but can oscillate in a saw-tooth
+    (zig-zag) pattern: power can reach the target at some \code{n} and fall
+    below it again at a slightly larger \code{n} (Chernick and Liu, 2002).
+    Such oscillation is a known feature of the binomial and other
+    discrete-data models, where it also affects, for example, the coverage
+    of confidence intervals and the type I error rate of exact tests. It is
+    qualitatively different from a non-monotone power curve for continuous
+    data, such as the probability of misleading evidence (see
+    \link{nbf01}). As is common in sample size calculations for discrete
+    data (e.g., Julious, 2023, Chapter 17), the function therefore aims
+    for a sample size after which power does not drop below the target
+    again, by checking a window of sample sizes after each crossing, rather
+    than simply returning the first sample size at which power reaches the
+    target. The two can coincide when power does not dip.
+
+    Specifically, the search locates a crossing of the target power with
+    \code{stats::uniroot} and checks power at the crossing and at the next
+    10 sample sizes. If all of them meet the target, the crossing is
+    returned. If only the crossing itself falls below the target, the next
+    sample size is returned (so 9 further sample sizes have been checked).
+    Otherwise, the search is restarted from the last checked sample size
+    below the target, with at most 5 restarts; if these are used up, a
+    warning is issued and the last crossing is returned, at which power may
+    be below the target. The returned sample size can thus be larger than
+    the first sample size at which power reaches the target, and power can
+    still fall below the target beyond the checked sample sizes;
+    \link{pbinbf01} shows power over a range of sample sizes. \link{nbf01},
+    \link{nnmbf01}, and \link{ntbf01} determine the sample size without
+    this check.
+}
 \examples{
+## binomial power oscillates with the sample size: power reaches 0.8 at
+## n = 74, 76, and 77, but nbinbf01() returns n = 79, after which power
+## stays at or above 0.8 for the next 10 sample sizes
+(n <- nbinbf01(k = 1/6, power = 0.8, p0 = 0.5, type = "point", dp = 0.7))
+nseq <- 72:(n + 10)
+round(setNames(pbinbf01(k = 1/6, n = nseq, p0 = 0.5, type = "point",
+                        dp = 0.7), nseq), 3)
+
 ## sample size parameters
 pow <- 0.9
 p0 <- 3/4
@@ -118,6 +159,15 @@ abline(h = pow, lty = 2)
 abline(v = c(nH1, nH0), col = c(2, 4), lty = 2)
 legend("topleft", legend = c("H1", "H0"), lty = 1, col = c(2, 4))
 }
+}
+\references{
+Chernick, M. R., Liu, C. Y. (2002). The saw-toothed behavior of
+    power versus sample size and software solutions: Single binomial
+    proportion using exact methods. The American Statistician,
+    56(2):149-155. \doi{10.1198/000313002317572835}
+
+Julious, S. A. (2023). Sample Sizes for Clinical Trials (2nd ed.). Chapman
+    and Hall/CRC. \doi{10.1201/9780429503658}
 }
 \seealso{
 \link{pbinbf01}, \link{binbf01}
