@@ -33,8 +33,9 @@ nbinbf01. <- function(k, power, p0 = 0.5, type = c("point", "direction"), a = 1,
     ## discrete-data sample sizes, searchNoscil() deliberately checks that
     ## power does not drop below the target over the next 10 sample sizes
     ## after a crossing instead of returning the first n that reaches the
-    ## target (see Details in ?nbinbf01). Keep this rule; do not replace it
-    ## with the first-crossing searchN() rule of the continuous-data functions.
+    ## target (see Details in ?nbinbf01 for the one-step advance and the
+    ## restart limit). Keep this rule; do not replace it with the plain
+    ## searchN() crossing used by the continuous-data functions.
     n <- searchNoscil(rootFun = rootFun, nrange = nrange, nextend = 10,
                       maxcycles = 5, ...)
     return(ceiling(n))
@@ -64,10 +65,11 @@ nbinbf01. <- function(k, power, p0 = 0.5, type = c("point", "direction"), a = 1,
 #'     qualitatively different from a non-monotone power curve for continuous
 #'     data, such as the probability of misleading evidence (see
 #'     \link{nbf01}). As is common in sample size calculations for discrete
-#'     data (e.g., Julious, 2023, Chapter 17), the function therefore looks
+#'     data (e.g., Julious, 2023, Chapter 17), the function therefore aims
 #'     for a sample size after which power does not drop below the target
-#'     again, rather than simply returning the first sample size at which
-#'     power reaches the target.
+#'     again, by checking a window of sample sizes after each crossing, rather
+#'     than simply returning the first sample size at which power reaches the
+#'     target. The two can coincide when power does not dip.
 #'
 #'     Specifically, the search locates a crossing of the target power with
 #'     \code{stats::uniroot} and checks power at the crossing and at the next
@@ -85,16 +87,17 @@ nbinbf01. <- function(k, power, p0 = 0.5, type = c("point", "direction"), a = 1,
 #'     this check.
 #'
 #'     \code{nrange} gives the endpoints of the numerical search. If power at
-#'     the lower endpoint already exceeds the target, power at the upper
-#'     endpoint is below the target, or the search otherwise fails, \code{NaN}
-#'     is returned with a warning, as for the other sample size functions.
-#'     Because power oscillates, power at the upper endpoint can be below the
-#'     target even if smaller sample sizes reach it. As power is checked
-#'     beyond the crossing, the returned sample size can exceed the upper
-#'     endpoint.
+#'     an endpoint is \code{NaN}, power at the lower endpoint already exceeds
+#'     the target, power at the upper endpoint is below the target, or
+#'     \code{stats::uniroot} fails, \code{NaN} is returned with a warning, as
+#'     for the other sample size functions. Because power oscillates, power at
+#'     the upper endpoint can be below the target even if smaller sample sizes
+#'     reach it. The returned sample size can exceed the upper endpoint,
+#'     because it is rounded up and power is checked beyond the crossing.
 #'
-#' @return The required sample size (rounded up to an integer), or \code{NaN}
-#'     with a warning if the search fails
+#' @return The sample size selected by the search, rounded up to an integer,
+#'     or \code{NaN} with a warning if the search fails as described in
+#'     Details
 #'
 #' @references Chernick, M. R., Liu, C. Y. (2002). The saw-toothed behavior of
 #'     power versus sample size and software solutions: Single binomial

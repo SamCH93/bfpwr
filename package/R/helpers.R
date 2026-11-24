@@ -89,7 +89,8 @@ searchN <- function(rootFun, nrange, tol = getOption("bfpwr.tol", 1e-8),
 #'     simply return the first crossing. This is qualitatively different from
 #'     a non-monotone power function of continuous data (for example, the
 #'     probability of misleading evidence), for which
-#'     \code{searchN(peak = TRUE)} returns the rising crossing.
+#'     \code{searchN(peak = TRUE)} can locate an interior maximum to bracket
+#'     the rising crossing.
 #'
 #'     \code{searchN()} first locates a crossing, and power is checked at the
 #'     crossing and the next \code{nextend} sample sizes. If every checked
@@ -112,8 +113,8 @@ searchN <- function(rootFun, nrange, tol = getOption("bfpwr.tol", 1e-8),
 #' @param ... Other arguments passed to \code{stats::uniroot}. The sample-size
 #'     root tolerance defaults to \code{tol = 1e-8} and can be overridden.
 #'
-#' @return The required sample size to achieve the specified power, or
-#'     \code{NaN} with a warning if the search fails
+#' @return The selected numerical candidate, or \code{NaN} with the warning
+#'     from \code{searchN()} when it returns \code{NaN}
 #'
 #' @author Samuel Pawel
 #'

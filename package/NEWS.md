@@ -36,9 +36,10 @@
   next 10 sample sizes after a crossing, rather than returning the first sample
   size that reaches the target
 - return `NaN` with the search warning instead of an error from `nbinbf01()`
-  and `powerbinbf01()` when the sample-size search fails (e.g., power at the
-  lower bound of `nrange` already above the target or at the upper bound below
-  it), as the other sample-size functions do
+  and `powerbinbf01()` when the endpoint checks of the sample-size search fail
+  (e.g., power at the lower bound of `nrange` already above the target or at
+  the upper bound below it) or `uniroot()` fails, as the other sample-size
+  functions do
 
 # bfpwr 0.1.7
 

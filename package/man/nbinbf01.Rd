@@ -70,8 +70,9 @@ performed. Defaults to \code{c(1, 10^4)}}
 root tolerance defaults to \code{tol = 1e-8} and can be overridden.}
 }
 \value{
-The required sample size (rounded up to an integer), or \code{NaN}
-    with a warning if the search fails
+The sample size selected by the search, rounded up to an integer,
+    or \code{NaN} with a warning if the search fails as described in
+    Details
 }
 \description{
 This function computes the required sample size to obtain a
@@ -89,10 +90,11 @@ Because the number of successes is discrete, binomial power is not
     qualitatively different from a non-monotone power curve for continuous
     data, such as the probability of misleading evidence (see
     \link{nbf01}). As is common in sample size calculations for discrete
-    data (e.g., Julious, 2023, Chapter 17), the function therefore looks
+    data (e.g., Julious, 2023, Chapter 17), the function therefore aims
     for a sample size after which power does not drop below the target
-    again, rather than simply returning the first sample size at which
-    power reaches the target.
+    again, by checking a window of sample sizes after each crossing, rather
+    than simply returning the first sample size at which power reaches the
+    target. The two can coincide when power does not dip.
 
     Specifically, the search locates a crossing of the target power with
     \code{stats::uniroot} and checks power at the crossing and at the next
@@ -110,13 +112,13 @@ Because the number of successes is discrete, binomial power is not
     this check.
 
     \code{nrange} gives the endpoints of the numerical search. If power at
-    the lower endpoint already exceeds the target, power at the upper
-    endpoint is below the target, or the search otherwise fails, \code{NaN}
-    is returned with a warning, as for the other sample size functions.
-    Because power oscillates, power at the upper endpoint can be below the
-    target even if smaller sample sizes reach it. As power is checked
-    beyond the crossing, the returned sample size can exceed the upper
-    endpoint.
+    an endpoint is \code{NaN}, power at the lower endpoint already exceeds
+    the target, power at the upper endpoint is below the target, or
+    \code{stats::uniroot} fails, \code{NaN} is returned with a warning, as
+    for the other sample size functions. Because power oscillates, power at
+    the upper endpoint can be below the target even if smaller sample sizes
+    reach it. The returned sample size can exceed the upper endpoint,
+    because it is rounded up and power is checked beyond the crossing.
 }
 \examples{
 ## binomial power oscillates with the sample size: power reaches 0.8 at
