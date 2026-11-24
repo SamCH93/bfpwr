@@ -89,6 +89,14 @@ nbf01. <- function(k, power, usd, null = 0, pm, psd, dpm = pm, dpsd = psd,
                 c <- (usd^2*log(k)/(null - pm))^2
                 if (power >= 0.5) n <- (-b + sqrt(b^2 - 4*a*c))/(2*a)
                 else n <- (-b - sqrt(b^2 - 4*a*c))/(2*a)
+                ## the closed-form solution does not use nrange, so flag a
+                ## result that the numerical search would not return
+                if (is.finite(n) && (n < nrange[1] || n > nrange[2])) {
+                    warning(paste0("analytical sample size (", signif(n, 4),
+                                   ") lies outside the sample size search ",
+                                   "range ('nrange'), which only the ",
+                                   "numerical search (analytical = FALSE) uses"))
+                }
             }
 
         } else {
@@ -132,7 +140,10 @@ nbf01. <- function(k, power, usd, null = 0, pm, psd, dpm = pm, dpsd = psd,
 #'     should be returned. If \code{TRUE} the required sample size is rounded to
 #'     the next larger integer. Defaults to \code{TRUE}
 #' @param analytical Logical indicating whether analytical (if available) or
-#'     numerical method should be used. Defaults to \code{TRUE}
+#'     numerical method should be used. The analytical solution is available
+#'     for point analysis priors (\code{psd = 0}). It does not use
+#'     \code{nrange}; a warning is issued if it lies outside \code{nrange}.
+#'     Defaults to \code{TRUE}
 #' @param ... Other arguments passed to \code{stats::uniroot}. The sample-size
 #'     root tolerance defaults to \code{tol = 1e-8} and can be overridden.
 #'
