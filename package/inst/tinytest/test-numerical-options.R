@@ -45,6 +45,15 @@ expect_error(ptbf01(k = 0.1, n = 30, rel.toll = 1e-9))
 expect_error(bfpwr:::.bfpwr_validate_controls(list(1e-9)))
 expect_error(tbf01(t = 1, n = 30, subdivisons = 500))
 expect_error(ptbf01seq(n = c(30, 60), bf.control = list(rel.toll = 1e-9)))
+## The error names the offending arguments.
+expect_error(ptbf01(k = 0.1, n = 30, rel.toll = 1e-9), pattern = "unsupported 'rel.toll'")
+expect_error(tbf01(t = 1, n = 30, null = 0.2), pattern = "unsupported 'null'")
+expect_error(bfpwr:::.bfpwr_validate_controls(list(1e-9)), pattern = "unnamed values")
+expect_error(bfpwr:::.bfpwr_validate_controls(list(tol = 1e-9, tol = 1e-8)),
+             pattern = "duplicated 'tol'")
+expect_error(bfpwr:::.bfpwr_validate_controls(c(tol = 1e-9)),
+             pattern = "unique, supported names")
+expect_silent(bfpwr:::.bfpwr_validate_controls(list(tol = 1e-9, rel.tol = 1e-8)))
 
 ## Public signatures expose their option name and literal package fallback.
 for (name in c("powerbf01", "powernmbf01", "powerbinbf01")) {

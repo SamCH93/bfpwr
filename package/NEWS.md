@@ -11,6 +11,8 @@
 - add sequential power and sample-size calculations via `nbf01seq()`,
   `ntbf01seq()`, `powerbf01seq()`, and `powertbf01seq()`
 - add `bfpwrOptions()` to inspect and change session numerical settings
+- name the unsupported, duplicated, or unnamed arguments when the numerical
+  controls passed to the t-test functions are invalid
 - improve numerical accuracy of small probabilities in `pbf01()` and
   `pnmbf01()`; fix `pbf01()` for very narrow normal priors and point
   alternatives identical to the null hypothesis
