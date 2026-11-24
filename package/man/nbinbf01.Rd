@@ -70,7 +70,8 @@ performed. Defaults to \code{c(1, 10^4)}}
 root tolerance defaults to \code{tol = 1e-8} and can be overridden.}
 }
 \value{
-The required sample size to achieve the specified power
+The required sample size (rounded up to an integer), or \code{NaN}
+    with a warning if the search fails
 }
 \description{
 This function computes the required sample size to obtain a
@@ -78,31 +79,44 @@ This function computes the required sample size to obtain a
     \code{k} with a specified target power.
 }
 \details{
-Because the number of successes is discrete, binomial power
-    increases with the sample size overall but oscillates in a saw-tooth
-    pattern: power can reach the target at some \code{n} and fall below it
-    again at \code{n + 1} (Chernick and Liu, 2002). The function therefore
-    does not return the first sample size at which power reaches the
-    target. It returns a sample size \code{n} at which power reaches the
-    target and stays at or above it for the next 10 sample sizes
-    \code{n + 1}, \dots, \code{n + 10}, so that the design does not lose
-    the target power if a few more observations are collected.
+Because the number of successes is discrete, binomial power is not
+    a smooth function of the sample size but can oscillate in a saw-tooth
+    (zig-zag) pattern: power can reach the target at some \code{n} and fall
+    below it again at a slightly larger \code{n} (Chernick and Liu, 2002).
+    Such oscillation is a known feature of the binomial and other
+    discrete-data models, where it also affects, for example, the coverage
+    of confidence intervals and the type I error rate of exact tests. It is
+    qualitatively different from a non-monotone power curve for continuous
+    data, such as the probability of misleading evidence (see
+    \link{nbf01}). As is common in sample size calculations for discrete
+    data (e.g., Julious, 2023, Chapter 17), the function therefore looks
+    for a sample size after which power does not drop below the target
+    again, rather than simply returning the first sample size at which
+    power reaches the target.
 
-    The search first locates a crossing of the target power with
-    \code{stats::uniroot}. If power falls below the target within the next
-    10 sample sizes, the search is repeated from the largest of these
-    sample sizes with power below the target, at most 5 times; after that,
-    a warning is issued and the last crossing is returned. Smaller sample
-    sizes may thus reach the target power, and power may still fall below
-    the target beyond \code{n + 10}; \link{pbinbf01} shows power over a
-    range of sample sizes. This differs from \link{nbf01}, \link{nnmbf01},
-    and \link{ntbf01}, which return the sample size at which power reaches
-    the target.
+    Specifically, the search locates a crossing of the target power with
+    \code{stats::uniroot} and checks power at the crossing and at the next
+    10 sample sizes. If all of them meet the target, the crossing is
+    returned. If only the crossing itself falls below the target, the next
+    sample size is returned (so 9 further sample sizes have been checked).
+    Otherwise, the search is restarted from the last checked sample size
+    below the target, with at most 5 restarts; if these are used up, a
+    warning is issued and the last crossing is returned, at which power may
+    be below the target. The returned sample size can thus be larger than
+    the first sample size at which power reaches the target, and power can
+    still fall below the target beyond the checked sample sizes;
+    \link{pbinbf01} shows power over a range of sample sizes. \link{nbf01},
+    \link{nnmbf01}, and \link{ntbf01} determine the sample size without
+    this check.
 
-    If the target power is already reached at the lower bound of
-    \code{nrange}, is not reached at its upper bound, or falls below the
-    target again above the upper bound, \code{NaN} is returned with a
-    warning.
+    \code{nrange} gives the endpoints of the numerical search. If power at
+    the lower endpoint already exceeds the target, power at the upper
+    endpoint is below the target, or the search otherwise fails, \code{NaN}
+    is returned with a warning, as for the other sample size functions.
+    Because power oscillates, power at the upper endpoint can be below the
+    target even if smaller sample sizes reach it. As power is checked
+    beyond the crossing, the returned sample size can exceed the upper
+    endpoint.
 }
 \examples{
 ## binomial power oscillates with the sample size: power reaches 0.8 at
@@ -159,6 +173,9 @@ Chernick, M. R., Liu, C. Y. (2002). The saw-toothed behavior of
     power versus sample size and software solutions: Single binomial
     proportion using exact methods. The American Statistician,
     56(2):149-155. \doi{10.1198/000313002317572835}
+
+Julious, S. A. (2023). Sample Sizes for Clinical Trials (2nd ed.). Chapman
+    and Hall/CRC. \doi{10.1201/9780429503658}
 }
 \seealso{
 \link{pbinbf01}, \link{binbf01}

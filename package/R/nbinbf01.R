@@ -27,12 +27,14 @@ nbinbf01. <- function(k, power, p0 = 0.5, type = c("point", "direction"), a = 1,
         })
     }
 
-    ## Binomial power oscillates in n (saw-tooth) because the data are
-    ## discrete. searchNoscil() therefore deliberately returns a crossing after
-    ## which power stays at or above the target for the next 10 sample sizes,
-    ## not the first n that reaches the target (see Details in ?nbinbf01).
-    ## The first-crossing rule of searchN() used for the continuous-data
-    ## sample-size functions is not intended here.
+    ## Binomial power can oscillate in n (saw-tooth) because the data are
+    ## discrete, a known feature of discrete-data models that is qualitatively
+    ## different from a non-monotone power curve. As is standard for
+    ## discrete-data sample sizes, searchNoscil() deliberately checks that
+    ## power does not drop below the target over the next 10 sample sizes
+    ## after a crossing instead of returning the first n that reaches the
+    ## target (see Details in ?nbinbf01). Keep this rule; do not replace it
+    ## with the first-crossing searchN() rule of the continuous-data functions.
     n <- searchNoscil(rootFun = rootFun, nrange = nrange, nextend = 10,
                       maxcycles = 5, ...)
     return(ceiling(n))
@@ -52,38 +54,55 @@ nbinbf01. <- function(k, power, p0 = 0.5, type = c("point", "direction"), a = 1,
 #' @param ... Other arguments passed to \code{stats::uniroot}. The sample-size
 #'     root tolerance defaults to \code{tol = 1e-8} and can be overridden.
 #'
-#' @details Because the number of successes is discrete, binomial power
-#'     increases with the sample size overall but oscillates in a saw-tooth
-#'     pattern: power can reach the target at some \code{n} and fall below it
-#'     again at \code{n + 1} (Chernick and Liu, 2002). The function therefore
-#'     does not return the first sample size at which power reaches the
-#'     target. It returns a sample size \code{n} at which power reaches the
-#'     target and stays at or above it for the next 10 sample sizes
-#'     \code{n + 1}, \dots, \code{n + 10}, so that the design does not lose
-#'     the target power if a few more observations are collected.
+#' @details Because the number of successes is discrete, binomial power is not
+#'     a smooth function of the sample size but can oscillate in a saw-tooth
+#'     (zig-zag) pattern: power can reach the target at some \code{n} and fall
+#'     below it again at a slightly larger \code{n} (Chernick and Liu, 2002).
+#'     Such oscillation is a known feature of the binomial and other
+#'     discrete-data models, where it also affects, for example, the coverage
+#'     of confidence intervals and the type I error rate of exact tests. It is
+#'     qualitatively different from a non-monotone power curve for continuous
+#'     data, such as the probability of misleading evidence (see
+#'     \link{nbf01}). As is common in sample size calculations for discrete
+#'     data (e.g., Julious, 2023, Chapter 17), the function therefore looks
+#'     for a sample size after which power does not drop below the target
+#'     again, rather than simply returning the first sample size at which
+#'     power reaches the target.
 #'
-#'     The search first locates a crossing of the target power with
-#'     \code{stats::uniroot}. If power falls below the target within the next
-#'     10 sample sizes, the search is repeated from the largest of these
-#'     sample sizes with power below the target, at most 5 times; after that,
-#'     a warning is issued and the last crossing is returned. Smaller sample
-#'     sizes may thus reach the target power, and power may still fall below
-#'     the target beyond \code{n + 10}; \link{pbinbf01} shows power over a
-#'     range of sample sizes. This differs from \link{nbf01}, \link{nnmbf01},
-#'     and \link{ntbf01}, which return the sample size at which power reaches
-#'     the target.
+#'     Specifically, the search locates a crossing of the target power with
+#'     \code{stats::uniroot} and checks power at the crossing and at the next
+#'     10 sample sizes. If all of them meet the target, the crossing is
+#'     returned. If only the crossing itself falls below the target, the next
+#'     sample size is returned (so 9 further sample sizes have been checked).
+#'     Otherwise, the search is restarted from the last checked sample size
+#'     below the target, with at most 5 restarts; if these are used up, a
+#'     warning is issued and the last crossing is returned, at which power may
+#'     be below the target. The returned sample size can thus be larger than
+#'     the first sample size at which power reaches the target, and power can
+#'     still fall below the target beyond the checked sample sizes;
+#'     \link{pbinbf01} shows power over a range of sample sizes. \link{nbf01},
+#'     \link{nnmbf01}, and \link{ntbf01} determine the sample size without
+#'     this check.
 #'
-#'     If the target power is already reached at the lower bound of
-#'     \code{nrange}, is not reached at its upper bound, or falls below the
-#'     target again above the upper bound, \code{NaN} is returned with a
-#'     warning.
+#'     \code{nrange} gives the endpoints of the numerical search. If power at
+#'     the lower endpoint already exceeds the target, power at the upper
+#'     endpoint is below the target, or the search otherwise fails, \code{NaN}
+#'     is returned with a warning, as for the other sample size functions.
+#'     Because power oscillates, power at the upper endpoint can be below the
+#'     target even if smaller sample sizes reach it. As power is checked
+#'     beyond the crossing, the returned sample size can exceed the upper
+#'     endpoint.
 #'
-#' @return The required sample size to achieve the specified power
+#' @return The required sample size (rounded up to an integer), or \code{NaN}
+#'     with a warning if the search fails
 #'
 #' @references Chernick, M. R., Liu, C. Y. (2002). The saw-toothed behavior of
 #'     power versus sample size and software solutions: Single binomial
 #'     proportion using exact methods. The American Statistician,
 #'     56(2):149-155. \doi{10.1198/000313002317572835}
+#'
+#' Julious, S. A. (2023). Sample Sizes for Clinical Trials (2nd ed.). Chapman
+#'     and Hall/CRC. \doi{10.1201/9780429503658}
 #'
 #' @author Samuel Pawel
 #'
