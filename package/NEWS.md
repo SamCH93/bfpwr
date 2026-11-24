@@ -31,6 +31,13 @@
 - warn in `nbf01()` and `powerbf01()` when the analytical sample size for a
   point analysis prior lies outside `nrange`, which only the numerical search
   uses
+- document in `nbinbf01()` that, because binomial power oscillates with the
+  sample size, it returns a sample size after which power stays at or above
+  the target for the next 10 sample sizes, not the first sample size that
+  reaches the target
+- return `NaN` with a warning instead of an error from `nbinbf01()` and
+  `powerbinbf01()` when the target power is already reached at the lower bound
+  of `nrange` or not reached within it, as the other sample-size functions do
 
 # bfpwr 0.1.7
 

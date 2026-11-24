@@ -8,7 +8,9 @@
 #'     \code{stats::power.prop.test}. For some users, the low-level functions
 #'     \link{nbinbf01} (to directly compute the sample size for a fixed power)
 #'     and \link{pbinbf01} (to directly compute the power for a fixed sample
-#'     size) may also be useful.
+#'     size) may also be useful. The sample size is determined with
+#'     \link{nbinbf01}; see there for how the oscillating binomial power
+#'     function is handled.
 #'
 #' @inheritParams pbinbf01
 #' @inheritParams powerbf01
@@ -18,7 +20,7 @@
 #'     for 'strong evidence' against the null hypothesis
 #' @param nrange Sample size search range over which numerical search is
 #'     performed (only taken into account when \code{n} is \code{NULL}).
-#'     Defaults to \code{c(1, 10^3)}
+#'     Defaults to \code{c(1, 10^4)}
 #'
 #' @inherit powerbf01 return
 #'

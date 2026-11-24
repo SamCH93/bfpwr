@@ -77,6 +77,25 @@ searchN <- function(rootFun, nrange, tol = getOption("bfpwr.tol", 1e-8),
 #'     not drop below the target power for a specified range of sample sizes
 #'     above the solution.
 #'
+#' @details This rule is intended for power functions of discrete data, such
+#'     as the binomial power in \code{nbinbf01()}. These increase with n
+#'     overall but oscillate in a saw-tooth pattern, so power can reach the
+#'     target at n and fall below it at n + 1 (Chernick and Liu, 2002,
+#'     \doi{10.1198/000313002317572835}). A design based on the first crossing
+#'     then loses the target power if one more observation is collected, so
+#'     the function deliberately does not return the first crossing. This is
+#'     different from a genuinely non-monotone power function of continuous
+#'     data (for example, the probability of misleading evidence), for which
+#'     \code{searchN(peak = TRUE)} returns the rising crossing.
+#'
+#'     \code{searchN()} first locates a crossing. If power falls below the
+#'     target within the next \code{nextend} sample sizes, the search is
+#'     repeated from the largest of these sample sizes with power below the
+#'     target, at most \code{maxcycles} times. If \code{searchN()} cannot
+#'     bracket the target, or power falls below the target beyond the upper
+#'     bound of \code{nrange}, \code{NaN} is returned with a warning, as in the
+#'     other sample-size functions.
+#'
 #' @param rootFun Function that returns power - target power as a function of
 #'     the sample size n
 #' @param nrange Sample size search range over which numerical search is
@@ -88,7 +107,9 @@ searchN <- function(rootFun, nrange, tol = getOption("bfpwr.tol", 1e-8),
 #' @param ... Other arguments passed to \code{stats::uniroot}. The sample-size
 #'     root tolerance defaults to \code{tol = 1e-8} and can be overridden.
 #'
-#' @return The required sample size to achieve the specified power
+#' @return The required sample size to achieve the specified power, or
+#'     \code{NaN} with a warning if no such sample size is found within
+#'     \code{nrange}
 #'
 #' @author Samuel Pawel
 #'
@@ -101,6 +122,11 @@ searchNoscil <- function(rootFun, nrange, nextend = 10, maxcycles = 5, ...) {
     nrangei <- nrange
     while (cycles <= maxcycles) {
         ni <- searchN(rootFun = rootFun, nrange = nrangei, ...)
+        if (is.nan(ni)) {
+            ## searchN() has already warned why nrange does not bracket the
+            ## target (e.g., power already above target at nrange[1])
+            return(ni)
+        }
         nextendi <- seq(ni, ni + nextend, 1)
         rootextendi <- rootFun(nextendi)
         if (all(rootextendi >= 0)) {
@@ -113,10 +139,16 @@ searchNoscil <- function(rootFun, nrange, nextend = 10, maxcycles = 5, ...) {
                 ## case return ni + 1
                 return(ni + 1)
             } else {
-                ## otherwise search again
+                ## otherwise search again above the last sample size with
+                ## power below target
                 cycles <- cycles + 1
                 nbelow <- nextendi[which(rootextendi < 0)]
-                nrangei <- c(nbelow[length(nbelow)], nrange[2])
+                nlast <- nbelow[length(nbelow)]
+                if (nlast >= nrange[2]) {
+                    warning("power falls below the target power above the upper bound of the sample size search range ('nrange')")
+                    return(NaN)
+                }
+                nrangei <- c(nlast, nrange[2])
             }
         }
     }

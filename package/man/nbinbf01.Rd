@@ -77,7 +77,42 @@ This function computes the required sample size to obtain a
     binomial Bayes factor (\link{binbf01}) more extreme than a threshold
     \code{k} with a specified target power.
 }
+\details{
+Because the number of successes is discrete, binomial power
+    increases with the sample size overall but oscillates in a saw-tooth
+    pattern: power can reach the target at some \code{n} and fall below it
+    again at \code{n + 1} (Chernick and Liu, 2002). The function therefore
+    does not return the first sample size at which power reaches the
+    target. It returns a sample size \code{n} at which power reaches the
+    target and stays at or above it for the next 10 sample sizes
+    \code{n + 1}, \dots, \code{n + 10}, so that the design does not lose
+    the target power if a few more observations are collected.
+
+    The search first locates a crossing of the target power with
+    \code{stats::uniroot}. If power falls below the target within the next
+    10 sample sizes, the search is repeated from the largest of these
+    sample sizes with power below the target, at most 5 times; after that,
+    a warning is issued and the last crossing is returned. Smaller sample
+    sizes may thus reach the target power, and power may still fall below
+    the target beyond \code{n + 10}; \link{pbinbf01} shows power over a
+    range of sample sizes. This differs from \link{nbf01}, \link{nnmbf01},
+    and \link{ntbf01}, which return the sample size at which power reaches
+    the target.
+
+    If the target power is already reached at the lower bound of
+    \code{nrange}, is not reached at its upper bound, or falls below the
+    target again above the upper bound, \code{NaN} is returned with a
+    warning.
+}
 \examples{
+## binomial power oscillates with the sample size: power reaches 0.8 at
+## n = 74, 76, and 77, but nbinbf01() returns n = 79, after which power
+## stays at or above 0.8 for the next 10 sample sizes
+(n <- nbinbf01(k = 1/6, power = 0.8, p0 = 0.5, type = "point", dp = 0.7))
+nseq <- 72:(n + 10)
+round(setNames(pbinbf01(k = 1/6, n = nseq, p0 = 0.5, type = "point",
+                        dp = 0.7), nseq), 3)
+
 ## sample size parameters
 pow <- 0.9
 p0 <- 3/4
@@ -118,6 +153,12 @@ abline(h = pow, lty = 2)
 abline(v = c(nH1, nH0), col = c(2, 4), lty = 2)
 legend("topleft", legend = c("H1", "H0"), lty = 1, col = c(2, 4))
 }
+}
+\references{
+Chernick, M. R., Liu, C. Y. (2002). The saw-toothed behavior of
+    power versus sample size and software solutions: Single binomial
+    proportion using exact methods. The American Statistician,
+    56(2):149-155. \doi{10.1198/000313002317572835}
 }
 \seealso{
 \link{pbinbf01}, \link{binbf01}
