@@ -278,7 +278,6 @@ tbf01. <- function(t, n, n1 = n, n2 = n, plocation = 0, pscale = 1/sqrt(2),
 
         length(pdf) == 1,
         is.numeric(pdf),
-        is.finite(pdf),
         0 < pdf,
 
         length(log) == 1,
@@ -367,7 +366,8 @@ tbf01. <- function(t, n, n1 = n, n2 = n, plocation = 0, pscale = 1/sqrt(2),
 #' @param plocation \eqn{t} prior location. Defaults to \code{0}
 #' @param pscale \eqn{t} prior scale. Defaults to \code{1/sqrt(2)}
 #' @param pdf \eqn{t} prior degrees of freedom. Defaults to \code{1} (a Cauchy
-#'     prior)
+#'     prior). Set to \code{Inf} for a normal prior with mean \code{plocation}
+#'     and standard deviation \code{pscale} before any one-sided truncation.
 #' @param type Type of \eqn{t}-test. Can be \code{"two.sample"} (default),
 #'     \code{"one.sample"}, or \code{"paired"}
 #' @param alternative Direction of the test. Can be either \code{"two.sided"}

@@ -1,5 +1,6 @@
 # bfpwr 0.3
 
+- allow normal analysis priors for t-tests via `pdf = Inf`
 - new contributor František Bartoš (<https://orcid.org/0000-0002-0018-5573>)
 - add `dirbf01()` to compute directional z-test Bayes factors
 - add point-null one-sided z-tests with truncated normal analysis priors via

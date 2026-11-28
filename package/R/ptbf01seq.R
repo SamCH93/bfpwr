@@ -108,7 +108,6 @@ ptbf01seq <- function(k1, k0 = 1/k1, n, n1 = n, n2 = n, plocation = 0,
 
         length(pdf) == 1,
         is.numeric(pdf),
-        is.finite(pdf),
         0 < pdf,
 
         length(dpm) == 1,
