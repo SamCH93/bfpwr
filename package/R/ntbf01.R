@@ -33,7 +33,6 @@ ntbf01. <- function(k, power, null = 0, plocation = 0, pscale = 1/sqrt(2),
 
         length(pdf) == 1,
         is.numeric(pdf),
-        is.finite(pdf),
         0 < pdf,
 
         length(dpm) == 1,

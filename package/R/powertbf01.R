@@ -92,7 +92,6 @@ powertbf01 <- function(n = NULL, power = NULL, k = 1/10, null = 0,
 
         length(pdf) == 1,
         is.numeric(pdf),
-        is.finite(pdf),
         0 < pdf,
 
         length(dpm) == 1,

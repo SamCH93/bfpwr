@@ -43,7 +43,8 @@ Defaults to \code{0}}
 \item{pscale}{\eqn{t} prior scale. Defaults to \code{1/sqrt(2)}}
 
 \item{pdf}{\eqn{t} prior degrees of freedom. Defaults to \code{1} (a Cauchy
-prior)}
+prior). Set to \code{Inf} for a normal prior with mean \code{plocation}
+and standard deviation \code{pscale} before any one-sided truncation.}
 
 \item{dpm}{Mean of the normal design prior assigned to the standardized mean
 difference. Defaults to the analysis prior location}

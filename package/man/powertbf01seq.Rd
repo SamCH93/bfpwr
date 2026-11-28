@@ -49,7 +49,8 @@ sample size for one-sample and paired tests. Has to be \code{NULL} if
 \item{pscale}{\eqn{t} prior scale. Defaults to \code{1/sqrt(2)}}
 
 \item{pdf}{\eqn{t} prior degrees of freedom. Defaults to \code{1} (a Cauchy
-prior)}
+prior). Set to \code{Inf} for a normal prior with mean \code{plocation}
+and standard deviation \code{pscale} before any one-sided truncation.}
 
 \item{type}{Type of \eqn{t}-test. Can be \code{"two.sample"} (default),
 \code{"one.sample"}, or \code{"paired"}}

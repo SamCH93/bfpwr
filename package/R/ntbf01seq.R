@@ -42,7 +42,6 @@ ntbf01seq. <- function(k1, k0 = 1/k1, power, plocation = 0,
 
         length(pdf) == 1,
         is.numeric(pdf),
-        is.finite(pdf),
         0 < pdf,
 
         length(dpm) == 1,
